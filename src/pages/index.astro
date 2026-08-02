@@ -1,0 +1,57 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import EditorialImage from '../components/EditorialImage.astro';
+import ButtonLink from '../components/ButtonLink.astro';
+import SectionHeading from '../components/SectionHeading.astro';
+import ProductCard from '../components/ProductCard.astro';
+import PublicationCard from '../components/PublicationCard.astro';
+import { products } from '../data/products';
+import { publications } from '../data/publications';
+import { withBase } from '../data/site';
+---
+<BaseLayout title="靜處安身，院宅清歡" bodyClass="home-page">
+  <section class="home-hero page-shell">
+    <div class="hero-copy reveal">
+      <p class="eyebrow">靜院選集・2026 春・清歡</p>
+      <h1>靜處安身<br /><span>院宅清歡</span></h1>
+      <p class="hero-description">可以安身的處所，可以清歡的宅第。<br />靜院是室內設計的規劃者，<br />更是生活家居的實踐家。</p>
+      <div class="hero-actions"><ButtonLink href="shop/" variant="dark">進入 靜及第 Online Shop →</ButtonLink><ButtonLink href="works/">室內設計作品集</ButtonLink></div>
+    </div>
+    <div class="hero-visual reveal"><EditorialImage label="A QUIET ROOM / SPRING 2026" tone="morning" ratio="4 / 5.15" /><p class="vertical-caption">SPACE・OBJECTS・DAILY LIFE</p></div>
+    <p class="hero-number" aria-hidden="true">01</p>
+  </section>
+
+  <section class="featured-project page-shell wide-section">
+    <SectionHeading eyebrow="FEATURED PROJECT・01" title="讓光，慢慢住進來" aside="一處住宅，也是一種生活練習。" />
+    <a class="featured-project-link reveal" href={withBase('works/bamboo-house/')}>
+      <EditorialImage label="BAMBOO HOUSE, YILAN" tone="bamboo" ratio="16 / 8.2" />
+      <div class="featured-caption"><div><p>室內設計・2025</p><h3>宜蘭・竹屋</h3></div><p>48 坪・自然材質・2025 年完工 <span>查看作品 →</span></p></div>
+    </a>
+  </section>
+
+  <section class="practice page-shell">
+    <SectionHeading eyebrow="OUR PRACTICE" title="在同一個屋簷下" aside="空間、器物與閱讀，並不是分開的事情。" />
+    <div class="practice-grid">
+      <a href={withBase('works/')} class="practice-item reveal"><span>01</span><h3>室內設計</h3><p>空間規劃、住宅改造、民宿與商業空間。</p><b>VIEW WORKS ↗</b></a>
+      <a href={withBase('publications/')} class="practice-item reveal"><span>02</span><h3>出版品</h3><p>每季一本安靜的書，記錄器物、光線與生活。</p><b>READ JOURNAL ↗</b></a>
+      <a href={withBase('shop/')} class="practice-item reveal"><span>03</span><h3>靜及第・購物</h3><p>選擇能長久留在家中使用的器物與作品。</p><b>ENTER SHOP ↗</b></a>
+    </div>
+  </section>
+
+  <section class="products-section section-surface">
+    <div class="page-shell">
+      <SectionHeading eyebrow="OBJECTS FOR SLOW LIVING" title="慢生活・器物選" aside="經過雙手，也經過日常。" />
+      <div class="product-grid">{products.slice(0, 4).map((product, index) => <ProductCard product={product} index={index} />)}</div>
+      <div class="section-link"><ButtonLink href="shop/category/home/" variant="plain">瀏覽全部商品 →</ButtonLink></div>
+    </div>
+  </section>
+
+  <section class="journal-section page-shell">
+    <SectionHeading eyebrow="RESTFUL JOURNAL" title="每季一本安靜的書" aside="以紙頁留住微小、緩慢的生活片刻。" />
+    <div class="publication-grid">{publications.map((publication) => <PublicationCard publication={publication} />)}</div>
+  </section>
+
+  <section class="brand-message">
+    <div class="brand-message-inner reveal"><p class="eyebrow">A NOTE FROM THE ATELIER</p><blockquote>讓家成為一個<br />可以慢下來的地方。</blockquote><p>我們不只選擇器物，也整理生活的節奏。</p><a href={withBase('about/')}>讀我們的故事 →</a></div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,14 @@
+---
+interface Props {
+  label: string;
+  tone?: string;
+  ratio?: string;
+  class?: string;
+}
+const { label, tone = 'linen', ratio = '4 / 3', class: className = '' } = Astro.props;
+---
+<div class:list={['editorial-image', `tone-${tone}`, className]} style={`--ratio:${ratio}`} role="img" aria-label={`${label}・設計確認用示意圖`}>
+  <span class="image-corner">RESTFUL ATELIER</span>
+  <span class="image-label">{label}</span>
+  <span class="image-index" aria-hidden="true">靜</span>
+</div>

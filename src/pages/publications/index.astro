@@ -1,0 +1,13 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PublicationCard from '../../components/PublicationCard.astro';
+import { publications } from '../../data/publications';
+---
+<BaseLayout title="出版品">
+  <header class="publication-intro page-shell">
+    <div><p class="eyebrow">靜居家出版品<br />PUBLICATIONS / JOURNAL</p><p>我們將空間裡微小的發現，編成一本可以帶回家、慢慢閱讀的書。</p></div>
+    <h1>每季<br />一本<br />安靜的書</h1>
+  </header>
+  <section class="page-shell publication-list"><div class="publication-grid">{publications.map((publication) => <PublicationCard publication={publication} />)}</div></section>
+  <section class="journal-note page-shell"><p class="eyebrow">EDITOR'S NOTE・04</p><blockquote>清歡不是什麼都沒有，<br />而是知道什麼已經足夠。</blockquote><p>第四期從晨間的一碗粥開始，拜訪三位製作者與兩座安靜的家。記錄光落下的位置，也記錄器物被每日使用後的表情。</p></section>
+</BaseLayout>

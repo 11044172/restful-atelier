@@ -1,0 +1,28 @@
+---
+import { brandNavigation } from '../data/navigation';
+import { withBase } from '../data/site';
+const currentPath = Astro.url.pathname;
+---
+<header class="site-header" data-header>
+  <a class="brand-lockup" href={withBase('')} aria-label="靜院居家首頁">
+    <strong>靜 院 居 家</strong>
+    <span>室內・居家・生活</span>
+  </a>
+  <nav class="desktop-nav" aria-label="主要選單">
+    {brandNavigation.map((item) => <a href={withBase(item.path)} aria-current={currentPath === withBase(item.path) ? 'page' : undefined}>{item.label}</a>)}
+    <a class="shop-entry" href={withBase('shop/')}>靜及第・購物 <span>→</span></a>
+  </nav>
+  <button class="menu-toggle" type="button" aria-label="開啟選單" aria-expanded="false" aria-controls="mobile-menu">
+    <span></span><span></span>
+  </button>
+</header>
+<div class="mobile-menu" id="mobile-menu" aria-hidden="true">
+  <div class="mobile-menu-inner">
+    <p class="eyebrow">RESTFUL ATELIER・MENU</p>
+    <nav aria-label="行動版選單">
+      {brandNavigation.map((item, index) => <a href={withBase(item.path)}><small>0{index + 1}</small>{item.label}</a>)}
+      <a href={withBase('shop/')}><small>06</small>靜及第・購物</a>
+    </nav>
+    <p class="mobile-menu-note">靜處安身，院宅清歡<br />台北・宜蘭・台南</p>
+  </div>
+</div>

@@ -1,0 +1,18 @@
+---
+import type { Product } from '../data/types';
+import { formatPrice } from '../data/products';
+import { withBase } from '../data/site';
+import EditorialImage from './EditorialImage.astro';
+interface Props { product: Product; index?: number; }
+const { product, index = 0 } = Astro.props;
+---
+<article class="product-card reveal" data-product-card data-category={product.category}>
+  <div class="product-visual">
+    <a href={withBase('shop/products/morning-cup/')} aria-label={`查看${product.name}`}><EditorialImage label={product.imageLabel} tone={product.tone} ratio={index % 3 === 1 ? '4 / 5.25' : '4 / 5'} /></a>
+    {product.label && <span class="product-label">{product.label}</span>}
+    <button class="favorite-button" type="button" data-favorite={product.id} aria-pressed="false" aria-label={`收藏${product.name}`}><span aria-hidden="true">◇</span><span class="sr-only favorite-status">尚未收藏</span></button>
+  </div>
+  <a class="product-info" href={withBase('shop/products/morning-cup/')}>
+    <p>{product.maker}</p><h3>{product.name}</h3><span>{formatPrice(product.price)}</span>
+  </a>
+</article>

@@ -1,0 +1,7 @@
+---
+import { withBase } from '../data/site';
+interface Props { href: string; variant?: 'dark' | 'line' | 'plain'; }
+const { href, variant = 'line' } = Astro.props;
+const url = href.startsWith('http') || href.startsWith('mailto:') ? href : withBase(href);
+---
+<a class:list={['button-link', `button-${variant}`]} href={url}><slot /></a>

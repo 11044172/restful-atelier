@@ -1,0 +1,186 @@
+---
+import '../styles/global.css';
+import SiteHeader from '../components/SiteHeader.astro';
+import ShopHeader from '../components/ShopHeader.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  shop?: boolean;
+  bodyClass?: string;
+}
+const { title, description = '室內設計、生活器物與閱讀提案，整理屬於自己的生活節奏。', shop = false, bodyClass = '' } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const socialImage = new URL(`${import.meta.env.BASE_URL.replace(/^\//, '')}og.png`, Astro.site);
+const pageTitle = `${title}｜靜院居家 RESTFUL ATELIER`;
+---
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="theme-color" content="#f3efe5" />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_TW" />
+    <meta property="og:title" content={`${title}｜靜院居家`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={socialImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={`${title}｜靜院居家`} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImage} />
+    <title>{pageTitle}</title>
+  </head>
+  <body class:list={[shop && 'shop-site', bodyClass]}>
+    <a class="skip-link" href="#main-content">跳至主要內容</a>
+    {shop ? <ShopHeader /> : <SiteHeader />}
+    <main id="main-content"><slot /></main>
+    <Footer />
+    <div class="toast" role="status" aria-live="polite" aria-atomic="true" data-toast></div>
+    <script>
+      const $ = <T extends Element>(selector: string, root: ParentNode = document) => root.querySelector<T>(selector);
+      const $$ = <T extends Element>(selector: string, root: ParentNode = document) => [...root.querySelectorAll<T>(selector)];
+      const toast = (message: string) => {
+        const el = $('[data-toast]');
+        if (!el) return;
+        el.textContent = message;
+        el.classList.add('is-visible');
+        window.setTimeout(() => el.classList.remove('is-visible'), 2600);
+      };
+
+      const setupMenu = (toggle: HTMLButtonElement, menu: HTMLElement) => {
+        const focusable = $$<HTMLElement>('a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])', menu);
+        const close = () => {
+          toggle.setAttribute('aria-expanded', 'false');
+          toggle.setAttribute('aria-label', '開啟選單');
+          menu.setAttribute('aria-hidden', 'true');
+          document.body.classList.remove('menu-open');
+        };
+        toggle.addEventListener('click', () => {
+          const open = toggle.getAttribute('aria-expanded') !== 'true';
+          toggle.setAttribute('aria-expanded', String(open));
+          toggle.setAttribute('aria-label', open ? '關閉選單' : '開啟選單');
+          menu.setAttribute('aria-hidden', String(!open));
+          document.body.classList.toggle('menu-open', open);
+          if (open) focusable[0]?.focus();
+        });
+        menu.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') { close(); toggle.focus(); }
+          if (event.key !== 'Tab' || focusable.length === 0) return;
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+          if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        });
+      };
+      $$('.menu-toggle').forEach((item) => {
+        const toggle = item as HTMLButtonElement;
+        const id = toggle.getAttribute('aria-controls');
+        const menu = id ? document.getElementById(id) : null;
+        if (menu) setupMenu(toggle, menu);
+      });
+
+      const searchPanel = $('[data-search-panel]');
+      const searchToggle = $('[data-search-toggle]');
+      const searchClose = $('[data-search-close]');
+      const setSearch = (open: boolean) => {
+        if (!searchPanel) return;
+        searchPanel.classList.toggle('is-open', open);
+        searchPanel.setAttribute('aria-hidden', String(!open));
+        if (open) window.setTimeout(() => $<HTMLInputElement>('input', searchPanel)?.focus(), 50);
+      };
+      searchToggle?.addEventListener('click', () => setSearch(true));
+      searchClose?.addEventListener('click', () => setSearch(false));
+      searchPanel?.addEventListener('keydown', (event) => { if ((event as KeyboardEvent).key === 'Escape') setSearch(false); });
+
+      const readStore = (key: string): string[] => {
+        try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+      };
+      const updateFavoriteUI = () => {
+        const favorites = readStore('restful-favorites');
+        $$<HTMLElement>('[data-favorite-count]').forEach((el) => el.textContent = String(favorites.length));
+        $$<HTMLButtonElement>('[data-favorite]').forEach((button) => {
+          const active = favorites.includes(button.dataset.favorite || '');
+          button.classList.toggle('is-active', active);
+          button.setAttribute('aria-pressed', String(active));
+          const status = $('.favorite-status', button);
+          if (status) status.textContent = active ? '已收藏' : '尚未收藏';
+        });
+      };
+      $$<HTMLButtonElement>('[data-favorite]').forEach((button) => button.addEventListener('click', () => {
+        const id = button.dataset.favorite || '';
+        const favorites = readStore('restful-favorites');
+        const active = favorites.includes(id);
+        localStorage.setItem('restful-favorites', JSON.stringify(active ? favorites.filter((item) => item !== id) : [...favorites, id]));
+        updateFavoriteUI();
+        toast(active ? '已從收藏中移除' : '已收藏這件器物');
+      }));
+      updateFavoriteUI();
+
+      const cartCount = Number(localStorage.getItem('restful-cart') || '0');
+      $$<HTMLElement>('[data-cart-count]').forEach((el) => el.textContent = String(cartCount));
+      $$<HTMLButtonElement>('[data-add-cart]').forEach((button) => button.addEventListener('click', () => {
+        const quantity = Number($<HTMLElement>('[data-quantity-value]')?.textContent || '1');
+        const next = Number(localStorage.getItem('restful-cart') || '0') + quantity;
+        localStorage.setItem('restful-cart', String(next));
+        $$<HTMLElement>('[data-cart-count]').forEach((el) => el.textContent = String(next));
+        toast(`已將 ${quantity} 件商品加入購物車`);
+      }));
+
+      $$<HTMLButtonElement>('[data-quantity]').forEach((button) => button.addEventListener('click', () => {
+        const value = $('[data-quantity-value]');
+        if (!value) return;
+        const next = Math.max(1, Math.min(9, Number(value.textContent || '1') + Number(button.dataset.quantity || '0')));
+        value.textContent = String(next);
+      }));
+
+      $$<HTMLButtonElement>('[data-filter]').forEach((button) => button.addEventListener('click', () => {
+        const group = button.closest('[data-filter-group]');
+        if (!group) return;
+        $$<HTMLButtonElement>('[data-filter]', group).forEach((item) => { item.classList.remove('is-active'); item.setAttribute('aria-pressed', 'false'); });
+        button.classList.add('is-active');
+        button.setAttribute('aria-pressed', 'true');
+        const value = button.dataset.filter;
+        const target = group.getAttribute('data-filter-group');
+        $$<HTMLElement>(`[${target}]`).forEach((card) => card.hidden = value !== '總覽' && value !== '全部' && card.getAttribute(target || '') !== value);
+      }));
+
+      const sort = $<HTMLSelectElement>('[data-product-sort]');
+      sort?.addEventListener('change', () => {
+        const grid = $('[data-product-grid]');
+        if (!grid) return;
+        const cards = $$<HTMLElement>('[data-product-card]', grid);
+        if (sort.value.includes('價格')) cards.reverse().forEach((card) => grid.append(card));
+        toast(`商品排序：${sort.options[sort.selectedIndex].text}`);
+      });
+
+      const contactForm = $<HTMLFormElement>('[data-contact-form]');
+      contactForm?.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const message = $('[data-form-message]');
+        if (!contactForm.checkValidity()) {
+          contactForm.reportValidity();
+          if (message) { message.textContent = '請確認必填欄位後再送出。'; message.classList.add('is-error'); }
+          return;
+        }
+        if (message) { message.textContent = '此為設計確認用展示頁，訊息尚未實際送出。'; message.classList.remove('is-error'); }
+        toast('展示訊息已完成');
+      });
+
+      const revealObserver = 'IntersectionObserver' in window ? new IntersectionObserver((entries) => {
+        entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add('is-shown'); revealObserver?.unobserve(entry.target); } });
+      }, { threshold: 0.08 }) : null;
+      $$('.reveal').forEach((el) => revealObserver ? revealObserver.observe(el) : el.classList.add('is-shown'));
+
+      const header = $('[data-header]');
+      const setHeader = () => header?.classList.toggle('is-scrolled', window.scrollY > 24);
+      setHeader(); window.addEventListener('scroll', setHeader, { passive: true });
+    </script>
+  </body>
+</html>

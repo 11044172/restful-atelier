@@ -1,0 +1,18 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProjectCard from '../../components/ProjectCard.astro';
+import { projects } from '../../data/projects';
+---
+<BaseLayout title="靜院室內設計">
+  <header class="page-intro page-shell">
+    <div><p class="eyebrow">WORKS / INTERIOR DESIGN</p><h1>靜院室內設計</h1></div>
+    <p class="statement">自己是<br />自己的典範</p>
+  </header>
+  <section class="page-shell works-list">
+    <div class="filter-bar" data-filter-group="data-group" aria-label="作品篩選">
+      {['總覽', '風格', '諮詢', '接案'].map((item, index) => <button type="button" class:list={[index === 0 && 'is-active']} data-filter={item} aria-pressed={index === 0 ? 'true' : 'false'}>{item}</button>)}
+    </div>
+    <div class="project-grid">{projects.map((project, index) => <ProjectCard project={project} index={index} />)}</div>
+  </section>
+  <section class="consultation-strip"><p>一個好住的家，從理解你的日常開始。</p><a href={`${import.meta.env.BASE_URL}contact/`}>預約設計諮詢 →</a></section>
+</BaseLayout>

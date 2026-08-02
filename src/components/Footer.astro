@@ -1,0 +1,16 @@
+---
+import { brandNavigation } from '../data/navigation';
+import { withBase } from '../data/site';
+---
+<footer class="footer">
+  <div class="footer-main">
+    <section class="footer-brand">
+      <p class="footer-logo">靜院居家</p>
+      <p>自己是自己的典範。<br />從一扇窗、一只器皿、一盞茶開始，<br />把家養成自己的道場。</p>
+    </section>
+    <nav aria-label="頁尾網站選單"><h2>網站</h2>{brandNavigation.map((item) => <a href={withBase(item.path)}>{item.label}</a>)}</nav>
+    <nav aria-label="頁尾購物選單"><h2>購物</h2><a href={withBase('shop/category/home/')}>居家生活</a><a href={withBase('shop/category/home/')}>香道香氛</a><a href={withBase('shop/category/home/')}>茶道茶品</a><a href={withBase('shop/category/home/')}>藝術骨董</a></nav>
+    <nav aria-label="頁尾追蹤選單"><h2>追蹤</h2><a href={withBase('contact/?topic=instagram')}>Instagram</a><a href={withBase('contact/?topic=newsletter')}>電子報訂閱</a><a href={withBase('publications/')}>季刊預購</a><a href={withBase('about/')}>最新消息</a></nav>
+  </div>
+  <div class="footer-bottom"><span>© 2026 靜院居家</span><span>台北・宜蘭・台南</span><span>RESTFUL ATELIER</span></div>
+</footer>

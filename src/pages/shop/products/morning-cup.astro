@@ -1,0 +1,26 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import EditorialImage from '../../../components/EditorialImage.astro';
+import ProductCard from '../../../components/ProductCard.astro';
+import { products, formatPrice } from '../../../data/products';
+import { withBase } from '../../../data/site';
+const product = products[0];
+---
+<BaseLayout title={product.name} shop>
+  <nav class="breadcrumbs page-shell" aria-label="麵包屑"><a href={withBase('shop/')}>靜及第</a><span>/</span><a href={withBase('shop/category/home/')}>居家生活</a><span>/</span><span aria-current="page">晨飲杯</span></nav>
+  <section class="product-detail page-shell-wide">
+    <div class="product-gallery">
+      <div class="product-main-image"><EditorialImage label="MORNING CUP / FRONT" tone="clay" ratio="4 / 4.75" /></div>
+      <div class="product-thumbnails" aria-label="商品圖片縮圖"><button type="button" aria-label="正面圖"><EditorialImage label="FRONT" tone="clay" ratio="1 / 1" /></button><button type="button" aria-label="側面圖"><EditorialImage label="SIDE" tone="stone" ratio="1 / 1" /></button><button type="button" aria-label="手持示意"><EditorialImage label="IN HAND" tone="morning" ratio="1 / 1" /></button></div>
+    </div>
+    <div class="product-detail-info">
+      <p class="eyebrow">靜院晨物・HANDMADE IN YILAN</p><h1>素胎粗陶・晨飲杯</h1><p class="detail-price">{formatPrice(product.price)}</p>
+      <p class="product-description">粗細而溫厚，握在掌心如一方小院。<br />素燒未上釉，吸水而留茶痕，<br />隨日常使用養出屬於你的光澤。</p>
+      <dl class="product-specs"><div><dt>材質</dt><dd>粗陶・素燒</dd></div><div><dt>尺寸</dt><dd>ø 8 × H 9 cm</dd></div><div><dt>產地</dt><dd>宜蘭・手作</dd></div><div><dt>狀態</dt><dd><span class="stock-dot"></span>現貨</dd></div></dl>
+      <div class="purchase-row"><div class="quantity-selector" aria-label="數量"><button type="button" data-quantity="-1" aria-label="減少數量">−</button><span data-quantity-value aria-live="polite">1</span><button type="button" data-quantity="1" aria-label="增加數量">＋</button></div><button class="add-cart" type="button" data-add-cart>加入購物車</button></div>
+      <button class="detail-favorite" type="button" data-favorite={product.id} aria-pressed="false"><span aria-hidden="true">◇</span> 加入收藏<span class="sr-only favorite-status">尚未收藏</span></button>
+      <div class="product-accordions"><details><summary>使用與保養 <span>＋</span></summary><p>初次使用請以清水洗淨並充分乾燥。素燒表面會隨使用留下自然茶痕，請避免長時間浸泡。</p></details><details><summary>配送與退換 <span>＋</span></summary><p>展示階段尚未啟用物流。正式營運預計 3–5 個工作日出貨，易碎品將使用可回收緩衝材包裝。</p></details><details><summary>關於手作者 <span>＋</span></summary><p>由宜蘭在地陶藝工作室小量製作，保留手捏與柴燒留下的細微差異。</p></details></div>
+    </div>
+  </section>
+  <section class="related-products page-shell"><header><p class="eyebrow">YOU MAY ALSO LIKE</p><h2>與它一起生活的器物</h2></header><div class="product-grid">{products.slice(1, 5).map((item, index) => <ProductCard product={item} index={index} />)}</div></section>
+</BaseLayout>

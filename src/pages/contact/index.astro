@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { site } from '../../data/site';
+---
+<BaseLayout title="聯絡我們">
+  <section class="contact-layout page-shell">
+    <div class="contact-intro"><p class="eyebrow">CONTACT・聯絡</p><h1>聯絡我們</h1><p class="contact-lead">歡迎來信，<br />我們會靜靜地回覆你。</p><address><div><span>設計諮詢</span><a href="mailto:hello@restful-atelier.tw">hello@restful-atelier.tw</a></div><div><span>媒體合作</span><a href="mailto:press@restful-atelier.tw">press@restful-atelier.tw</a></div><div><span>購物客服</span><a href="mailto:shop@restful-atelier.tw">shop@restful-atelier.tw</a></div><p>{site.address}<br />{site.hours}</p></address></div>
+    <form class="contact-form" data-contact-form novalidate>
+      <div class="field"><label for="name">稱呼 <span>必填</span></label><input id="name" name="name" type="text" required autocomplete="name" /><small>請留下我們可以如何稱呼你。</small></div>
+      <div class="field"><label for="email">電子信箱 <span>必填</span></label><input id="email" name="email" type="email" required autocomplete="email" /><small>請輸入有效的電子信箱。</small></div>
+      <div class="field"><label for="type">需求類型 <span>必填</span></label><select id="type" name="type" required><option value="">請選擇</option><option>室內設計諮詢</option><option>商品相關問題</option><option>媒體合作</option><option>其他</option></select></div>
+      <div class="field"><label for="message">訊息內容 <span>必填</span></label><textarea id="message" name="message" rows="6" required></textarea><small>若為空間諮詢，可簡述地點、坪數與預計時間。</small></div>
+      <button class="form-submit" type="submit">送出訊息 <span>→</span></button>
+      <p class="form-message" data-form-message role="status" aria-live="polite"></p>
+    </form>
+  </section>
+</BaseLayout>

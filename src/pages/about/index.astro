@@ -1,0 +1,13 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import EditorialImage from '../../components/EditorialImage.astro';
+import { site } from '../../data/site';
+---
+<BaseLayout title="關於靜院">
+  <header class="about-hero page-shell">
+    <div class="about-visual"><EditorialImage label="ATELIER PORTRAIT / TAIPEI" tone="portrait" ratio="4 / 5.2" /></div>
+    <div class="about-copy"><p class="eyebrow">ABOUT・關於</p><h1>靜院可以是<br />室內設計的規劃者，<br />更是生活家居的實踐家。</h1>{site.about.map((paragraph) => <p>{paragraph}</p>)}</div>
+  </header>
+  <section class="about-values page-shell"><p class="eyebrow">OUR VALUES</p><div><article><span>01</span><h2>真實的日常</h2><p>設計不為拍照的瞬間，而為每一天起居留下舒適餘地。</p></article><article><span>02</span><h2>材料的時間</h2><p>我們偏愛能留下使用痕跡，並在時間中變得更美的材料。</p></article><article><span>03</span><h2>恰好的選擇</h2><p>少一些，但更理解每一件物品為何進入自己的生活。</p></article></div></section>
+  <section class="about-timeline page-shell"><h2>2019 — 2026</h2><p>從第一個住宅案，到第一本季刊、第一只被帶回家的杯子。靜院仍在練習，如何把空間、器物與人的日常，安靜地放在一起。</p></section>
+</BaseLayout>

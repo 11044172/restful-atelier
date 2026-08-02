@@ -1,0 +1,13 @@
+---
+import type { Project } from '../data/types';
+import { withBase } from '../data/site';
+import EditorialImage from './EditorialImage.astro';
+interface Props { project: Project; index?: number; }
+const { project, index = 0 } = Astro.props;
+---
+<article class:list={['project-card', index % 2 === 1 && 'project-offset', 'reveal']} data-project-card data-group={project.group}>
+  <a href={withBase('works/bamboo-house/')}>
+    <EditorialImage label={project.imageLabel} tone={project.tone} ratio={index % 2 === 0 ? '5 / 3.4' : '4 / 3.7'} />
+    <div class="project-info"><div><p class="eyebrow">室內設計・{project.year}</p><h2>{project.title}</h2><p>{project.english}</p></div><dl><div><dt>STYLE</dt><dd>{project.style}</dd></div><div><dt>AREA</dt><dd>{project.size}</dd></div></dl></div>
+  </a>
+</article>

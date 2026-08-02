@@ -1,0 +1,13 @@
+---
+import type { Publication } from '../data/types';
+import { withBase } from '../data/site';
+import EditorialImage from './EditorialImage.astro';
+interface Props { publication: Publication; }
+const { publication } = Astro.props;
+---
+<article class="publication-card reveal">
+  <a href={withBase('publications/')}>
+    <EditorialImage label={`JOURNAL / ${publication.number.toUpperCase()}`} tone={publication.tone} ratio="3 / 4.25" />
+    <div class="publication-meta"><p>{publication.number}・{publication.pages}</p><h2>{publication.title}</h2><span>{publication.subtitle}</span></div>
+  </a>
+</article>
