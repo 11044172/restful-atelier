@@ -7,13 +7,14 @@ import ProductCard from '../../components/ProductCard.astro';
 import { products } from '../../data/products';
 import { categories } from '../../data/categories';
 import { withBase } from '../../data/site';
+import { site } from '../../data/site';
 ---
 <BaseLayout title="靜及第・居家生活器物選" shop>
   <section class="shop-hero page-shell-wide">
-    <div class="shop-hero-copy reveal"><p class="eyebrow">新季・2026 春</p><h1>慢生活的<br />器物清單</h1><p>我們為 2026 年春季挑選了 48 件物品。<br />從一只晨飲杯到一方亞麻桌巾，<br />每一樣都經過靜院的手，<br />住進我們自己的家中使用。</p><ButtonLink href="shop/category/home/" variant="dark">進入居家生活 →</ButtonLink></div>
-    <div class="shop-hero-visual reveal"><EditorialImage label="SPRING OBJECTS / 2026" tone="shop" ratio="16 / 11" /><span class="shop-hero-note">SELECTED AND USED<br />BY RESTFUL ATELIER</span></div>
+    <div class="shop-hero-copy reveal"><p class="eyebrow">{site.collection.shopEyebrow}・{site.collection.label}</p><h1>慢生活的<br />器物清單</h1><p>我們為 {site.collection.year} 年{site.collection.season}季挑選了 {products.length} 件物品。<br />從一只晨飲杯到一方亞麻桌巾，<br />每一樣都經過靜院的手，<br />住進我們自己的家中使用。</p><ButtonLink href="shop/category/daily-living/" variant="dark">進入居家生活 →</ButtonLink></div>
+    <div class="shop-hero-visual reveal"><EditorialImage label={`${site.collection.label} / OBJECTS`} tone="shop" ratio="16 / 11" /><span class="shop-hero-note">SELECTED AND USED<br />BY RESTFUL ATELIER</span></div>
   </section>
-  <section class="category-section page-shell"><SectionHeading eyebrow="SHOP BY CATEGORY" title="為日常，留下一件好東西" aside="六種生活提案・總計 146 件器物" /><div class="category-grid">{categories.map((category, index) => <a class="category-card reveal" href={withBase('shop/category/home/')}><EditorialImage label={category.label} tone={category.tone} ratio={index < 3 ? '4 / 3' : '4 / 3.4'} /><div><h3>{category.name}</h3><p>{category.count} 件商品 <span>→</span></p></div></a>)}</div></section>
-  <section class="products-section section-surface"><div class="page-shell"><SectionHeading eyebrow="OUR MONTHLY EDIT" title="這個月特別想介紹的" aside="適合在春日裡，慢慢開始使用。" /><div class="product-grid">{products.slice(0, 4).map((product, index) => <ProductCard product={product} index={index} />)}</div></div></section>
+  <section class="category-section page-shell"><SectionHeading eyebrow="SHOP BY CATEGORY" title="為日常，留下一件好東西" aside={`六種生活提案・總計 ${products.length} 件器物`} /><div class="category-grid">{categories.map((category, index) => { const count = products.filter((product) => product.categorySlug === category.slug).length; return <a class="category-card reveal" href={withBase(`shop/category/${category.slug}/`)}><EditorialImage label={category.label} tone={category.tone} ratio={index < 3 ? '4 / 3' : '4 / 3.4'} /><div><h3>{category.name}</h3><p>{count} 件商品 <span>→</span></p></div></a>; })}</div></section>
+  <section class="products-section section-surface"><div class="page-shell"><SectionHeading eyebrow="OUR MONTHLY EDIT" title="這個月特別想介紹的" aside="適合在夏日裡，慢慢開始使用。" /><div class="product-grid">{products.slice(0, 4).map((product, index) => <ProductCard product={product} index={index} />)}</div></div></section>
   <section class="editorial-story page-shell-wide"><div class="story-image reveal"><EditorialImage label="A CUP OF TEA / 06:42" tone="tea" ratio="5 / 3.8" /></div><div class="story-copy reveal"><p class="eyebrow">SEASONAL READING・01</p><h2>清晨的<br />一杯茶</h2><blockquote>器物不是裝飾。</blockquote><p>每天拿起、清洗、收回原位的過程，才會讓它慢慢成為生活的一部分。</p><ButtonLink href="shop/products/morning-cup/" variant="plain">查看文中的器物 →</ButtonLink></div></section>
 </BaseLayout>

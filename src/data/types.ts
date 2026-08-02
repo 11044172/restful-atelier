@@ -1,24 +1,52 @@
+export type CategorySlug =
+  | 'daily-living'
+  | 'incense-fragrance'
+  | 'tea-selection'
+  | 'art-collection'
+  | 'healthy-living'
+  | 'pampered-pets';
+
 export type Product = {
-  id: string;
+  slug: string;
   maker: string;
+  series: string;
   name: string;
   price: number;
+  featuredOrder: number;
+  publishedAt: string;
   label?: string;
   imageLabel: string;
   tone: string;
-  category: '手作' | '木作' | '織品' | '限量';
+  categorySlug: CategorySlug;
+  subcategory: string;
+  description: string;
+  material: string;
+  dimensions: string;
+  origin: string;
+  stock: string;
+  care: string;
+  shipping: string;
+  makerStory: string;
 };
 
+export type ProjectType = '住宅空間' | '商業空間' | '民宿旅宿' | '老屋改造';
+
 export type Project = {
-  id: string;
+  slug: string;
   title: string;
   english: string;
   year: string;
+  location: string;
   style: string;
   size: string;
+  projectType: ProjectType;
   imageLabel: string;
   tone: string;
-  group: '風格' | '諮詢' | '接案';
+  concept: string;
+  conceptTitle: string;
+  designNotes: string[];
+  materials: string[];
+  gallery: { label: string; tone: string }[];
 };
 
 export type Publication = {
@@ -30,8 +58,10 @@ export type Publication = {
 };
 
 export type Category = {
+  slug: CategorySlug;
   name: string;
-  count: number;
   label: string;
   tone: string;
+  description: string;
+  subcategories: string[];
 };

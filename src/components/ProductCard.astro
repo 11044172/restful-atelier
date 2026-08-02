@@ -1,18 +1,20 @@
 ---
 import type { Product } from '../data/types';
 import { formatPrice } from '../data/products';
+import { getCategory } from '../data/categories';
 import { withBase } from '../data/site';
 import EditorialImage from './EditorialImage.astro';
 interface Props { product: Product; index?: number; }
 const { product, index = 0 } = Astro.props;
+const categoryName = getCategory(product.categorySlug)?.name || '';
 ---
-<article class="product-card reveal" data-product-card data-category={product.category}>
+<article class="product-card reveal" data-product-card data-product-slug={product.slug} data-category={product.categorySlug} data-subcategory={product.subcategory} data-price={product.price} data-featured-order={product.featuredOrder} data-published-at={product.publishedAt} data-search-text={`${product.name} ${product.maker} ${product.series} ${product.description} ${categoryName} ${product.subcategory}`}>
   <div class="product-visual">
-    <a href={withBase('shop/products/morning-cup/')} aria-label={`查看${product.name}`}><EditorialImage label={product.imageLabel} tone={product.tone} ratio={index % 3 === 1 ? '4 / 5.25' : '4 / 5'} /></a>
+    <a href={withBase(`shop/products/${product.slug}/`)} aria-label={`查看${product.name}`}><EditorialImage label={product.imageLabel} tone={product.tone} ratio={index % 3 === 1 ? '4 / 5.25' : '4 / 5'} /></a>
     {product.label && <span class="product-label">{product.label}</span>}
-    <button class="favorite-button" type="button" data-favorite={product.id} aria-pressed="false" aria-label={`收藏${product.name}`}><span aria-hidden="true">◇</span><span class="sr-only favorite-status">尚未收藏</span></button>
+    <button class="favorite-button" type="button" data-favorite={product.slug} aria-pressed="false" aria-label={`收藏${product.name}`}><span aria-hidden="true">◇</span><span class="sr-only favorite-status">尚未收藏</span></button>
   </div>
-  <a class="product-info" href={withBase('shop/products/morning-cup/')}>
+  <a class="product-info" href={withBase(`shop/products/${product.slug}/`)}>
     <p>{product.maker}</p><h3>{product.name}</h3><span>{formatPrice(product.price)}</span>
   </a>
 </article>

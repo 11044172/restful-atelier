@@ -1,0 +1,31 @@
+---
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import EditorialImage from '../../components/EditorialImage.astro';
+import ButtonLink from '../../components/ButtonLink.astro';
+import { projects } from '../../data/projects';
+import { withBase } from '../../data/site';
+
+export const getStaticPaths = (() => projects.map((project) => ({ params: { slug: project.slug }, props: { project } }))) satisfies GetStaticPaths;
+
+const { project } = Astro.props;
+const index = projects.findIndex((item) => item.slug === project.slug);
+const previous = projects[(index - 1 + projects.length) % projects.length];
+const next = projects[(index + 1) % projects.length];
+---
+<BaseLayout title={project.title} description={project.concept}>
+  <article class="project-detail">
+    <header class="project-hero page-shell">
+      <p class="eyebrow">{project.projectType}・{project.location}・{project.year}</p>
+      <h1>{project.title}</h1><p class="project-english">{project.english}</p>
+      <div class="project-summary"><p>{project.concept}</p><dl><div><dt>年份</dt><dd>{project.year}</dd></div><div><dt>地點</dt><dd>{project.location}</dd></div><div><dt>坪數</dt><dd>{project.size}</dd></div><div><dt>類型</dt><dd>{project.projectType}</dd></div><div><dt>風格</dt><dd>{project.style}</dd></div></dl></div>
+    </header>
+    <div class="project-cover page-shell-wide"><EditorialImage label={`${project.imageLabel} / MAIN`} tone={project.tone} ratio="16 / 9" /></div>
+    <section class="project-concept page-shell"><p class="eyebrow">01・CONCEPT</p><h2>{project.conceptTitle}</h2><div>{project.designNotes.map((paragraph) => <p>{paragraph}</p>)}</div></section>
+    <section class="project-gallery page-shell-wide">{project.gallery.map((image, galleryIndex) => <EditorialImage label={image.label} tone={image.tone} ratio={galleryIndex === 0 ? '5 / 6' : galleryIndex === 1 ? '5 / 3.4' : galleryIndex === 2 ? '4 / 5' : '4 / 3'} />)}</section>
+    <section class="material-section page-shell"><div><p class="eyebrow">02・MATERIALS</p><h2>讓材料保有呼吸，也陪空間慢慢變老</h2></div><ul>{project.materials.map((material, materialIndex) => <li><span>{String(materialIndex + 1).padStart(2, '0')}</span>{material}</li>)}</ul></section>
+    <section class="before-after page-shell-wide"><div><p class="eyebrow">03・DESIGN THOUGHT</p><h2>不是堆疊風格，而是重新看見生活。</h2><p>我們從採光、動線與每日使用開始整理，再讓材質、色澤與細節回到恰好的位置。示意圖待實景照片確認後替換。</p></div><div class="ba-grid"><EditorialImage label={`${project.english} / BEFORE`} tone="fog" ratio="4 / 3" /><EditorialImage label={`${project.english} / AFTER`} tone={project.tone} ratio="4 / 3" /></div></section>
+    <nav class="project-next page-shell" aria-label="相鄰作品"><a href={withBase(`works/${previous.slug}/`)}><small>PREVIOUS PROJECT</small>← {previous.title}</a><a href={withBase(`works/${next.slug}/`)}><small>NEXT PROJECT</small>{next.title} →</a></nav>
+    <section class="project-cta"><p>你的生活，也值得一處安靜的容器。</p><ButtonLink href="contact/?topic=design" variant="line">談談你的空間 →</ButtonLink></section>
+  </article>
+</BaseLayout>

@@ -1,0 +1,26 @@
+---
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import ProductCard from '../../../components/ProductCard.astro';
+import { products } from '../../../data/products';
+import { categories } from '../../../data/categories';
+import { withBase } from '../../../data/site';
+
+export const getStaticPaths = (() => categories.map((category) => ({ params: { slug: category.slug }, props: { category } }))) satisfies GetStaticPaths;
+
+const { category } = Astro.props;
+const categoryProducts = products.filter((product) => product.categorySlug === category.slug);
+---
+<BaseLayout title={category.name} description={category.description} shop>
+  <nav class="breadcrumbs page-shell" aria-label="麵包屑"><a href={withBase('shop/')}>靜及第</a><span>/</span><span aria-current="page">{category.name}</span></nav>
+  <header class="category-intro page-shell"><div><p class="eyebrow">{category.label}・{categoryProducts.length} OBJECTS</p><h1>{category.name}</h1></div><p>{category.description}</p></header>
+  <section class="catalog page-shell">
+    <div class="catalog-toolbar">
+      <div class="filter-bar" data-filter-group="data-subcategory" aria-label={`${category.name}商品篩選`}>{['全部', ...category.subcategories].map((item, index) => <button type="button" class:list={[index === 0 && 'is-active']} data-filter={item} aria-pressed={index === 0 ? 'true' : 'false'}>{item}</button>)}</div>
+      <label class="sort-control">排序<select data-product-sort aria-label="商品排序"><option value="featured">精選</option><option value="latest">最新</option><option value="price-asc">價格低至高</option><option value="price-desc">價格高至低</option></select></label>
+    </div>
+    <div class="product-grid catalog-grid" data-product-grid>{categoryProducts.map((product, index) => <ProductCard product={product} index={index} />)}</div>
+    <p class="catalog-empty" data-filter-empty hidden>此分類目前沒有符合條件的商品。</p>
+  </section>
+  <aside class="catalog-note page-shell"><span>RESTFUL ATELIER STANDARD</span><p>所有商品皆由靜院實際試用後選入。天然材質的色澤與紋理略有差異，正是每件器物獨特的表情。</p></aside>
+</BaseLayout>

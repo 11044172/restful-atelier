@@ -1,4 +1,13 @@
 export const site = {
+  collection: {
+    year: 2026,
+    season: '夏',
+    label: '2026 夏',
+    name: '清歡',
+    homeEyebrow: '靜院選集',
+    shopEyebrow: '新季',
+    announcement: '消費滿 NT$ 2,000 免運・三十日內可退換',
+  },
   name: '靜院居家',
   english: 'RESTFUL ATELIER',
   motto: '靜處安身，院宅清歡',

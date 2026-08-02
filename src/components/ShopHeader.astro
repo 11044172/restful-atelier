@@ -1,39 +1,46 @@
 ---
-import { shopNavigation } from '../data/navigation';
-import { withBase } from '../data/site';
+import { categories } from '../data/categories';
+import { site, withBase } from '../data/site';
 ---
-<div class="announcement">消費滿 NT$ 2,000 免運・三十日內可退換</div>
+<div class="announcement">{site.collection.announcement}</div>
 <header class="shop-header" data-header>
   <div class="shop-tools shop-tools-left">
-    <a href={withBase('shop/category/home/')}>全部商品</a>
-    <button type="button" data-shop-category-toggle>分類</button>
+    <a href={withBase('shop/search/')}>全部商品</a>
+    <button type="button" data-shop-category-toggle aria-expanded="false" aria-controls="shop-category-menu">分類</button>
   </div>
   <a class="shop-brand" href={withBase('shop/')}>
     <strong>靜 及 第</strong>
     <span>居家生活・器物選</span>
   </a>
   <div class="shop-tools shop-tools-right">
-    <button type="button" data-search-toggle>搜尋</button>
-    <a href={withBase('shop/category/home/')} data-favorite-link>收藏（<span data-favorite-count>0</span>）</a>
-    <a href={withBase('shop/products/morning-cup/')} aria-label="購物車">購物車（<span data-cart-count>0</span>）</a>
+    <button type="button" data-search-toggle aria-expanded="false" aria-controls="shop-search-panel">搜尋</button>
+    <a href={withBase('shop/favorites/')}>收藏（<span data-favorite-count>0</span>）</a>
+    <a href={withBase('shop/cart/')} aria-label="購物車">購物車（<span data-cart-count>0</span>）</a>
   </div>
   <button class="menu-toggle shop-menu-toggle" type="button" aria-label="開啟分類選單" aria-expanded="false" aria-controls="shop-mobile-menu"><span></span><span></span></button>
 </header>
 <nav class="shop-category-nav" aria-label="商品分類">
-  {shopNavigation.map((item) => <a href={withBase('shop/category/home/')}>{item}</a>)}
+  {categories.map((category) => <a href={withBase(`shop/category/${category.slug}/`)}>{category.name}</a>)}
 </nav>
+<div class="shop-category-menu" id="shop-category-menu" aria-hidden="true" data-shop-category-menu>
+  <nav aria-label="分類選單">
+    {categories.map((category) => <a href={withBase(`shop/category/${category.slug}/`)}><small>{category.label}</small><span>{category.name}</span></a>)}
+  </nav>
+</div>
 <div class="mobile-menu shop-mobile-menu" id="shop-mobile-menu" aria-hidden="true">
   <div class="mobile-menu-inner">
     <p class="eyebrow">靜及第・SHOP MENU</p>
     <nav aria-label="行動版商品分類">
-      {shopNavigation.map((item, index) => <a href={withBase('shop/category/home/')}><small>0{index + 1}</small>{item}</a>)}
-      <a href={withBase('')}><small>07</small>返回靜院居家</a>
+      {categories.map((category, index) => <a href={withBase(`shop/category/${category.slug}/`)}><small>0{index + 1}</small>{category.name}</a>)}
+      <a href={withBase('shop/favorites/')}><small>07</small>我的收藏</a>
+      <a href={withBase('shop/cart/')}><small>08</small>購物車</a>
+      <a href={withBase('')}><small>09</small>返回靜院居家</a>
     </nav>
   </div>
 </div>
-<div class="search-panel" aria-hidden="true" data-search-panel>
-  <form action={withBase('shop/category/home/')} role="search">
-    <label for="site-search">搜尋靜及第的器物</label>
+<div class="search-panel" id="shop-search-panel" aria-hidden="true" data-search-panel role="dialog" aria-modal="true" aria-labelledby="site-search-label">
+  <form action={withBase('shop/search/')} role="search">
+    <label id="site-search-label" for="site-search">搜尋靜及第的器物</label>
     <div><input id="site-search" name="q" type="search" placeholder="例如：茶杯、亞麻、香器" /><button type="submit">搜尋 →</button></div>
     <button class="search-close" type="button" data-search-close aria-label="關閉搜尋">關閉</button>
   </form>

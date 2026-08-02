@@ -1,0 +1,52 @@
+---
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import EditorialImage from '../../../components/EditorialImage.astro';
+import ProductCard from '../../../components/ProductCard.astro';
+import { products, formatPrice } from '../../../data/products';
+import { getCategory } from '../../../data/categories';
+import { withBase } from '../../../data/site';
+
+export const getStaticPaths = (() => products.map((product) => ({ params: { slug: product.slug }, props: { product } }))) satisfies GetStaticPaths;
+
+const { product } = Astro.props;
+const category = getCategory(product.categorySlug)!;
+const related = [...products.filter((item) => item.categorySlug === product.categorySlug && item.slug !== product.slug), ...products.filter((item) => item.categorySlug !== product.categorySlug && item.slug !== product.slug)].slice(0, 4);
+const gallery = [
+  { label: product.imageLabel, tone: product.tone, name: '主視圖' },
+  { label: `${product.series.toUpperCase()} / DETAIL`, tone: product.tone === 'clay' ? 'stone' : product.tone, name: '細節圖' },
+  { label: `${product.name} / IN DAILY LIFE`, tone: 'morning', name: '使用情境' },
+];
+---
+<BaseLayout title={product.name} description={product.description} shop>
+  <nav class="breadcrumbs page-shell" aria-label="麵包屑"><a href={withBase('shop/')}>靜及第</a><span>/</span><a href={withBase(`shop/category/${category.slug}/`)}>{category.name}</a><span>/</span><span aria-current="page">{product.name}</span></nav>
+  <section class="product-detail page-shell-wide">
+    <div class="product-gallery" data-product-gallery>
+      <div class="product-main-image" data-gallery-main><EditorialImage label={gallery[0].label} tone={gallery[0].tone} ratio="4 / 4.75" /></div>
+      <div class="product-thumbnails" aria-label="商品圖片縮圖">{gallery.map((image, index) => <button type="button" aria-label={`顯示${image.name}`} aria-pressed={index === 0 ? 'true' : 'false'} data-gallery-thumb data-gallery-index={index}><EditorialImage label={image.label} tone={image.tone} ratio="1 / 1" /></button>)}</div>
+    </div>
+    <div class="product-detail-info">
+      <p class="eyebrow">{product.maker}・{product.series}</p><h1>{product.name}</h1><p class="detail-price">{formatPrice(product.price)}</p>
+      <p class="product-description">{product.description}</p>
+      <dl class="product-specs"><div><dt>材質</dt><dd>{product.material}</dd></div><div><dt>尺寸</dt><dd>{product.dimensions}</dd></div><div><dt>產地</dt><dd>{product.origin}</dd></div><div><dt>庫存</dt><dd><span class="stock-dot"></span>{product.stock}</dd></div></dl>
+      <div class="purchase-row"><div class="quantity-selector" aria-label="數量"><button type="button" data-quantity="-1" aria-label="減少數量">−</button><span data-quantity-value aria-live="polite">1</span><button type="button" data-quantity="1" aria-label="增加數量">＋</button></div><button class="add-cart" type="button" data-add-cart={product.slug}>加入購物車</button></div>
+      <button class="detail-favorite" type="button" data-favorite={product.slug} aria-pressed="false"><span aria-hidden="true">◇</span> <span data-favorite-label>加入收藏</span><span class="sr-only favorite-status">尚未收藏</span></button>
+      <div class="product-accordions"><details><summary>使用與保養 <span>＋</span></summary><p>{product.care}</p></details><details><summary>配送與退換 <span>＋</span></summary><p>{product.shipping}</p></details><details><summary>關於手作者 <span>＋</span></summary><p>{product.makerStory}</p></details></div>
+    </div>
+  </section>
+  <section class="related-products page-shell"><header><p class="eyebrow">YOU MAY ALSO LIKE</p><h2>與它一起生活的器物</h2></header><div class="product-grid">{related.map((item, index) => <ProductCard product={item} index={index} />)}</div></section>
+  <script is:inline define:vars={{ gallery }}>
+    const root = document.querySelector('[data-product-gallery]');
+    const main = root?.querySelector('[data-gallery-main] .editorial-image');
+    root?.querySelectorAll('[data-gallery-thumb]').forEach((button) => button.addEventListener('click', () => {
+      const index = Number(button.getAttribute('data-gallery-index') || 0);
+      const selected = gallery[index];
+      if (!main || !selected) return;
+      main.className = `editorial-image tone-${selected.tone}`;
+      main.setAttribute('aria-label', `${selected.label}・設計確認用示意圖`);
+      const label = main.querySelector('.image-label');
+      if (label) label.textContent = selected.label;
+      root.querySelectorAll('[data-gallery-thumb]').forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+    }));
+  </script>
+</BaseLayout>

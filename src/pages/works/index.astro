@@ -9,10 +9,11 @@ import { projects } from '../../data/projects';
     <p class="statement">自己是<br />自己的典範</p>
   </header>
   <section class="page-shell works-list">
-    <div class="filter-bar" data-filter-group="data-group" aria-label="作品篩選">
-      {['總覽', '風格', '諮詢', '接案'].map((item, index) => <button type="button" class:list={[index === 0 && 'is-active']} data-filter={item} aria-pressed={index === 0 ? 'true' : 'false'}>{item}</button>)}
+    <div class="filter-bar" data-filter-group="data-project-type" aria-label="作品篩選">
+      {['全部', '住宅空間', '商業空間', '民宿旅宿', '老屋改造'].map((item, index) => <button type="button" class:list={[index === 0 && 'is-active']} data-filter={item} aria-pressed={index === 0 ? 'true' : 'false'}>{item}</button>)}
     </div>
-    <div class="project-grid">{projects.map((project, index) => <ProjectCard project={project} index={index} />)}</div>
+    <div class="project-grid" data-project-grid>{projects.map((project, index) => <ProjectCard project={project} index={index} />)}</div>
+    <p class="catalog-empty" data-filter-empty hidden>目前尚無此類型的公開案例。</p>
   </section>
-  <section class="consultation-strip"><p>一個好住的家，從理解你的日常開始。</p><a href={`${import.meta.env.BASE_URL}contact/`}>預約設計諮詢 →</a></section>
+  <section class="consultation-strip"><p>一個好住的家，從理解你的日常開始。</p><div><a href={`${import.meta.env.BASE_URL}contact/?topic=design`}>設計諮詢 →</a><a href={`${import.meta.env.BASE_URL}contact/?topic=project`}>接案資訊 →</a></div></section>
 </BaseLayout>

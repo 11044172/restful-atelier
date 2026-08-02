@@ -3,6 +3,7 @@ import '../styles/global.css';
 import SiteHeader from '../components/SiteHeader.astro';
 import ShopHeader from '../components/ShopHeader.astro';
 import Footer from '../components/Footer.astro';
+import { products } from '../data/products';
 
 interface Props {
   title: string;
@@ -37,30 +38,83 @@ const pageTitle = `${title}｜靜院居家 RESTFUL ATELIER`;
     <meta name="twitter:image" content={socialImage} />
     <title>{pageTitle}</title>
   </head>
-  <body class:list={[shop && 'shop-site', bodyClass]}>
+  <body class:list={[shop && 'shop-site', bodyClass]} data-product-slugs={products.map((product) => product.slug).join(',')}>
     <a class="skip-link" href="#main-content">跳至主要內容</a>
     {shop ? <ShopHeader /> : <SiteHeader />}
     <main id="main-content"><slot /></main>
     <Footer />
     <div class="toast" role="status" aria-live="polite" aria-atomic="true" data-toast></div>
     <script>
+      type CartItem = { slug: string; quantity: number };
+      const FAVORITES_KEY = 'restful-favorites';
+      const CART_KEY = 'restful-cart';
+      const validSlugs = new Set((document.body.dataset.productSlugs || '').split(',').filter(Boolean));
       const $ = <T extends Element>(selector: string, root: ParentNode = document) => root.querySelector<T>(selector);
       const $$ = <T extends Element>(selector: string, root: ParentNode = document) => [...root.querySelectorAll<T>(selector)];
+      let toastTimer = 0;
+
       const toast = (message: string) => {
         const el = $('[data-toast]');
         if (!el) return;
+        window.clearTimeout(toastTimer);
         el.textContent = message;
         el.classList.add('is-visible');
-        window.setTimeout(() => el.classList.remove('is-visible'), 2600);
+        toastTimer = window.setTimeout(() => el.classList.remove('is-visible'), 2800);
+      };
+      document.addEventListener('restful:toast', (event) => toast((event as CustomEvent<string>).detail));
+
+      const parseStore = (key: string): unknown => {
+        try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+      };
+      const readFavorites = (): string[] => {
+        const value = parseStore(FAVORITES_KEY);
+        return Array.isArray(value) ? [...new Set(value.filter((item): item is string => typeof item === 'string' && validSlugs.has(item)))] : [];
+      };
+      const readCart = (): CartItem[] => {
+        const value = parseStore(CART_KEY);
+        if (!Array.isArray(value)) return [];
+        const quantities = new Map<string, number>();
+        value.forEach((item) => {
+          if (!item || typeof item !== 'object') return;
+          const slug = 'slug' in item && typeof item.slug === 'string' ? item.slug : '';
+          const rawQuantity = 'quantity' in item ? Number(item.quantity) : 0;
+          if (!validSlugs.has(slug) || !Number.isFinite(rawQuantity)) return;
+          quantities.set(slug, (quantities.get(slug) || 0) + Math.max(1, Math.floor(rawQuantity)));
+        });
+        return [...quantities].map(([slug, quantity]) => ({ slug, quantity }));
+      };
+      const writeFavorites = (favorites: string[]) => {
+        localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+        document.dispatchEvent(new CustomEvent('restful:store-updated'));
+      };
+      const writeCart = (cart: CartItem[]) => {
+        localStorage.setItem(CART_KEY, JSON.stringify(cart));
+        document.dispatchEvent(new CustomEvent('restful:store-updated'));
+      };
+      const updateStoreUI = () => {
+        const favorites = readFavorites();
+        const cart = readCart();
+        $$<HTMLElement>('[data-favorite-count]').forEach((el) => el.textContent = String(favorites.length));
+        $$<HTMLElement>('[data-cart-count]').forEach((el) => el.textContent = String(cart.reduce((sum, item) => sum + item.quantity, 0)));
+        $$<HTMLButtonElement>('[data-favorite]').forEach((button) => {
+          const active = favorites.includes(button.dataset.favorite || '');
+          button.classList.toggle('is-active', active);
+          button.setAttribute('aria-pressed', String(active));
+          const status = $('.favorite-status', button);
+          if (status) status.textContent = active ? '已收藏' : '尚未收藏';
+          const label = $('[data-favorite-label]', button);
+          if (label) label.textContent = active ? '移除收藏' : '加入收藏';
+        });
       };
 
       const setupMenu = (toggle: HTMLButtonElement, menu: HTMLElement) => {
         const focusable = $$<HTMLElement>('a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])', menu);
-        const close = () => {
+        const close = (restoreFocus = false) => {
           toggle.setAttribute('aria-expanded', 'false');
           toggle.setAttribute('aria-label', '開啟選單');
           menu.setAttribute('aria-hidden', 'true');
           document.body.classList.remove('menu-open');
+          if (restoreFocus) toggle.focus();
         };
         toggle.addEventListener('click', () => {
           const open = toggle.getAttribute('aria-expanded') !== 'true';
@@ -70,8 +124,8 @@ const pageTitle = `${title}｜靜院居家 RESTFUL ATELIER`;
           document.body.classList.toggle('menu-open', open);
           if (open) focusable[0]?.focus();
         });
+        document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') close(true); });
         menu.addEventListener('keydown', (event) => {
-          if (event.key === 'Escape') { close(); toggle.focus(); }
           if (event.key !== 'Tab' || focusable.length === 0) return;
           const first = focusable[0];
           const last = focusable[focusable.length - 1];
@@ -86,79 +140,96 @@ const pageTitle = `${title}｜靜院居家 RESTFUL ATELIER`;
         if (menu) setupMenu(toggle, menu);
       });
 
-      const searchPanel = $('[data-search-panel]');
-      const searchToggle = $('[data-search-toggle]');
-      const searchClose = $('[data-search-close]');
-      const setSearch = (open: boolean) => {
+      const categoryToggle = $<HTMLButtonElement>('[data-shop-category-toggle]');
+      const categoryMenu = $<HTMLElement>('[data-shop-category-menu]');
+      const setCategoryMenu = (open: boolean, restoreFocus = false) => {
+        if (!categoryToggle || !categoryMenu) return;
+        categoryToggle.setAttribute('aria-expanded', String(open));
+        categoryMenu.setAttribute('aria-hidden', String(!open));
+        categoryMenu.classList.toggle('is-open', open);
+        if (open) $<HTMLAnchorElement>('a', categoryMenu)?.focus();
+        if (!open && restoreFocus) categoryToggle.focus();
+      };
+      categoryToggle?.addEventListener('click', (event) => { event.stopPropagation(); setCategoryMenu(categoryToggle.getAttribute('aria-expanded') !== 'true'); });
+      categoryMenu?.addEventListener('click', (event) => event.stopPropagation());
+      document.addEventListener('click', () => setCategoryMenu(false));
+      document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && categoryToggle?.getAttribute('aria-expanded') === 'true') setCategoryMenu(false, true); });
+
+      const searchPanel = $<HTMLElement>('[data-search-panel]');
+      const searchToggle = $<HTMLButtonElement>('[data-search-toggle]');
+      const searchClose = $<HTMLButtonElement>('[data-search-close]');
+      const setSearch = (open: boolean, restoreFocus = false) => {
         if (!searchPanel) return;
         searchPanel.classList.toggle('is-open', open);
         searchPanel.setAttribute('aria-hidden', String(!open));
+        searchToggle?.setAttribute('aria-expanded', String(open));
+        document.body.classList.toggle('menu-open', open);
         if (open) window.setTimeout(() => $<HTMLInputElement>('input', searchPanel)?.focus(), 50);
+        if (!open && restoreFocus) searchToggle?.focus();
       };
       searchToggle?.addEventListener('click', () => setSearch(true));
-      searchClose?.addEventListener('click', () => setSearch(false));
-      searchPanel?.addEventListener('keydown', (event) => { if ((event as KeyboardEvent).key === 'Escape') setSearch(false); });
+      searchClose?.addEventListener('click', () => setSearch(false, true));
+      searchPanel?.addEventListener('click', (event) => { if (event.target === searchPanel) setSearch(false, true); });
+      document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && searchPanel?.classList.contains('is-open')) setSearch(false, true); });
 
-      const readStore = (key: string): string[] => {
-        try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
-      };
-      const updateFavoriteUI = () => {
-        const favorites = readStore('restful-favorites');
-        $$<HTMLElement>('[data-favorite-count]').forEach((el) => el.textContent = String(favorites.length));
-        $$<HTMLButtonElement>('[data-favorite]').forEach((button) => {
-          const active = favorites.includes(button.dataset.favorite || '');
-          button.classList.toggle('is-active', active);
-          button.setAttribute('aria-pressed', String(active));
-          const status = $('.favorite-status', button);
-          if (status) status.textContent = active ? '已收藏' : '尚未收藏';
-        });
-      };
       $$<HTMLButtonElement>('[data-favorite]').forEach((button) => button.addEventListener('click', () => {
-        const id = button.dataset.favorite || '';
-        const favorites = readStore('restful-favorites');
-        const active = favorites.includes(id);
-        localStorage.setItem('restful-favorites', JSON.stringify(active ? favorites.filter((item) => item !== id) : [...favorites, id]));
-        updateFavoriteUI();
-        toast(active ? '已從收藏中移除' : '已收藏這件器物');
+        const slug = button.dataset.favorite || '';
+        if (!slug) return;
+        const favorites = readFavorites();
+        const active = favorites.includes(slug);
+        writeFavorites(active ? favorites.filter((item) => item !== slug) : [...favorites, slug]);
+        toast(active ? '已從收藏中移除。' : '已加入收藏。');
       }));
-      updateFavoriteUI();
-
-      const cartCount = Number(localStorage.getItem('restful-cart') || '0');
-      $$<HTMLElement>('[data-cart-count]').forEach((el) => el.textContent = String(cartCount));
       $$<HTMLButtonElement>('[data-add-cart]').forEach((button) => button.addEventListener('click', () => {
-        const quantity = Number($<HTMLElement>('[data-quantity-value]')?.textContent || '1');
-        const next = Number(localStorage.getItem('restful-cart') || '0') + quantity;
-        localStorage.setItem('restful-cart', String(next));
-        $$<HTMLElement>('[data-cart-count]').forEach((el) => el.textContent = String(next));
-        toast(`已將 ${quantity} 件商品加入購物車`);
+        const slug = button.dataset.addCart || '';
+        if (!slug) return;
+        const quantity = Math.max(1, Number($<HTMLElement>('[data-quantity-value]')?.textContent || '1'));
+        const cart = readCart();
+        const existing = cart.find((item) => item.slug === slug);
+        if (existing) existing.quantity += quantity;
+        else cart.push({ slug, quantity });
+        writeCart(cart);
+        toast('商品已加入購物車。');
       }));
-
       $$<HTMLButtonElement>('[data-quantity]').forEach((button) => button.addEventListener('click', () => {
-        const value = $('[data-quantity-value]');
-        if (!value) return;
-        const next = Math.max(1, Math.min(9, Number(value.textContent || '1') + Number(button.dataset.quantity || '0')));
-        value.textContent = String(next);
+        const selector = button.closest('.purchase-row')?.querySelector<HTMLElement>('[data-quantity-value]');
+        if (!selector) return;
+        selector.textContent = String(Math.max(1, Math.min(99, Number(selector.textContent || '1') + Number(button.dataset.quantity || '0'))));
       }));
 
+      const updateFilterEmpty = (root: ParentNode = document) => {
+        const cards = $$<HTMLElement>('[data-product-card], [data-project-card]', root);
+        const empty = $<HTMLElement>('[data-filter-empty]', root);
+        if (empty) empty.hidden = cards.some((card) => !card.hidden);
+      };
       $$<HTMLButtonElement>('[data-filter]').forEach((button) => button.addEventListener('click', () => {
         const group = button.closest('[data-filter-group]');
+        const section = group?.closest('section') || document;
         if (!group) return;
         $$<HTMLButtonElement>('[data-filter]', group).forEach((item) => { item.classList.remove('is-active'); item.setAttribute('aria-pressed', 'false'); });
         button.classList.add('is-active');
         button.setAttribute('aria-pressed', 'true');
         const value = button.dataset.filter;
         const target = group.getAttribute('data-filter-group');
-        $$<HTMLElement>(`[${target}]`).forEach((card) => card.hidden = value !== '總覽' && value !== '全部' && card.getAttribute(target || '') !== value);
+        if (!target) return;
+        $$<HTMLElement>(`[${target}]`, section).forEach((card) => card.hidden = value !== '全部' && card.getAttribute(target) !== value);
+        $<HTMLElement>('[data-project-grid]', section)?.classList.toggle('is-filtered', value !== '全部');
+        updateFilterEmpty(section);
       }));
 
-      const sort = $<HTMLSelectElement>('[data-product-sort]');
-      sort?.addEventListener('change', () => {
-        const grid = $('[data-product-grid]');
+      const sortCards = (sort: HTMLSelectElement) => {
+        const grid = sort.closest('section')?.querySelector<HTMLElement>('[data-product-grid]');
         if (!grid) return;
         const cards = $$<HTMLElement>('[data-product-card]', grid);
-        if (sort.value.includes('價格')) cards.reverse().forEach((card) => grid.append(card));
-        toast(`商品排序：${sort.options[sort.selectedIndex].text}`);
-      });
+        const valueOf = (card: HTMLElement, key: string) => card.dataset[key] || '';
+        cards.sort((a, b) => {
+          if (sort.value === 'latest') return valueOf(b, 'publishedAt').localeCompare(valueOf(a, 'publishedAt'));
+          if (sort.value === 'price-asc') return Number(valueOf(a, 'price')) - Number(valueOf(b, 'price'));
+          if (sort.value === 'price-desc') return Number(valueOf(b, 'price')) - Number(valueOf(a, 'price'));
+          return Number(valueOf(a, 'featuredOrder')) - Number(valueOf(b, 'featuredOrder'));
+        }).forEach((card) => grid.append(card));
+      };
+      $$<HTMLSelectElement>('[data-product-sort]').forEach((sort) => sort.addEventListener('change', () => { sortCards(sort); toast(`商品排序：${sort.options[sort.selectedIndex].text}`); }));
 
       const contactForm = $<HTMLFormElement>('[data-contact-form]');
       contactForm?.addEventListener('submit', (event) => {
@@ -170,17 +241,20 @@ const pageTitle = `${title}｜靜院居家 RESTFUL ATELIER`;
           return;
         }
         if (message) { message.textContent = '此為設計確認用展示頁，訊息尚未實際送出。'; message.classList.remove('is-error'); }
-        toast('展示訊息已完成');
+        toast('此為設計確認用展示頁，訊息尚未實際送出。');
       });
 
       const revealObserver = 'IntersectionObserver' in window ? new IntersectionObserver((entries) => {
         entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add('is-shown'); revealObserver?.unobserve(entry.target); } });
       }, { threshold: 0.08 }) : null;
       $$('.reveal').forEach((el) => revealObserver ? revealObserver.observe(el) : el.classList.add('is-shown'));
-
       const header = $('[data-header]');
       const setHeader = () => header?.classList.toggle('is-scrolled', window.scrollY > 24);
       setHeader(); window.addEventListener('scroll', setHeader, { passive: true });
+      document.addEventListener('restful:store-updated', updateStoreUI);
+      window.addEventListener('storage', updateStoreUI);
+      window.addEventListener('pageshow', updateStoreUI);
+      updateStoreUI();
     </script>
   </body>
 </html>

@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import { products } from '../../data/products';
+import { withBase } from '../../data/site';
+---
+<BaseLayout title="商品搜尋" shop>
+  <nav class="breadcrumbs page-shell" aria-label="麵包屑"><a href={withBase('shop/')}>靜及第</a><span>/</span><span aria-current="page">搜尋</span></nav>
+  <header class="utility-page-header page-shell"><p class="eyebrow">SEARCH・器物搜尋</p><h1><span data-search-query>搜尋</span>的搜尋結果</h1><p data-search-count aria-live="polite">輸入關鍵字，慢慢尋找適合生活的器物。</p></header>
+  <section class="catalog utility-catalog page-shell">
+    <form class="inline-search" action={withBase('shop/search/')} role="search"><label class="sr-only" for="result-search">搜尋商品</label><input id="result-search" name="q" type="search" placeholder="例如：陶、茶、亞麻" /><button type="submit">搜尋 →</button></form>
+    <div class="product-grid catalog-grid" data-search-grid>{products.map((product, index) => <ProductCard product={product} index={index} />)}</div>
+    <div class="empty-state" data-search-empty hidden><h2>找不到符合條件的商品</h2><p>可以換一個詞試試，<br />或回到全部商品慢慢看看。</p><a class="button-link button-dark" href={withBase('shop/search/')}>瀏覽全部商品 →</a></div>
+  </section>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const query = (params.get('q') || '').trim();
+    const input = document.querySelector<HTMLInputElement>('#result-search');
+    const heading = document.querySelector<HTMLElement>('[data-search-query]');
+    const count = document.querySelector<HTMLElement>('[data-search-count]');
+    const empty = document.querySelector<HTMLElement>('[data-search-empty]');
+    const cards = [...document.querySelectorAll<HTMLElement>('[data-search-grid] [data-product-card]')];
+    if (input) input.value = query;
+    if (heading) heading.textContent = query ? `「${query}」` : '全部商品';
+    const normalized = query.toLocaleLowerCase('zh-Hant');
+    let matches = 0;
+    cards.forEach((card) => {
+      const visible = !normalized || (card.dataset.searchText || '').toLocaleLowerCase('zh-Hant').includes(normalized);
+      card.hidden = !visible;
+      if (visible) matches += 1;
+    });
+    if (count) count.textContent = query ? `找到 ${matches} 件商品` : `共 ${matches} 件商品`;
+    if (empty) empty.hidden = matches !== 0;
+  </script>
+</BaseLayout>

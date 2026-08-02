@@ -1,0 +1,43 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import { products } from '../../data/products';
+import { withBase } from '../../data/site';
+const validSlugs = products.map((product) => product.slug);
+---
+<BaseLayout title="我的收藏｜Favorites" shop>
+  <nav class="breadcrumbs page-shell" aria-label="麵包屑"><a href={withBase('shop/')}>靜及第</a><span>/</span><span aria-current="page">我的收藏</span></nav>
+  <header class="utility-page-header page-shell"><p class="eyebrow">FAVORITES</p><h1>我的收藏</h1><p><span data-favorites-page-count>0</span> 件留待細看的器物</p></header>
+  <section class="utility-catalog page-shell">
+    <div class="product-grid favorites-grid" data-favorites-grid>{products.map((product, index) => <ProductCard product={product} index={index} />)}</div>
+    <div class="empty-state" data-favorites-empty><h2>尚未收藏任何商品</h2><p>看見想慢慢留在生活裡的器物時，<br />可以先將它放進收藏。</p><a class="button-link button-dark" href={withBase('shop/search/')}>瀏覽全部商品 →</a></div>
+  </section>
+  <script is:inline define:vars={{ validSlugs }}>
+    const key = 'restful-favorites';
+    const read = () => {
+      try {
+        const value = JSON.parse(localStorage.getItem(key) || '[]');
+        return Array.isArray(value) ? [...new Set(value.filter((slug) => typeof slug === 'string' && validSlugs.includes(slug)))] : [];
+      } catch { return []; }
+    };
+    const render = () => {
+      const favorites = read();
+      const stored = localStorage.getItem(key);
+      if (stored && stored !== JSON.stringify(favorites)) localStorage.setItem(key, JSON.stringify(favorites));
+      document.querySelectorAll('[data-favorites-grid] [data-product-card]').forEach((node) => {
+        const card = node;
+        card.hidden = !favorites.includes(card.getAttribute('data-product-slug') || '');
+      });
+      const grid = document.querySelector('[data-favorites-grid]');
+      if (grid) grid.classList.add('is-ready');
+      const empty = document.querySelector('[data-favorites-empty]');
+      if (empty) empty.hidden = favorites.length > 0;
+      const count = document.querySelector('[data-favorites-page-count]');
+      if (count) count.textContent = String(favorites.length);
+    };
+    render();
+    document.addEventListener('restful:store-updated', render);
+    window.addEventListener('storage', render);
+    window.addEventListener('pageshow', render);
+  </script>
+</BaseLayout>

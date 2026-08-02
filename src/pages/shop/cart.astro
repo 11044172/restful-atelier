@@ -1,0 +1,91 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import EditorialImage from '../../components/EditorialImage.astro';
+import { products, formatPrice } from '../../data/products';
+import { withBase } from '../../data/site';
+const validSlugs = products.map((product) => product.slug);
+---
+<BaseLayout title="購物車｜Shopping Cart" shop>
+  <nav class="breadcrumbs page-shell" aria-label="麵包屑"><a href={withBase('shop/')}>靜及第</a><span>/</span><span aria-current="page">購物車</span></nav>
+  <header class="utility-page-header page-shell"><p class="eyebrow">SHOPPING CART</p><h1>購物車</h1><p><span data-cart-page-count>0</span> 件商品</p></header>
+  <section class="cart-layout page-shell" data-cart-page>
+    <div class="cart-items" data-cart-items>
+      {products.map((product) => <article class="cart-row" data-cart-row={product.slug} data-price={product.price} hidden>
+        <a class="cart-image" href={withBase(`shop/products/${product.slug}/`)} aria-label={`查看${product.name}`}><EditorialImage label={product.imageLabel} tone={product.tone} ratio="1 / 1" /></a>
+        <div class="cart-product"><p>{product.maker}</p><h2><a href={withBase(`shop/products/${product.slug}/`)}>{product.name}</a></h2><span>{formatPrice(product.price)}</span></div>
+        <div class="cart-quantity" aria-label={`${product.name}數量`}><button type="button" data-cart-change="-1" aria-label="減少數量">−</button><span data-cart-row-quantity aria-live="polite">1</span><button type="button" data-cart-change="1" aria-label="增加數量">＋</button></div>
+        <p class="cart-subtotal" data-cart-subtotal>{formatPrice(product.price)}</p>
+        <button class="cart-remove" type="button" data-cart-remove aria-label={`從購物車移除${product.name}`}>移除</button>
+      </article>)}
+    </div>
+    <aside class="cart-summary" data-cart-summary hidden><p class="eyebrow">ORDER SUMMARY</p><div><span>商品合計</span><strong data-cart-total>NT$ 0</strong></div><p>運費將於正式結帳流程中依配送地區計算。</p><button type="button" data-demo-checkout>前往結帳 →</button><a href={withBase('shop/search/')}>繼續選物</a></aside>
+    <div class="empty-state cart-empty" data-cart-empty><h2>購物車目前是空的</h2><p>不急著選擇，<br />先看看有哪些器物適合你的生活。</p><a class="button-link button-dark" href={withBase('shop/search/')}>繼續選物 →</a></div>
+  </section>
+  <script is:inline define:vars={{ validSlugs }}>
+    const key = 'restful-cart';
+    const read = () => {
+      try {
+        const value = JSON.parse(localStorage.getItem(key) || '[]');
+        if (!Array.isArray(value)) return [];
+        const quantities = new Map();
+        value.forEach((item) => {
+          if (!item || typeof item !== 'object' || typeof item.slug !== 'string' || !validSlugs.includes(item.slug)) return;
+          const quantity = Math.max(1, Math.floor(Number(item.quantity) || 1));
+          quantities.set(item.slug, (quantities.get(item.slug) || 0) + quantity);
+        });
+        return [...quantities].map(([slug, quantity]) => ({ slug, quantity }));
+      } catch { return []; }
+    };
+    const write = (cart) => {
+      localStorage.setItem(key, JSON.stringify(cart));
+      document.dispatchEvent(new CustomEvent('restful:store-updated'));
+    };
+    const money = (value) => `NT$ ${value.toLocaleString('zh-TW')}`;
+    const render = () => {
+      const cart = read();
+      const normalized = JSON.stringify(cart);
+      if ((localStorage.getItem(key) || '[]') !== normalized) localStorage.setItem(key, normalized);
+      let total = 0;
+      let count = 0;
+      document.querySelectorAll('[data-cart-row]').forEach((row) => {
+        const item = cart.find((entry) => entry.slug === row.getAttribute('data-cart-row'));
+        row.hidden = !item;
+        if (!item) return;
+        const price = Number(row.getAttribute('data-price') || 0);
+        total += price * item.quantity;
+        count += item.quantity;
+        const quantity = row.querySelector('[data-cart-row-quantity]');
+        const subtotal = row.querySelector('[data-cart-subtotal]');
+        if (quantity) quantity.textContent = String(item.quantity);
+        if (subtotal) subtotal.textContent = money(price * item.quantity);
+      });
+      const countNode = document.querySelector('[data-cart-page-count]');
+      const totalNode = document.querySelector('[data-cart-total]');
+      const empty = document.querySelector('[data-cart-empty]');
+      const summary = document.querySelector('[data-cart-summary]');
+      if (countNode) countNode.textContent = String(count);
+      if (totalNode) totalNode.textContent = money(total);
+      if (empty) empty.hidden = cart.length > 0;
+      if (summary) summary.hidden = cart.length === 0;
+    };
+    document.querySelectorAll('[data-cart-change]').forEach((button) => button.addEventListener('click', () => {
+      const row = button.closest('[data-cart-row]');
+      const slug = row?.getAttribute('data-cart-row') || '';
+      const cart = read();
+      const item = cart.find((entry) => entry.slug === slug);
+      if (!item) return;
+      item.quantity = Math.max(1, item.quantity + Number(button.getAttribute('data-cart-change') || 0));
+      write(cart);
+    }));
+    document.querySelectorAll('[data-cart-remove]').forEach((button) => button.addEventListener('click', () => {
+      const slug = button.closest('[data-cart-row]')?.getAttribute('data-cart-row') || '';
+      write(read().filter((item) => item.slug !== slug));
+      document.dispatchEvent(new CustomEvent('restful:toast', { detail: '商品已從購物車移除。' }));
+    }));
+    document.querySelector('[data-demo-checkout]')?.addEventListener('click', () => document.dispatchEvent(new CustomEvent('restful:toast', { detail: '此為設計確認用展示頁，正式結帳功能將於下一階段串接。' })));
+    render();
+    document.addEventListener('restful:store-updated', render);
+    window.addEventListener('storage', render);
+    window.addEventListener('pageshow', render);
+  </script>
+</BaseLayout>

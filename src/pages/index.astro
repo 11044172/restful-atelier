@@ -8,22 +8,23 @@ import PublicationCard from '../components/PublicationCard.astro';
 import { products } from '../data/products';
 import { publications } from '../data/publications';
 import { withBase } from '../data/site';
+import { site } from '../data/site';
 ---
 <BaseLayout title="靜處安身，院宅清歡" bodyClass="home-page">
   <section class="home-hero page-shell">
     <div class="hero-copy reveal">
-      <p class="eyebrow">靜院選集・2026 春・清歡</p>
+      <p class="eyebrow">{site.collection.homeEyebrow}・{site.collection.label}・{site.collection.name}</p>
       <h1>靜處安身<br /><span>院宅清歡</span></h1>
       <p class="hero-description">可以安身的處所，可以清歡的宅第。<br />靜院是室內設計的規劃者，<br />更是生活家居的實踐家。</p>
       <div class="hero-actions"><ButtonLink href="shop/" variant="dark">進入 靜及第 Online Shop →</ButtonLink><ButtonLink href="works/">室內設計作品集</ButtonLink></div>
     </div>
-    <div class="hero-visual reveal"><EditorialImage label="A QUIET ROOM / SPRING 2026" tone="morning" ratio="4 / 5.15" /><p class="vertical-caption">SPACE・OBJECTS・DAILY LIFE</p></div>
+    <div class="hero-visual reveal"><EditorialImage label={`A QUIET ROOM / ${site.collection.label}`} tone="morning" ratio="4 / 5.15" /><p class="vertical-caption">SPACE・OBJECTS・DAILY LIFE</p></div>
     <p class="hero-number" aria-hidden="true">01</p>
   </section>
 
   <section class="featured-project page-shell wide-section">
     <SectionHeading eyebrow="FEATURED PROJECT・01" title="讓光，慢慢住進來" aside="一處住宅，也是一種生活練習。" />
-    <a class="featured-project-link reveal" href={withBase('works/bamboo-house/')}>
+    <a class="featured-project-link reveal" href={withBase('works/bamboo-house-yilan/')}>
       <EditorialImage label="BAMBOO HOUSE, YILAN" tone="bamboo" ratio="16 / 8.2" />
       <div class="featured-caption"><div><p>室內設計・2025</p><h3>宜蘭・竹屋</h3></div><p>48 坪・自然材質・2025 年完工 <span>查看作品 →</span></p></div>
     </a>
@@ -42,7 +43,7 @@ import { withBase } from '../data/site';
     <div class="page-shell">
       <SectionHeading eyebrow="OBJECTS FOR SLOW LIVING" title="慢生活・器物選" aside="經過雙手，也經過日常。" />
       <div class="product-grid">{products.slice(0, 4).map((product, index) => <ProductCard product={product} index={index} />)}</div>
-      <div class="section-link"><ButtonLink href="shop/category/home/" variant="plain">瀏覽全部商品 →</ButtonLink></div>
+      <div class="section-link"><ButtonLink href="shop/search/" variant="plain">瀏覽全部商品 →</ButtonLink></div>
     </div>
   </section>
 
