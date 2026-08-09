@@ -79,16 +79,31 @@ def checkout(request):
     line_customer = _session_line_customer(request)
     line_identity = LineCustomer.objects.filter(pk=request.session.get("line_customer_id")).first() if request.session.get("line_customer_id") else None
     line_friend_check_failed = request.session.get("line_friend_check_failed") is True
+    previous_order = (
+        Order.objects.filter(line_customer=line_customer)
+        .exclude(status=Order.Status.CANCELLED)
+        .order_by("-created_at", "-pk")
+        .first()
+        if line_customer else None
+    )
     if request.method == "GET":
         token = secrets.token_urlsafe(32)
         request.session["checkout_token"] = token
-        form = CheckoutForm(initial={"idempotency_key": token})
+        initial = {"idempotency_key": token}
+        if previous_order:
+            initial.update({
+                "customer_name": previous_order.customer_name,
+                "phone": previous_order.phone,
+                "email": previous_order.email,
+                "shipping_information": previous_order.shipping_information,
+            })
+        form = CheckoutForm(initial=initial)
     else:
         if not enabled:
             messages.error(request, "訂單服務目前準備中。")
             return redirect("orders:cart")
         if rate_limit_exceeded(request, "checkout", settings.CHECKOUT_RATE_LIMIT):
-            return render(request, "orders/checkout.html", {"form": CheckoutForm(request.POST), "cart": cart, "cart_items": cart.items(), "checkout_enabled": enabled, "line_customer": line_customer, "line_identity": line_identity, "line_friend_check_failed": line_friend_check_failed, "turnstile_site_key": settings.TURNSTILE_SITE_KEY, "shop_page": True, "noindex": True, "rate_limited": True}, status=429)
+            return render(request, "orders/checkout.html", {"form": CheckoutForm(request.POST), "cart": cart, "cart_items": cart.items(), "checkout_enabled": enabled, "line_customer": line_customer, "line_identity": line_identity, "line_friend_check_failed": line_friend_check_failed, "has_previous_order": bool(previous_order), "turnstile_site_key": settings.TURNSTILE_SITE_KEY, "shop_page": True, "noindex": True, "rate_limited": True}, status=429)
         form = CheckoutForm(request.POST)
         expected = request.session.get("checkout_token")
         if form.is_valid() and expected and secrets.compare_digest(form.cleaned_data["idempotency_key"], expected):
@@ -111,7 +126,7 @@ def checkout(request):
                     return redirect("orders:complete", order_number=order.public_number)
         elif form.is_valid():
             form.add_error(None, "此訂單表單已失效，請重新載入頁面。")
-    return render(request, "orders/checkout.html", {"form": form, "cart": cart, "cart_items": cart.items(), "checkout_enabled": enabled, "line_customer": line_customer, "line_identity": line_identity, "line_friend_check_failed": line_friend_check_failed, "turnstile_site_key": settings.TURNSTILE_SITE_KEY, "shop_page": True, "noindex": True})
+    return render(request, "orders/checkout.html", {"form": form, "cart": cart, "cart_items": cart.items(), "checkout_enabled": enabled, "line_customer": line_customer, "line_identity": line_identity, "line_friend_check_failed": line_friend_check_failed, "has_previous_order": bool(previous_order), "turnstile_site_key": settings.TURNSTILE_SITE_KEY, "shop_page": True, "noindex": True})
 
 
 def order_complete(request, order_number):

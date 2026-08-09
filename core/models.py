@@ -1,3 +1,6 @@
+from urllib.parse import quote
+
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -53,7 +56,13 @@ class SiteSettings(models.Model):
 
     @property
     def line_url(self):
-        return self.line_add_friend_url or self.line_official_url
+        explicit_url = self.line_add_friend_url or self.line_official_url
+        if explicit_url:
+            return explicit_url
+        basic_id = settings.LINE_OFFICIAL_ACCOUNT_BASIC_ID.strip()
+        if not basic_id:
+            return ""
+        return f"https://line.me/R/ti/p/{quote(basic_id, safe='@')}"
 
     def checkout_available(self, *, debug=False):
         from .line_config import line_settings_configured

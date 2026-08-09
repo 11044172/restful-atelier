@@ -28,6 +28,7 @@
   {% if line_customer %}
   <form class="contact-form checkout-form" method="post" novalidate>{% csrf_token %}{{ form.non_field_errors }}{{ form.idempotency_key }}<div class="honeypot">{{ form.website }}</div>
     <p class="eyebrow">STEP 2・DELIVERY</p>
+    {% if has_previous_order %}<div class="status-note previous-order-note"><strong>已帶入上次購買資料</strong><br>請確認以下內容，只需修改有變更的項目。</div>{% endif %}
     <div class="field-row"><div class="field"><label for="{{ form.customer_name.id_for_label }}">姓名 <span>必填</span></label>{{ form.customer_name }}{{ form.customer_name.errors }}</div><div class="field"><label for="{{ form.phone.id_for_label }}">電話 <span>必填</span></label>{{ form.phone }}{{ form.phone.errors }}</div></div>
     <div class="field"><label for="{{ form.email.id_for_label }}">Email <span>必填</span></label>{{ form.email }}{{ form.email.errors }}</div>
     <div class="field"><label for="{{ form.shipping_information.id_for_label }}">配送資訊 <span>必填</span></label>{{ form.shipping_information }}{{ form.shipping_information.errors }}</div>

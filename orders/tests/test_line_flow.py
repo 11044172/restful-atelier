@@ -107,6 +107,40 @@ class LineLoginCheckoutTests(TestCase):
         self._complete_callback(friend=True)
         self.assertContains(self.client.get(reverse("orders:checkout")), "送出訂單")
 
+    def test_basic_id_fallback_displays_add_friend_button_and_enables_checkout(self):
+        self.site.line_add_friend_url = ""
+        self.site.line_official_url = ""
+        self.site.save()
+        self._complete_callback(friend=False, sub="U-basic-id")
+
+        response = self.client.get(reverse("orders:checkout"))
+
+        self.assertContains(response, 'href="https://line.me/R/ti/p/@rfull"', html=False)
+        self.assertContains(response, "加入 LINE 好友")
+        self.assertNotContains(response, "訂單服務目前準備中")
+
+    def test_returning_customer_prefills_latest_delivery_information(self):
+        customer = LineCustomer.objects.create(
+            line_user_id="U-returning", display_name="林小姐", is_friend=True,
+        )
+        Order.objects.create(
+            idempotency_key="previous-order", line_customer=customer,
+            customer_name="林美玲", phone="0912-345-678", email="lin@example.com",
+            shipping_information="台北市中正區示範路 1 號", customer_note="舊訂單備註",
+            subtotal=1000,
+        )
+        self._complete_callback(friend=True, sub="U-returning")
+
+        response = self.client.get(reverse("orders:checkout"))
+        form = response.context["form"]
+
+        self.assertEqual(form["customer_name"].value(), "林美玲")
+        self.assertEqual(form["phone"].value(), "0912-345-678")
+        self.assertEqual(form["email"].value(), "lin@example.com")
+        self.assertEqual(form["shipping_information"].value(), "台北市中正區示範路 1 號")
+        self.assertFalse(form["customer_note"].value())
+        self.assertContains(response, "已帶入上次購買資料")
+
     def test_callback_friendship_change_confirms_friend_when_status_api_fails(self):
         self.client.post(reverse("orders:cart_add", args=[self.product.slug]), {"quantity": 1})
         self.client.get(reverse("line_login_start"))
