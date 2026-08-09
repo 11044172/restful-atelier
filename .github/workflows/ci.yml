@@ -24,7 +24,9 @@ jobs:
     env:
       DJANGO_DEBUG: "False"
       DJANGO_SECRET_KEY: ci-validation-only-long-random-value-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ
-      DJANGO_SECURE_SSL_REDIRECT: "True"
+      # TestClient uses HTTP by default. Production still enables this in
+      # render.yaml; disabling it here prevents every view test becoming 301.
+      DJANGO_SECURE_SSL_REDIRECT: "False"
       DJANGO_HSTS_SECONDS: "31536000"
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/restfull_test
       ALLOWED_HOSTS: localhost,127.0.0.1,testserver
