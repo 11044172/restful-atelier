@@ -1,0 +1,14 @@
+Rfull 網站收到新詢問。
+
+分類: {{ inquiry.category.display_name }}
+姓名: {{ inquiry.name }}
+電話: {{ inquiry.phone }}
+Email: {{ inquiry.email }}
+預算區間: {{ inquiry.budget_range|default:'未入力' }}
+案件地點: {{ inquiry.project_location|default:'未入力' }}
+預計施作時間: {{ inquiry.expected_timing|default:'未入力' }}
+電子報: {% if inquiry.newsletter_opt_in %}訂閱{% else %}不訂閱{% endif %}
+
+{{ inquiry.message }}
+
+請在管理畫面更新處理狀態。

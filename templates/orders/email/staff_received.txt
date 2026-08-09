@@ -1,0 +1,15 @@
+Rfull 網站收到新訂單。
+
+注文番号：{{ order.public_number }}
+顧客名：{{ order.customer_name }}
+電話：{{ order.phone }}
+Email：{{ order.email }}
+商品合計：NT$ {{ order.subtotal }}
+送料：未確定
+最終金額：未確定
+
+商品：
+{% for item in order.items.all %}- {{ item.product_name_snapshot }} × {{ item.quantity }} / NT$ {{ item.line_total }}
+{% endfor %}
+
+請在管理畫面確認商品與配送方式、輸入運費，再透過 LINE 聯絡顧客。

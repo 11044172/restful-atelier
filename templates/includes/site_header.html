@@ -1,0 +1,8 @@
+<header class="site-header" data-header>
+  <a class="brand-lockup" href="{% url 'core:home' %}" aria-label="靜院居家首頁"><strong>靜 院 居 家</strong><span>室內・居家・生活</span></a>
+  <nav class="desktop-nav" aria-label="主要選單">
+    <a href="{% url 'core:home' %}">首頁</a><a href="{% url 'content:project_list' %}">室內設計</a><a href="{% url 'content:publication_list' %}">出版品</a><a href="{% url 'core:about' %}">關於</a><a href="{% url 'inquiries:contact' %}">聯絡</a><a class="shop-entry" href="{% url 'catalog:shop' %}">靜及第・購物 <span>→</span></a>
+  </nav>
+  <button class="menu-toggle" type="button" aria-label="開啟選單" aria-expanded="false" aria-controls="mobile-menu"><span></span><span></span></button>
+</header>
+<div class="mobile-menu" id="mobile-menu" aria-hidden="true"><div class="mobile-menu-inner"><p class="eyebrow">RESTFULL ATELIER・MENU</p><nav aria-label="行動版選單"><a href="{% url 'core:home' %}"><small>01</small>首頁</a><a href="{% url 'content:project_list' %}"><small>02</small>室內設計</a><a href="{% url 'content:publication_list' %}"><small>03</small>出版品</a><a href="{% url 'core:about' %}"><small>04</small>關於</a><a href="{% url 'inquiries:contact' %}"><small>05</small>聯絡</a><a href="{% url 'catalog:shop' %}"><small>06</small>靜及第・購物</a></nav><p class="mobile-menu-note">靜處安身，院宅清歡</p></div></div>

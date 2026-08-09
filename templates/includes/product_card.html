@@ -1,0 +1,5 @@
+{% load shop_tags %}
+<article class="product-card reveal" data-product-card data-product-slug="{{ product.slug }}">
+  <div class="product-visual"><a href="{{ product.get_absolute_url }}" aria-label="查看{{ product.name }}">{% with primary=product.primary_image %}{% include 'includes/editorial_image.html' with image=primary.image label=product.image_label alt=primary.alt_text tone=product.tone ratio='4 / 5' %}{% endwith %}</a>{% if product.badge_label %}<span class="product-label">{{ product.badge_label }}</span>{% endif %}<button class="favorite-button" type="button" data-favorite="{{ product.slug }}" aria-pressed="false" aria-label="收藏{{ product.name }}"><span aria-hidden="true">◇</span><span class="sr-only favorite-status">尚未收藏</span></button></div>
+  <a class="product-info" href="{{ product.get_absolute_url }}"><p>{{ product.maker }}</p><h3>{{ product.name }}</h3><span>{{ product.price|currency }}</span></a>
+</article>

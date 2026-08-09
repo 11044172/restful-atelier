@@ -1,0 +1,19 @@
+{% extends "admin/change_form.html" %}
+{% block object-tools-items %}
+  {{ block.super }}
+{% endblock %}
+{% block submit_buttons_bottom %}
+  {{ block.super }}
+  {% if original %}
+    <div class="submit-row">
+      <button type="submit" formaction="{% url 'admin:orders_order_confirm_shipping' original.pk %}">確定運費並發送付款通知</button>
+      <button type="submit" formaction="{% url 'admin:orders_order_resend_payment' original.pk %}">重新發送付款通知</button>
+      <button type="submit" formaction="{% url 'admin:orders_order_confirm_payment' original.pk %}">確認入金</button>
+      <button type="submit" formaction="{% url 'admin:orders_order_mark_shipped' original.pk %}">標記為已出貨並發送 LINE 通知</button>
+      <button type="submit" formaction="{% url 'admin:orders_order_resend_shipping' original.pk %}">重新發送出貨通知</button>
+      <button type="submit" formaction="{% url 'admin:orders_order_mark_preparing' original.pk %}">標記為出貨準備中</button>
+      <button type="submit" formaction="{% url 'admin:orders_order_complete' original.pk %}">標記為完成</button>
+      <button type="submit" formaction="{% url 'admin:orders_order_cancel' original.pk %}">取消訂單</button>
+    </div>
+  {% endif %}
+{% endblock %}

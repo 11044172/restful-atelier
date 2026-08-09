@@ -1,0 +1,35 @@
+{% load static %}
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="{% block meta_description %}{{ site_settings.meta_description }}{% endblock %}">
+  <meta name="robots" content="{% if noindex or not seo_index_enabled %}noindex,nofollow{% else %}index,follow{% endif %}">
+  <meta name="theme-color" content="#f3efe5">
+  <link rel="canonical" href="{{ canonical_origin }}{{ request.path }}">
+  <link rel="icon" href="{% static 'og.png' %}">
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:locale" content="zh_TW">
+  <meta property="og:title" content="{% block og_title %}{{ site_settings.public_name }}{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}{{ site_settings.meta_description }}{% endblock %}">
+  <meta property="og:url" content="{{ canonical_origin }}{{ request.path }}">
+  <meta property="og:image" content="{{ canonical_origin }}{% static 'og.png' %}">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="{% static 'global.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <title>{% block page_title %}靜院居家{% endblock %}｜靜院居家 RESTFULL ATELIER</title>
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"{{ canonical_origin }}/#organization","name":"{{ site_settings.brand_name|escapejs }}","alternateName":"{{ site_settings.public_name|escapejs }}","url":"{{ canonical_origin }}","email":"{{ site_settings.general_email|escapejs }}","telephone":"{{ site_settings.phone_primary|escapejs }}"},{"@type":"WebSite","@id":"{{ canonical_origin }}/#website","name":"{{ site_settings.public_name|escapejs }}","url":"{{ canonical_origin }}","publisher":{"@id":"{{ canonical_origin }}/#organization"}}]}</script>
+  {% block structured_data %}{% endblock %}
+</head>
+<body class="{% if shop_page %}shop-site{% endif %} {% block body_class %}{% endblock %}" data-product-slugs="{% block product_slugs %}{% endblock %}">
+  <a class="skip-link" href="#main-content">跳至主要內容</a>
+  {% if shop_page %}{% include 'includes/shop_header.html' %}{% else %}{% include 'includes/site_header.html' %}{% endif %}
+  <main id="main-content">{% block content %}{% endblock %}</main>
+  {% include 'includes/footer.html' %}
+  <div class="toast {% if messages %}is-visible{% endif %}" role="status" aria-live="polite" aria-atomic="true" data-toast>{% for message in messages %}{{ message }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>
+  <script src="{% static 'js/site.js' %}" defer></script>
+  {% if turnstile_site_key %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endif %}
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

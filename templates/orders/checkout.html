@@ -1,0 +1,36 @@
+{% extends 'base.html' %}{% load shop_tags %}
+{% block page_title %}購買流程{% endblock %}
+{% block content %}
+<nav class="breadcrumbs page-shell"><a href="{% url 'catalog:shop' %}">靜及第</a><span>/</span><a href="{% url 'orders:cart' %}">購物車</a><span>/</span><span>購買流程</span></nav>
+<header class="utility-page-header page-shell"><p class="eyebrow">CHECKOUT</p><h1>送出訂單</h1><p>此時不收取款項，運費與最終金額由工作人員確認。</p></header>
+<section class="checkout-layout page-shell"><div>
+  <div class="line-checkout">
+    <p class="eyebrow">STEP 1・LINE</p>
+    <h2>使用 LINE 登入</h2>
+    <p>為了讓您即時收到訂單確認、運費、付款連結及出貨通知，購買商品需要使用 LINE 登入並加入 Rfull 官方帳號。</p>
+    {% if line_customer %}
+      <div class="status-note">已確認 LINE 登入與好友狀態。您可以繼續填寫配送資料。</div>
+    {% elif line_identity %}
+      <div class="status-note"><strong>請先加入 Rfull 官方 LINE</strong><br>訂單成立後，我們會透過 LINE 通知訂單確認、運費與最終金額、付款連結及出貨資訊。</div>
+      <a class="line-cta" href="{% url 'line_login_start' %}?next={% url 'orders:checkout' %}">加入好友並繼續 →</a>
+      {% if site_settings.line_url %}<a class="button-link" href="{{ site_settings.line_url }}" rel="noopener">開啟官方 LINE</a>{% endif %}
+      <a class="button-link" href="{% url 'line_login_start' %}?next={% url 'orders:checkout' %}">重新確認好友狀態</a>
+    {% else %}
+      <a class="line-cta" href="{% url 'line_login_start' %}?next={% url 'orders:checkout' %}">使用 LINE 登入 →</a>
+    {% endif %}
+  </div>
+  {% if not checkout_enabled %}<div class="status-note">訂單服務目前準備中。LINE 連携設定完成後才會開放訂單服務。</div>{% endif %}
+  {% if rate_limited %}<p class="form-errors">送出次數過多，請稍後再試。</p>{% endif %}
+  {% if line_customer %}
+  <form class="contact-form checkout-form" method="post" novalidate>{% csrf_token %}{{ form.non_field_errors }}{{ form.idempotency_key }}<div class="honeypot">{{ form.website }}</div>
+    <p class="eyebrow">STEP 2・DELIVERY</p>
+    <div class="field-row"><div class="field"><label for="{{ form.customer_name.id_for_label }}">姓名 <span>必填</span></label>{{ form.customer_name }}{{ form.customer_name.errors }}</div><div class="field"><label for="{{ form.phone.id_for_label }}">電話 <span>必填</span></label>{{ form.phone }}{{ form.phone.errors }}</div></div>
+    <div class="field"><label for="{{ form.email.id_for_label }}">Email <span>必填</span></label>{{ form.email }}{{ form.email.errors }}</div>
+    <div class="field"><label for="{{ form.shipping_information.id_for_label }}">配送資訊 <span>必填</span></label>{{ form.shipping_information }}{{ form.shipping_information.errors }}</div>
+    <div class="field"><label for="{{ form.customer_note.id_for_label }}">備註</label>{{ form.customer_note }}{{ form.customer_note.errors }}</div>
+    <p class="manual-shipping-note">運費將由工作人員確認商品與配送方式後另行通知。送出後尚未完成付款，也不需要立即付款。</p>
+    <button class="form-submit" type="submit" {% if not checkout_enabled %}disabled{% endif %}>送出訂單 <span>→</span></button>
+  </form>
+  {% endif %}
+</div><aside class="checkout-summary"><p class="eyebrow">ORDER SUMMARY</p>{% for item in cart_items %}<div class="summary-line"><span>{{ item.product.name }} × {{ item.quantity }}</span><span>{{ item.line_total|currency }}</span></div>{% endfor %}<div class="summary-total"><span>商品合計</span><strong>{{ cart.subtotal|currency }}</strong></div><p>運費：未確定<br>最終金額：未確定</p></aside></section>
+{% endblock %}

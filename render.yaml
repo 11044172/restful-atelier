@@ -1,0 +1,92 @@
+services:
+  - type: web
+    name: restfull
+    runtime: python
+    region: singapore
+    plan: starter
+    buildCommand: ./build.sh
+    preDeployCommand: python manage.py migrate
+    initialDeployHook: python manage.py seed_initial_data
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 60
+    healthCheckPath: /healthz/
+    autoDeployTrigger: checksPass
+    domains:
+      - restfull.com
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.13
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: restfull-db
+          property: connectionString
+      - key: ALLOWED_HOSTS
+        value: restfull.com,www.restfull.com,.onrender.com
+      - key: CSRF_TRUSTED_ORIGINS
+        value: https://restfull.com,https://www.restfull.com
+      - key: CANONICAL_ORIGIN
+        value: https://restfull.com
+      - key: SEO_INDEX_ENABLED
+        value: "False"
+      - key: DJANGO_SECURE_SSL_REDIRECT
+        value: "True"
+      - key: DJANGO_HSTS_SECONDS
+        value: "31536000"
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+      - key: ORDER_NOTIFICATION_EMAIL
+        value: rfullshop@gmail.com
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: EMAIL_USE_TLS
+        value: "True"
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_STORAGE_BUCKET_NAME
+        sync: false
+      - key: AWS_S3_ENDPOINT_URL
+        sync: false
+      - key: AWS_S3_REGION_NAME
+        value: auto
+      - key: AWS_S3_CUSTOM_DOMAIN
+        sync: false
+      - key: TURNSTILE_SITE_KEY
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
+      - key: LINE_LOGIN_CHANNEL_ID
+        sync: false
+      - key: LINE_LOGIN_CHANNEL_SECRET
+        sync: false
+      - key: LINE_LOGIN_CALLBACK_URL
+        value: https://restfull.com/auth/line/callback/
+      - key: LINE_MESSAGING_CHANNEL_ACCESS_TOKEN
+        sync: false
+      - key: LINE_MESSAGING_CHANNEL_SECRET
+        sync: false
+      - key: LINE_OFFICIAL_ACCOUNT_BASIC_ID
+        sync: false
+      - key: LINE_API_TIMEOUT
+        value: "5"
+      - key: LINE_FRIENDSHIP_MAX_AGE
+        value: "900"
+      - key: PAYMENT_LINK_MAX_AGE
+        value: "604800"
+
+databases:
+  - name: restfull-db
+    region: singapore
+    plan: basic-256mb
+    postgresMajorVersion: "17"
+    ipAllowList: []

@@ -1,0 +1,15 @@
+{% extends 'base.html' %}{% load shop_tags %}
+{% block page_title %}購物車{% endblock %}
+{% block content %}
+<nav class="breadcrumbs page-shell"><a href="{% url 'catalog:shop' %}">靜及第</a><span>/</span><span>購物車</span></nav>
+<header class="utility-page-header page-shell"><p class="eyebrow">SHOPPING CART</p><h1>購物車</h1><p>{{ cart|length }} 件商品</p></header>
+<section class="cart-layout page-shell"><div class="cart-items">
+{% for item in cart_items %}<article class="cart-row">
+  <a class="cart-image" href="{{ item.product.get_absolute_url }}">{% with primary=item.product.primary_image %}{% include 'includes/editorial_image.html' with image=primary.image label=item.product.image_label alt=primary.alt_text tone=item.product.tone ratio='1 / 1' %}{% endwith %}</a>
+  <div class="cart-product"><p>{{ item.product.maker }}</p><h2><a href="{{ item.product.get_absolute_url }}">{{ item.product.name }}</a></h2><span>{{ item.product.price|currency }}</span></div>
+  <form class="cart-quantity" method="post" action="{% url 'orders:cart_update' item.product.pk %}" aria-label="{{ item.product.name }}數量">{% csrf_token %}<button type="submit" name="quantity" value="{{ item.quantity|add:'-1' }}" aria-label="減少數量">−</button><span aria-live="polite">{{ item.quantity }}</span><button type="submit" name="quantity" value="{{ item.quantity|add:'1' }}" aria-label="增加數量">＋</button></form>
+  <p class="cart-subtotal">{{ item.line_total|currency }}</p>
+  <form class="cart-remove-form" method="post" action="{% url 'orders:cart_update' item.product.pk %}">{% csrf_token %}<button class="cart-remove" type="submit" name="action" value="remove">移除</button></form>
+</article>{% empty %}<div class="empty-state cart-empty"><h2>購物車目前是空的</h2><p>不急著選擇，<br>先看看有哪些器物適合你的生活。</p><a class="button-link button-dark" href="{% url 'catalog:search' %}">繼續選物 →</a></div>{% endfor %}
+</div>{% if cart_items %}<aside class="cart-summary"><p class="eyebrow">ORDER SUMMARY</p><div><span>商品合計</span><strong>{{ cart.subtotal|currency }}</strong></div><p>運費將由工作人員確認商品與配送方式後另行通知。</p><a class="button-link button-dark" href="{% url 'orders:checkout' %}">前往結帳 →</a><a href="{% url 'catalog:search' %}">繼續選物</a></aside>{% endif %}</section>
+{% endblock %}

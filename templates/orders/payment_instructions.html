@@ -1,0 +1,9 @@
+{% extends 'base.html' %}{% load shop_tags %}
+{% block page_title %}付款資訊{% endblock %}
+{% block content %}<section class="order-complete page-shell"><p class="eyebrow">PAYMENT INFORMATION</p><h1>付款資訊</h1><p class="order-number">{{ order.public_number }}</p>
+<dl class="product-specs"><div><dt>商品合計</dt><dd>{{ order.subtotal|currency }}</dd></div><div><dt>運費</dt><dd>{{ order.shipping_fee|currency }}</dd></div></dl>
+<div class="summary-total"><span>最終付款金額</span><strong>{{ order.final_total|currency }}</strong></div>
+{% for method in methods %}<article class="contact-priority"><h2>{{ method.display_name }}</h2><p>{{ method.instructions|linebreaksbr }}</p>
+  {% if method.code == 'bank_transfer' and site_settings.bank_name %}<dl class="product-specs"><div><dt>銀行</dt><dd>{{ site_settings.bank_name }}</dd></div>{% if site_settings.bank_code %}<div><dt>銀行代碼</dt><dd>{{ site_settings.bank_code }}</dd></div>{% endif %}{% if site_settings.bank_account_number %}<div><dt>帳號</dt><dd>{{ site_settings.bank_account_number }}</dd></div>{% endif %}{% if site_settings.bank_account_name %}<div><dt>戶名</dt><dd>{{ site_settings.bank_account_name }}</dd></div>{% endif %}</dl>{% endif %}
+  {% if method.qr_image %}<img src="{{ method.qr_image.url }}" alt="{{ method.display_name }} QR" style="max-width:320px">{% elif method.code == 'taiwan_pay' and site_settings.taiwan_pay_qr %}<img src="{{ site_settings.taiwan_pay_qr.url }}" alt="Taiwan Pay QR" style="max-width:320px">{% endif %}
+</article>{% empty %}<div class="status-note">目前沒有已完成設定的付款方式，請透過官方 LINE 與我們聯絡。</div>{% endfor %}</section>{% endblock %}

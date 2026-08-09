@@ -1,0 +1,3 @@
+<div class="editorial-image tone-{{ tone|default:'linen' }} {{ extra_class|default:'' }}" style="--ratio:{{ ratio|default:'4 / 3' }}" role="img" aria-label="{{ alt|default:label }}">
+  {% if image %}<img class="cms-image" src="{{ image.url }}" alt="{{ alt|default:label }}" loading="lazy">{% else %}<span class="image-corner">RESTFULL ATELIER</span><span class="image-label">{{ label }}</span><span class="image-index" aria-hidden="true">靜</span>{% endif %}
+</div>

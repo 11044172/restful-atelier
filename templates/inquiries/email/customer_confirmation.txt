@@ -1,0 +1,6 @@
+{{ inquiry.name }} 您好：
+
+已收到您向 Rfull 提交的「{{ inquiry.category.display_name }}」訊息。
+工作人員確認內容後將另行回覆。此郵件不代表任何報價或契約已成立。
+
+Rfull / 靜院居家
