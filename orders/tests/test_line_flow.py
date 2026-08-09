@@ -262,7 +262,10 @@ class NotificationPaymentShippingTests(TestCase):
         self.assertEqual(self.order.payment_link_version, 1)
         notify.assert_called_once_with(self.order.pk)
 
-    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        ORDER_NOTIFICATION_EMAILS=["staff-one@example.com", "staff-two@example.com"],
+    )
     def test_order_email_contains_staff_admin_url(self):
         send_order_emails(self.order)
 
@@ -271,6 +274,8 @@ class NotificationPaymentShippingTests(TestCase):
         expected_path = reverse("admin:orders_order_change", args=[self.order.pk])
         self.assertIn(f"https://restfull-xhex.onrender.com{expected_path}", staff_email.body)
         self.assertIn("確定運費並發送付款通知", staff_email.body)
+        self.assertIn("staff-one@example.com", staff_email.to)
+        self.assertIn("staff-two@example.com", staff_email.to)
 
     @patch("orders.operations.schedule_payment_request")
     def test_admin_confirmation_saves_posted_shipping_fee_and_schedules_line_payment(self, notify):

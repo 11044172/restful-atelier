@@ -122,6 +122,11 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Rfull <rfullshop@gmail.com>")
 ORDER_NOTIFICATION_EMAIL = os.getenv("ORDER_NOTIFICATION_EMAIL", "rfullshop@gmail.com")
+ORDER_NOTIFICATION_EMAILS = [
+    value.strip()
+    for value in os.getenv("ORDER_NOTIFICATION_EMAILS", "").split(",")
+    if value.strip()
+]
 
 TURNSTILE_SITE_KEY = os.getenv("TURNSTILE_SITE_KEY", "")
 TURNSTILE_SECRET_KEY = os.getenv("TURNSTILE_SECRET_KEY", "")

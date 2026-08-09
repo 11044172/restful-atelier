@@ -91,9 +91,13 @@ def send_order_emails(order):
         send_mail(subject, customer_body, settings.DEFAULT_FROM_EMAIL, [order.email], fail_silently=False)
     except Exception:
         logger.exception("Customer order email failed for %s", order.public_number)
-    recipient = site.order_notification_email or settings.ORDER_NOTIFICATION_EMAIL
-    if recipient:
+    recipients = []
+    primary_recipient = site.order_notification_email or settings.ORDER_NOTIFICATION_EMAIL
+    for recipient in [primary_recipient, *settings.ORDER_NOTIFICATION_EMAILS]:
+        if recipient and recipient not in recipients:
+            recipients.append(recipient)
+    if recipients:
         try:
-            send_mail(subject, staff_body, settings.DEFAULT_FROM_EMAIL, [recipient], fail_silently=False)
+            send_mail(subject, staff_body, settings.DEFAULT_FROM_EMAIL, recipients, fail_silently=False)
         except Exception:
             logger.exception("Staff order email failed for %s", order.public_number)
