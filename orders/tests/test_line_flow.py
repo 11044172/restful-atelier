@@ -104,6 +104,38 @@ class LineLoginCheckoutTests(TestCase):
         self._complete_callback(friend=True)
         self.assertContains(self.client.get(reverse("orders:checkout")), "送出訂單")
 
+    def test_friendship_api_failure_keeps_verified_line_identity(self):
+        self.client.post(reverse("orders:cart_add", args=[self.product.slug]), {"quantity": 1})
+        self.client.get(reverse("line_login_start"))
+        oauth = self.client.session["line_oauth"]
+        with patch("orders.views.exchange_code", return_value={"access_token": "temporary", "id_token": "id-token"}), \
+             patch("orders.views.verify_id_token", return_value={"sub": "U-friend-api", "name": "林小姐"}), \
+             patch("orders.views.get_friendship_status", side_effect=LineLoginError("LINE API rejected the request (403).")):
+            response = self.client.get(reverse("line_login_callback"), {"state": oauth["state"], "code": "authorization-code"})
+
+        self.assertRedirects(response, reverse("orders:checkout"))
+        customer = LineCustomer.objects.get(line_user_id="U-friend-api")
+        self.assertEqual(self.client.session["line_customer_id"], customer.pk)
+        self.assertFalse(self.client.session["line_friend_verified"])
+        self.assertTrue(self.client.session["line_friend_check_failed"])
+        self.assertIsNone(customer.friend_checked_at)
+        self.assertIn(str(self.product.pk), self.client.session["cart"])
+        checkout = self.client.get(reverse("orders:checkout"))
+        self.assertContains(checkout, "LINE 登入已完成")
+        self.assertContains(checkout, "重新確認好友狀態")
+        self.assertNotContains(checkout, "<form class=\"contact-form checkout-form\"", html=False)
+
+    def test_friendship_retry_clears_previous_failure(self):
+        self._complete_callback(friend=True, sub="U-retry")
+        session = self.client.session
+        session["line_friend_check_failed"] = True
+        session.save()
+
+        self._complete_callback(friend=True, sub="U-retry")
+
+        self.assertNotIn("line_friend_check_failed", self.client.session)
+        self.assertTrue(self.client.session["line_friend_verified"])
+
     def test_invalid_id_token_claims_are_rejected(self):
         now = int(time.time())
         valid = {"iss": "https://access.line.me", "aud": "1234567890", "exp": now + 60, "nonce": "n", "sub": "U1", "name": "Name"}

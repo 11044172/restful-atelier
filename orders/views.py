@@ -1,3 +1,4 @@
+import logging
 import secrets
 import time
 
@@ -25,6 +26,9 @@ from .models import LineCustomer, Order, PaymentMethod
 from .payment_links import PaymentLinkError, resolve_payment_token
 from .payment_providers import get_provider
 from .services import CartValidationError, create_order_from_cart, send_order_emails
+
+
+logger = logging.getLogger(__name__)
 
 
 def cart_detail(request):
@@ -73,6 +77,7 @@ def checkout(request):
     enabled = site.checkout_available(debug=settings.DEBUG)
     line_customer = _session_line_customer(request)
     line_identity = LineCustomer.objects.filter(pk=request.session.get("line_customer_id")).first() if request.session.get("line_customer_id") else None
+    line_friend_check_failed = request.session.get("line_friend_check_failed") is True
     if request.method == "GET":
         token = secrets.token_urlsafe(32)
         request.session["checkout_token"] = token
@@ -82,7 +87,7 @@ def checkout(request):
             messages.error(request, "訂單服務目前準備中。")
             return redirect("orders:cart")
         if rate_limit_exceeded(request, "checkout", settings.CHECKOUT_RATE_LIMIT):
-            return render(request, "orders/checkout.html", {"form": CheckoutForm(request.POST), "cart": cart, "cart_items": cart.items(), "checkout_enabled": enabled, "line_customer": line_customer, "line_identity": line_identity, "turnstile_site_key": settings.TURNSTILE_SITE_KEY, "shop_page": True, "noindex": True, "rate_limited": True}, status=429)
+            return render(request, "orders/checkout.html", {"form": CheckoutForm(request.POST), "cart": cart, "cart_items": cart.items(), "checkout_enabled": enabled, "line_customer": line_customer, "line_identity": line_identity, "line_friend_check_failed": line_friend_check_failed, "turnstile_site_key": settings.TURNSTILE_SITE_KEY, "shop_page": True, "noindex": True, "rate_limited": True}, status=429)
         form = CheckoutForm(request.POST)
         expected = request.session.get("checkout_token")
         if form.is_valid() and expected and secrets.compare_digest(form.cleaned_data["idempotency_key"], expected):
@@ -105,7 +110,7 @@ def checkout(request):
                     return redirect("orders:complete", order_number=order.public_number)
         elif form.is_valid():
             form.add_error(None, "此訂單表單已失效，請重新載入頁面。")
-    return render(request, "orders/checkout.html", {"form": form, "cart": cart, "cart_items": cart.items(), "checkout_enabled": enabled, "line_customer": line_customer, "line_identity": line_identity, "turnstile_site_key": settings.TURNSTILE_SITE_KEY, "shop_page": True, "noindex": True})
+    return render(request, "orders/checkout.html", {"form": form, "cart": cart, "cart_items": cart.items(), "checkout_enabled": enabled, "line_customer": line_customer, "line_identity": line_identity, "line_friend_check_failed": line_friend_check_failed, "turnstile_site_key": settings.TURNSTILE_SITE_KEY, "shop_page": True, "noindex": True})
 
 
 def order_complete(request, order_number):
@@ -146,15 +151,33 @@ def line_login_callback(request):
     state = request.GET.get("state", "")
     code = request.GET.get("code", "")
     if not oauth or not state or not secrets.compare_digest(state, oauth.get("state", "")) or not code:
+        logger.warning(
+            "LINE Login callback state validation failed (oauth_session=%s, state=%s, code=%s).",
+            bool(oauth), bool(state), bool(code),
+        )
         messages.error(request, "LINE 登入驗證失敗，請重新操作。")
         return redirect("orders:checkout")
     try:
         tokens = exchange_code(code=code, code_verifier=oauth["code_verifier"])
-        claims = verify_id_token(id_token=tokens["id_token"], nonce=oauth["nonce"])
-        is_friend = get_friendship_status(tokens["access_token"])
-    except (LineLoginError, KeyError):
+    except (LineLoginError, KeyError) as exc:
+        logger.warning("LINE Login token exchange failed: %s", exc)
         messages.error(request, "LINE 登入驗證失敗，請稍後再試。")
         return redirect("orders:checkout")
+    try:
+        claims = verify_id_token(id_token=tokens["id_token"], nonce=oauth["nonce"])
+    except (LineLoginError, KeyError) as exc:
+        logger.warning("LINE Login ID token verification failed: %s", exc)
+        messages.error(request, "LINE 登入驗證失敗，請稍後再試。")
+        return redirect("orders:checkout")
+
+    try:
+        is_friend = get_friendship_status(tokens["access_token"])
+    except LineLoginError as exc:
+        # The ID token already proves the login. A separate friendship API
+        # outage or channel-linking error must not discard that identity.
+        logger.warning("LINE Login friendship status check failed: %s", exc)
+        is_friend = None
+
     now = timezone.now()
     customer, created = LineCustomer.objects.get_or_create(
         line_user_id=claims["sub"], defaults={"display_name": claims["name"]}
@@ -162,21 +185,29 @@ def line_login_callback(request):
     was_friend = customer.is_friend
     customer.display_name = claims["name"]
     customer.picture_url = claims.get("picture", "")
-    customer.is_friend = is_friend
-    if is_friend:
-        customer.is_blocked = False
-        if created or not was_friend:
-            customer.followed_at = now
+    if is_friend is not None:
+        customer.is_friend = is_friend
+        if is_friend:
+            customer.is_blocked = False
+            if created or not was_friend:
+                customer.followed_at = now
+        customer.friend_checked_at = now
     customer.last_login_at = now
-    customer.friend_checked_at = now
     customer.save()
     request.session.cycle_key()
     request.session["line_customer_id"] = customer.pk
-    request.session["line_friend_checked_at"] = time.time()
-    request.session["line_friend_verified"] = is_friend
-    if is_friend:
-        messages.success(request, "LINE 登入及好友狀態已確認。")
+    if is_friend is None:
+        request.session.pop("line_friend_checked_at", None)
+        request.session["line_friend_verified"] = False
+        request.session["line_friend_check_failed"] = True
+        messages.warning(request, "LINE 登入已完成，但暫時無法確認好友狀態。請稍後重新確認。")
     else:
+        request.session["line_friend_checked_at"] = time.time()
+        request.session["line_friend_verified"] = is_friend
+        request.session.pop("line_friend_check_failed", None)
+    if is_friend is True:
+        messages.success(request, "LINE 登入及好友狀態已確認。")
+    elif is_friend is False:
         messages.warning(request, "請先加入 Rfull 官方 LINE，才能送出訂單。")
     return redirect(oauth.get("next") or "orders:checkout")
 
