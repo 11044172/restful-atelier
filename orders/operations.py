@@ -8,7 +8,11 @@ from .models import Order, Payment, PaymentMethod
 
 @transaction.atomic
 def confirm_shipping_and_request_payment(order_id):
-    order = Order.objects.select_for_update().select_related("line_customer").get(pk=order_id)
+    order = (
+        Order.objects.select_related("line_customer")
+        .select_for_update(of=("self",))
+        .get(pk=order_id)
+    )
     if order.shipping_fee is None:
         raise ValidationError("送料を入力して保存してから実行してください。")
     if order.status == Order.Status.CANCELLED:
