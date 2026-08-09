@@ -29,7 +29,7 @@ class SiteSettings(models.Model):
     bank_account_number = models.CharField("口座番号", max_length=80, blank=True)
     bank_account_name = models.CharField("口座名義", max_length=120, blank=True)
     taiwan_pay_qr = models.ImageField("Taiwan Pay QR", upload_to="payments/taiwan-pay/", blank=True, validators=[validate_image_upload])
-    checkout_enabled = models.BooleanField("注文受付を有効化", default=False)
+    checkout_enabled = models.BooleanField("注文受付を有効化", default=True)
     order_notification_email = models.EmailField("注文通知 Email", default="rfullshop@gmail.com", blank=True)
     meta_description = models.CharField("既定 meta description", max_length=255, default="室內設計、生活器物與閱讀提案，整理屬於自己的生活節奏。")
     updated_at = models.DateTimeField(auto_now=True)

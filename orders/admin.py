@@ -1,3 +1,5 @@
+from decimal import Decimal, InvalidOperation
+
 from django.contrib import admin
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -115,6 +117,24 @@ class OrderAdmin(admin.ModelAdmin):
         return redirect(reverse("admin:orders_order_change", args=[object_id]))
 
     def confirm_shipping(self, request, object_id):
+        order = get_object_or_404(Order, pk=object_id)
+        if not self.has_change_permission(request, order):
+            raise PermissionDenied
+        if request.method != "POST":
+            return redirect(reverse("admin:orders_order_change", args=[object_id]))
+        raw_shipping_fee = request.POST.get("shipping_fee", "").strip().replace(",", "")
+        try:
+            shipping_fee = Decimal(raw_shipping_fee)
+        except (InvalidOperation, ValueError):
+            self.message_user(request, "運費を0以上の整数で入力してください。", level=messages.ERROR)
+            return redirect(reverse("admin:orders_order_change", args=[object_id]))
+        order.shipping_fee = shipping_fee
+        try:
+            order.full_clean()
+        except ValidationError as exc:
+            self.message_user(request, "; ".join(exc.messages), level=messages.ERROR)
+            return redirect(reverse("admin:orders_order_change", args=[object_id]))
+        order.save(update_fields=("shipping_fee", "final_total", "updated_at"))
         return self._run(request, object_id, confirm_shipping_and_request_payment, "運費を確定し、支払い通知処理を実行しました。")
 
     def resend_payment(self, request, object_id):

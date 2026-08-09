@@ -12,4 +12,7 @@ Email：{{ order.email }}
 {% for item in order.items.all %}- {{ item.product_name_snapshot }} × {{ item.quantity }} / NT$ {{ item.line_total }}
 {% endfor %}
 
-請在管理畫面確認商品與配送方式、輸入運費，再透過 LINE 聯絡顧客。
+訂單詳細與運費輸入：
+{{ order_admin_url }}
+
+請開啟上述網址確認商品與配送方式、輸入運費，再按下「確定運費並發送付款通知」。系統會透過 LINE 將運費與付款網址通知顧客。

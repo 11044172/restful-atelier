@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.db import IntegrityError, transaction
 from django.template.loader import render_to_string
+from django.urls import reverse
 
 from catalog.models import Product
 from core.models import SiteSettings
@@ -81,7 +82,8 @@ def create_order_from_cart(*, cart, cleaned_data, line_customer=None):
 
 def send_order_emails(order):
     site = SiteSettings.load()
-    context = {"order": order, "site_settings": site}
+    order_admin_url = f"{settings.CANONICAL_ORIGIN}{reverse('admin:orders_order_change', args=[order.pk])}"
+    context = {"order": order, "site_settings": site, "order_admin_url": order_admin_url}
     subject = f"[Rfull] 注文受付 {order.public_number}"
     customer_body = render_to_string("orders/email/customer_received.txt", context)
     staff_body = render_to_string("orders/email/staff_received.txt", context)

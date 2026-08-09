@@ -7,7 +7,8 @@ from decimal import Decimal
 from urllib.parse import parse_qs, urlparse
 from unittest.mock import patch
 
-from django.core import signing
+from django.contrib.auth import get_user_model
+from django.core import mail, signing
 from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -21,7 +22,7 @@ from orders.line_webhooks import process_event
 from orders.models import LineCustomer, LineNotification, LineWebhookEvent, Order, OrderItem, Payment, PaymentMethod
 from orders.operations import confirm_shipping_and_request_payment, mark_shipped
 from orders.payment_links import PaymentLinkError, make_payment_token, resolve_payment_token
-from orders.services import create_order_from_cart
+from orders.services import create_order_from_cart, send_order_emails
 
 
 LINE_SETTINGS = {
@@ -257,6 +258,37 @@ class NotificationPaymentShippingTests(TestCase):
             confirm_shipping_and_request_payment(self.order.pk)
         self.order.refresh_from_db()
         self.assertEqual(self.order.final_total, 3200)
+        self.assertEqual(self.order.status, Order.Status.AWAITING_PAYMENT)
+        self.assertEqual(self.order.payment_link_version, 1)
+        notify.assert_called_once_with(self.order.pk)
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_order_email_contains_staff_admin_url(self):
+        send_order_emails(self.order)
+
+        self.assertEqual(len(mail.outbox), 2)
+        staff_email = mail.outbox[1]
+        expected_path = reverse("admin:orders_order_change", args=[self.order.pk])
+        self.assertIn(f"https://restfull-xhex.onrender.com{expected_path}", staff_email.body)
+        self.assertIn("確定運費並發送付款通知", staff_email.body)
+
+    @patch("orders.operations.schedule_payment_request")
+    def test_admin_confirmation_saves_posted_shipping_fee_and_schedules_line_payment(self, notify):
+        admin_user = get_user_model().objects.create_superuser(
+            username="shipping-admin", email="admin@example.com", password="password",
+        )
+        self.client.force_login(admin_user)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse("admin:orders_order_confirm_shipping", args=[self.order.pk]),
+                {"shipping_fee": "240"},
+            )
+
+        self.assertRedirects(response, reverse("admin:orders_order_change", args=[self.order.pk]))
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.shipping_fee, 240)
+        self.assertEqual(self.order.final_total, 3240)
         self.assertEqual(self.order.status, Order.Status.AWAITING_PAYMENT)
         self.assertEqual(self.order.payment_link_version, 1)
         notify.assert_called_once_with(self.order.pk)

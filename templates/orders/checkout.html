@@ -9,7 +9,7 @@
     <h2>使用 LINE 登入</h2>
     <p>為了讓您即時收到訂單確認、運費、付款連結及出貨通知，購買商品需要使用 LINE 登入並加入 Rfull 官方帳號。</p>
     {% if line_customer %}
-      <div class="status-note">已確認 LINE 登入與好友狀態。您可以繼續填寫配送資料。</div>
+      <div class="status-note">LINE 登入與好友確認已完成。請填寫下方配送資料。</div>
     {% elif line_identity %}
       <div data-line-friend-watch data-status-url="{% url 'orders:line_friend_status' %}">
         <div class="status-note"><strong>購買商品必須加入 Rfull 官方 LINE 好友</strong><br>LINE 登入已完成，但尚未確認好友狀態。訂單成立後，我們會透過 LINE 通知訂單確認、運費、付款連結及出貨資訊。</div>
@@ -23,7 +23,7 @@
       <a class="line-cta" href="{% url 'line_login_start' %}?next={% url 'orders:checkout' %}">使用 LINE 登入 →</a>
     {% endif %}
   </div>
-  {% if not checkout_enabled %}<div class="status-note">訂單服務目前準備中。LINE 連携設定完成後才會開放訂單服務。</div>{% endif %}
+  {% if not checkout_enabled %}<div class="status-note">訂單服務目前暫停受理，請稍後再試。</div>{% endif %}
   {% if rate_limited %}<p class="form-errors">送出次數過多，請稍後再試。</p>{% endif %}
   {% if line_customer %}
   <form class="contact-form checkout-form" method="post" novalidate>{% csrf_token %}{{ form.non_field_errors }}{{ form.idempotency_key }}<div class="honeypot">{{ form.website }}</div>
