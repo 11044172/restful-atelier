@@ -29,6 +29,7 @@
     <div class="field"><label for="{{ form.shipping_information.id_for_label }}">配送資訊 <span>必填</span></label>{{ form.shipping_information }}{{ form.shipping_information.errors }}</div>
     <div class="field"><label for="{{ form.customer_note.id_for_label }}">備註</label>{{ form.customer_note }}{{ form.customer_note.errors }}</div>
     <p class="manual-shipping-note">運費將由工作人員確認商品與配送方式後另行通知。送出後尚未完成付款，也不需要立即付款。</p>
+    {% if turnstile_site_key %}<div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>{% endif %}
     <button class="form-submit" type="submit" {% if not checkout_enabled %}disabled{% endif %}>送出訂單 <span>→</span></button>
   </form>
   {% endif %}

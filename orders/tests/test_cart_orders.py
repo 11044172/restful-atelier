@@ -123,7 +123,7 @@ class OrderFlowTests(TestCase):
 
     @override_settings(
         LINE_LOGIN_CHANNEL_ID="login-id", LINE_LOGIN_CHANNEL_SECRET="login-secret",
-        LINE_LOGIN_CALLBACK_URL="https://restfull.com/auth/line/callback/",
+        LINE_LOGIN_CALLBACK_URL="https://restfull-xhex.onrender.com/auth/line/callback/",
         LINE_MESSAGING_CHANNEL_ACCESS_TOKEN="message-token", LINE_MESSAGING_CHANNEL_SECRET="message-secret",
         LINE_OFFICIAL_ACCOUNT_BASIC_ID="@rfull",
     )

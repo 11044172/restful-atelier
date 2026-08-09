@@ -10,8 +10,6 @@ services:
     startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 60
     healthCheckPath: /healthz/
     autoDeployTrigger: checksPass
-    domains:
-      - restfull.com
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.13
@@ -24,11 +22,13 @@ services:
           name: restfull-db
           property: connectionString
       - key: ALLOWED_HOSTS
-        value: restfull.com,www.restfull.com,.onrender.com
+        value: restfull-xhex.onrender.com
       - key: CSRF_TRUSTED_ORIGINS
-        value: https://restfull.com,https://www.restfull.com
+        value: https://restfull-xhex.onrender.com
       - key: CANONICAL_ORIGIN
-        value: https://restfull.com
+        value: https://restfull-xhex.onrender.com
+      - key: CANONICAL_REDIRECT_HOSTS
+        value: ""
       - key: SEO_INDEX_ENABLED
         value: "False"
       - key: DJANGO_SECURE_SSL_REDIRECT
@@ -61,16 +61,24 @@ services:
         value: auto
       - key: AWS_S3_CUSTOM_DOMAIN
         sync: false
+      - key: AWS_QUERYSTRING_AUTH
+        value: "False"
+      - key: MAX_IMAGE_UPLOAD_MB
+        value: "10"
       - key: TURNSTILE_SITE_KEY
         sync: false
       - key: TURNSTILE_SECRET_KEY
         sync: false
+      - key: CONTACT_RATE_LIMIT
+        value: "5"
+      - key: CHECKOUT_RATE_LIMIT
+        value: "5"
       - key: LINE_LOGIN_CHANNEL_ID
         sync: false
       - key: LINE_LOGIN_CHANNEL_SECRET
         sync: false
       - key: LINE_LOGIN_CALLBACK_URL
-        value: https://restfull.com/auth/line/callback/
+        value: https://restfull-xhex.onrender.com/auth/line/callback/
       - key: LINE_MESSAGING_CHANNEL_ACCESS_TOKEN
         sync: false
       - key: LINE_MESSAGING_CHANNEL_SECRET

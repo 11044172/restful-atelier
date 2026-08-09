@@ -33,7 +33,7 @@ class SeoAndAdminTests(TestCase):
     def test_production_indexing_and_sitemap(self):
         self.assertContains(self.client.get(self.product.get_absolute_url()), "index,follow")
         robots = self.client.get("/robots.txt")
-        self.assertContains(robots, "Sitemap: https://restfull.com/sitemap.xml")
+        self.assertContains(robots, "Sitemap: https://restfull-xhex.onrender.com/sitemap.xml")
         sitemap = self.client.get("/sitemap.xml")
         self.assertContains(sitemap, self.product.get_absolute_url())
         self.assertContains(sitemap, self.project.get_absolute_url())
@@ -51,8 +51,13 @@ class SeoAndAdminTests(TestCase):
         with self.assertRaises(CommandError):
             call_command("check_launch_readiness")
 
-    @override_settings(DEBUG=False, ALLOWED_HOSTS=["www.restfull.com", "restfull.com"])
+    @override_settings(
+        DEBUG=False,
+        ALLOWED_HOSTS=["legacy.example", "restfull-xhex.onrender.com"],
+        CANONICAL_REDIRECT_HOSTS=["legacy.example"],
+        CANONICAL_ORIGIN="https://restfull-xhex.onrender.com",
+    )
     def test_www_redirects_to_canonical_apex(self):
-        response = self.client.get("/about/?source=test", HTTP_HOST="www.restfull.com", secure=True)
+        response = self.client.get("/about/?source=test", HTTP_HOST="legacy.example", secure=True)
         self.assertEqual(response.status_code, 301)
-        self.assertEqual(response["Location"], "https://restfull.com/about/?source=test")
+        self.assertEqual(response["Location"], "https://restfull-xhex.onrender.com/about/?source=test")

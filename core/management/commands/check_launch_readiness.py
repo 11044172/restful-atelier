@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
+from urllib.parse import urlsplit
 
 from content.models import PolicyPage
 from core.models import SiteSettings
@@ -17,8 +18,13 @@ class Command(BaseCommand):
         warnings = []
         if settings.DEBUG:
             failures.append("DEBUG が有効です")
-        if settings.CANONICAL_ORIGIN != "https://restfull.com":
-            failures.append("CANONICAL_ORIGIN が https://restfull.com ではありません")
+        canonical = urlsplit(settings.CANONICAL_ORIGIN)
+        if canonical.scheme != "https" or not canonical.hostname or canonical.path not in {"", "/"}:
+            failures.append("CANONICAL_ORIGIN はパスを含まないHTTPS originで設定してください")
+        elif canonical.hostname not in settings.ALLOWED_HOSTS:
+            failures.append("CANONICAL_ORIGINのhostがALLOWED_HOSTSに含まれていません")
+        if settings.CANONICAL_ORIGIN not in settings.CSRF_TRUSTED_ORIGINS:
+            failures.append("CANONICAL_ORIGINがCSRF_TRUSTED_ORIGINSに含まれていません")
         line_settings = {
             "LINE_LOGIN_CHANNEL_ID": settings.LINE_LOGIN_CHANNEL_ID,
             "LINE_LOGIN_CHANNEL_SECRET": settings.LINE_LOGIN_CHANNEL_SECRET,
@@ -34,6 +40,9 @@ class Command(BaseCommand):
             failures.append("Site SettingsのLINE友だち追加URLが未設定です")
         if settings.LINE_LOGIN_CALLBACK_URL and not settings.LINE_LOGIN_CALLBACK_URL.startswith("https://"):
             failures.append("LINE_LOGIN_CALLBACK_URL がHTTPSではありません")
+        expected_callback = f"{settings.CANONICAL_ORIGIN}/auth/line/callback/"
+        if settings.LINE_LOGIN_CALLBACK_URL and settings.LINE_LOGIN_CALLBACK_URL != expected_callback:
+            failures.append(f"LINE_LOGIN_CALLBACK_URL は {expected_callback} と一致させてください")
         if not settings.CANONICAL_ORIGIN.startswith("https://"):
             failures.append("CANONICAL_ORIGIN がHTTPSではありません")
         configured_payment_methods = []

@@ -106,7 +106,7 @@ SMTP互換設定です。特定配信会社に依存しません。
 
 - `LINE_LOGIN_CHANNEL_ID`
 - `LINE_LOGIN_CHANNEL_SECRET`
-- `LINE_LOGIN_CALLBACK_URL`（本番: `https://restfull.com/auth/line/callback/`）
+- `LINE_LOGIN_CALLBACK_URL`（本番: `https://restfull-xhex.onrender.com/auth/line/callback/`）
 - `LINE_MESSAGING_CHANNEL_ACCESS_TOKEN`
 - `LINE_MESSAGING_CHANNEL_SECRET`
 - `LINE_OFFICIAL_ACCOUNT_BASIC_ID`（例: `@...`。実値はDashboardのみ）
@@ -135,8 +135,8 @@ WebhookはJSON parse前のraw bodyとMessaging API Channel Secretを使い、`x-
 2. Rfull公式アカウントのMessaging API ChannelをそのProvider配下に作成します。
 3. LINE Login Channelを必ず同じProvider配下に作成します。同じユーザーについてLoginとMessagingで同じLINE user IDを得るための前提です。
 4. LINE Login ChannelのBasic settingsで、同ProviderのRfull公式LINEアカウントを`Linked LINE Official Account`としてリンクします。友だち追加をプログラムから強制する設定ではありません。
-5. LINE Login ChannelのWeb app callbackへ本番`https://restfull.com/auth/line/callback/`を登録します。開発用Channelまたは許可されたcallbackとして`http://localhost:8000/auth/line/callback/`も環境ごとに登録します。
-6. Messaging API ChannelのWebhook URLへ`https://restfull.com/webhooks/line/messaging/`を登録します。
+5. LINE Login ChannelのWeb app callbackへ本番`https://restfull-xhex.onrender.com/auth/line/callback/`を登録します。開発用Channelまたは許可されたcallbackとして`http://localhost:8000/auth/line/callback/`も環境ごとに登録します。
+6. Messaging API ChannelのWebhook URLへ`https://restfull-xhex.onrender.com/webhooks/line/messaging/`を登録します。
 7. `Use webhook`を有効にし、Consoleの`Verify`を実行します（空eventsにもHTTP 200を返します）。
 8. LINE Login Channel ID / Channel SecretをRenderへ設定します。
 9. Messaging API Channel Secret / Channel Access TokenをRenderへ設定します。
@@ -227,7 +227,7 @@ DEBUG、HTTPS canonical/callback、6個のLINE設定、Site SettingsのLINE URL�
 
 ## SEO
 
-- canonical: `https://restfull.com`
+- canonical: `https://restfull-xhex.onrender.com`
 - `SEO_INDEX_ENABLED=False`: 全ページnoindex、robotsで全拒否（開発・staging既定）
 - `SEO_INDEX_ENABLED=True`: 公開コンテンツをindex可能にし、cart / checkout / 完了 / 支払い案内はnoindex
 - 動的`robots.txt`、`sitemap.xml`
@@ -261,13 +261,50 @@ migrationをGunicorn起動コマンドへ混ぜていないため、複数worker
 4. AdminでSite Settings、画像、ポリシー、支払方法を設定します。
 5. `python manage.py check_launch_readiness`が通るまでcheckout/SEOを有効化しません。
 
+### Render environment variables
+
+Blueprintが自動設定する値：
+
+- `DJANGO_SECRET_KEY`: Renderの`generateValue`で生成。自分で値を作る必要はありません。
+- `DATABASE_URL`: Blueprint内の`restfull-db` PostgreSQLのconnection stringを`fromDatabase`で接続。
+- `RENDER_EXTERNAL_HOSTNAME` / `RENDER_EXTERNAL_URL` / `PORT`: Renderが自動提供するため手動登録しません。
+
+`render.yaml`で固定済みの非秘密値：
+
+- `PYTHON_VERSION=3.12.13`
+- `DJANGO_DEBUG=False`
+- `ALLOWED_HOSTS=restfull-xhex.onrender.com`
+- `CSRF_TRUSTED_ORIGINS=https://restfull-xhex.onrender.com`
+- `CANONICAL_ORIGIN=https://restfull-xhex.onrender.com`
+- `CANONICAL_REDIRECT_HOSTS=`
+- `SEO_INDEX_ENABLED=False`（公開準備完了後のみ`True`）
+- `DJANGO_SECURE_SSL_REDIRECT=True`
+- `DJANGO_HSTS_SECONDS=31536000`
+- `EMAIL_PORT=587` / `EMAIL_USE_TLS=True`
+- `ORDER_NOTIFICATION_EMAIL=rfullshop@gmail.com`
+- `AWS_S3_REGION_NAME=auto` / `AWS_QUERYSTRING_AUTH=False`
+- `MAX_IMAGE_UPLOAD_MB=10`
+- `CONTACT_RATE_LIMIT=5` / `CHECKOUT_RATE_LIMIT=5`
+- `LINE_LOGIN_CALLBACK_URL=https://restfull-xhex.onrender.com/auth/line/callback/`
+- `LINE_API_TIMEOUT=5` / `LINE_FRIENDSHIP_MAX_AGE=900`
+- `PAYMENT_LINK_MAX_AGE=604800`
+
+Render Dashboardで実値を入力する`sync: false`項目：
+
+- Email: `DEFAULT_FROM_EMAIL`、`EMAIL_HOST`、`EMAIL_HOST_USER`、`EMAIL_HOST_PASSWORD`
+- R2: `AWS_ACCESS_KEY_ID`、`AWS_SECRET_ACCESS_KEY`、`AWS_STORAGE_BUCKET_NAME`、`AWS_S3_ENDPOINT_URL`、`AWS_S3_CUSTOM_DOMAIN`
+- Turnstile: `TURNSTILE_SITE_KEY`、`TURNSTILE_SECRET_KEY`
+- LINE: `LINE_LOGIN_CHANNEL_ID`、`LINE_LOGIN_CHANNEL_SECRET`、`LINE_MESSAGING_CHANNEL_ACCESS_TOKEN`、`LINE_MESSAGING_CHANNEL_SECRET`、`LINE_OFFICIAL_ACCOUNT_BASIC_ID`
+
+取得元はEmail provider、Cloudflare R2 / Turnstile、LINE Developers Consoleです。秘密値はGitHub、`render.yaml`、HTML、JavaScriptへ記載しません。
+
 このリポジトリから実際のRender作成・DNS変更は行っていません。
 
-## Domain / DNS
+## Public URL / Future custom domain
 
-canonicalは`https://restfull.com`です。Renderでcustom domain `restfull.com`を追加し、Renderが提示するDNSレコードをドメイン管理画面へ設定してください。`www.restfull.com`はapexへ301転送する方針です。アプリ側にもwww→apexの本番301 middlewareがあります。
+現在の正式な公開originは`https://restfull-xhex.onrender.com`です。canonical、CSRF trusted origin、LINE callback、Messaging webhook、支払いリンクはこのoriginへ統一しています。
 
-HTTPS証明書が有効になり、`/healthz/`とAdminを確認してからDNSを切り替えてください。
+将来custom domainへ切り替える場合は、`CANONICAL_ORIGIN`、`CSRF_TRUSTED_ORIGINS`、`ALLOWED_HOSTS`、`LINE_LOGIN_CALLBACK_URL`を同時に変更し、LINE Developers Consoleのcallback・webhookも更新します。旧hostから転送する場合だけ`CANONICAL_REDIRECT_HOSTS`へ旧hostを設定します。
 
 ## Tests / CI
 
@@ -284,8 +321,8 @@ GitHub ActionsはPostgreSQL 17でsystem check、migration consistency、migrate�
 - [ ] 正式LINE公式URL / 友達追加URLを設定
 - [ ] Login / Messaging Channelを同じProvider配下に作成
 - [ ] Login ChannelへRfull公式LINEをリンク
-- [ ] Callback `https://restfull.com/auth/line/callback/`を登録
-- [ ] Webhook `https://restfull.com/webhooks/line/messaging/`を登録、有効化、Verify
+- [ ] Callback `https://restfull-xhex.onrender.com/auth/line/callback/`を登録
+- [ ] Webhook `https://restfull-xhex.onrender.com/webhooks/line/messaging/`を登録、有効化、Verify
 - [ ] Renderへ6個のLINE必須環境変数を設定
 - [ ] Facebook / Instagram URL（再申請完了後のみ）
 - [ ] 注文通知SMTPの送受信テスト

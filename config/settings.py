@@ -17,7 +17,10 @@ ALLOWED_HOSTS = [value.strip() for value in os.getenv("ALLOWED_HOSTS", "localhos
 if os.getenv("RENDER_EXTERNAL_HOSTNAME"):
     ALLOWED_HOSTS.append(os.environ["RENDER_EXTERNAL_HOSTNAME"])
 CSRF_TRUSTED_ORIGINS = [value.strip() for value in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if value.strip()]
-CANONICAL_ORIGIN = os.getenv("CANONICAL_ORIGIN", "https://restfull.com").rstrip("/")
+if os.getenv("RENDER_EXTERNAL_URL") and os.environ["RENDER_EXTERNAL_URL"] not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(os.environ["RENDER_EXTERNAL_URL"])
+CANONICAL_ORIGIN = os.getenv("CANONICAL_ORIGIN", os.getenv("RENDER_EXTERNAL_URL", "https://restfull-xhex.onrender.com")).rstrip("/")
+CANONICAL_REDIRECT_HOSTS = [value.strip().lower() for value in os.getenv("CANONICAL_REDIRECT_HOSTS", "").split(",") if value.strip()]
 SEO_INDEX_ENABLED = env_bool("SEO_INDEX_ENABLED", False)
 
 INSTALLED_APPS = [
@@ -117,7 +120,7 @@ EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Rfull <no-reply@restfull.com>")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Rfull <rfullshop@gmail.com>")
 ORDER_NOTIFICATION_EMAIL = os.getenv("ORDER_NOTIFICATION_EMAIL", "rfullshop@gmail.com")
 
 TURNSTILE_SITE_KEY = os.getenv("TURNSTILE_SITE_KEY", "")
