@@ -92,5 +92,38 @@
   const header = $('[data-header]');
   const setHeader = () => header?.classList.toggle('is-scrolled', window.scrollY > 24);
   setHeader(); window.addEventListener('scroll', setHeader, {passive:true});
+  const lineFriendWatch = $('[data-line-friend-watch]');
+  if (lineFriendWatch) {
+    const endpoint = lineFriendWatch.dataset.statusUrl;
+    const status = $('[data-line-friend-status]', lineFriendWatch);
+    let checking = false;
+    let complete = false;
+    let attempts = 0;
+    const maxAttempts = 48;
+    const checkFriend = async () => {
+      if (!endpoint || checking || complete || document.hidden || attempts >= maxAttempts) return;
+      checking = true; attempts += 1;
+      try {
+        const response = await fetch(endpoint, {credentials: 'same-origin', cache: 'no-store', headers: {Accept: 'application/json'}});
+        if (!response.ok) return;
+        const result = await response.json();
+        if (result.friend) {
+          complete = true;
+          if (status) status.textContent = '已確認 LINE 好友。正在進入配送資料填寫…';
+          window.location.assign(result.redirect || window.location.href);
+        }
+      } catch { /* A later poll or the manual confirmation link can retry. */ }
+      finally { checking = false; }
+    };
+    const restartCheck = () => { attempts = 0; checkFriend(); };
+    $('[data-line-add-friend]', lineFriendWatch)?.addEventListener('click', () => {
+      if (status) status.textContent = '加入完成後請回到這個頁面，系統會自動確認。';
+      restartCheck();
+    });
+    window.addEventListener('pageshow', restartCheck);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) restartCheck(); });
+    setInterval(checkFriend, 2500);
+    checkFriend();
+  }
   updateFavorites(); window.addEventListener('storage', updateFavorites); window.addEventListener('pageshow', updateFavorites);
 })();

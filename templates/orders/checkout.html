@@ -11,15 +11,14 @@
     {% if line_customer %}
       <div class="status-note">已確認 LINE 登入與好友狀態。您可以繼續填寫配送資料。</div>
     {% elif line_identity %}
-      {% if line_friend_check_failed %}
-        <div class="status-note"><strong>LINE 登入已完成</strong><br>暫時無法確認官方帳號的好友狀態。您的購物車內容已保留，請稍後重新確認。</div>
-        <a class="line-cta" href="{% url 'line_login_start' %}?next={% url 'orders:checkout' %}">重新確認好友狀態 →</a>
-      {% else %}
-        <div class="status-note"><strong>請先加入 Rfull 官方 LINE</strong><br>訂單成立後，我們會透過 LINE 通知訂單確認、運費與最終金額、付款連結及出貨資訊。</div>
-        <a class="line-cta" href="{% url 'line_login_start' %}?next={% url 'orders:checkout' %}">加入好友並繼續 →</a>
-      {% endif %}
-      {% if site_settings.line_url %}<a class="button-link" href="{{ site_settings.line_url }}" rel="noopener">開啟官方 LINE</a>{% endif %}
-      {% if not line_friend_check_failed %}<a class="button-link" href="{% url 'line_login_start' %}?next={% url 'orders:checkout' %}">重新確認好友狀態</a>{% endif %}
+      <div data-line-friend-watch data-status-url="{% url 'orders:line_friend_status' %}">
+        <div class="status-note"><strong>購買商品必須加入 Rfull 官方 LINE 好友</strong><br>LINE 登入已完成，但尚未確認好友狀態。訂單成立後，我們會透過 LINE 通知訂單確認、運費、付款連結及出貨資訊。</div>
+        <div class="line-friend-actions">
+          {% if site_settings.line_url %}<a class="line-cta" href="{{ site_settings.line_url }}" target="_blank" rel="noopener" data-line-add-friend>加入 LINE 好友 →</a>{% endif %}
+          <a class="button-link" href="{% url 'line_login_start' %}?next={% url 'orders:checkout' %}">已完成加入，繼續購買 →</a>
+        </div>
+        <p class="line-friend-status" data-line-friend-status aria-live="polite">加入好友後請回到此頁，系統會自動確認並顯示配送資料表單。</p>
+      </div>
     {% else %}
       <a class="line-cta" href="{% url 'line_login_start' %}?next={% url 'orders:checkout' %}">使用 LINE 登入 →</a>
     {% endif %}

@@ -17,6 +17,7 @@ from core.models import SiteSettings
 from orders.cart import Cart
 from orders.line_login import LineLoginError, generate_oauth_values, verify_id_token
 from orders.line_messaging import LineMessagingError, schedule_order_received, send_order_notification
+from orders.line_webhooks import process_event
 from orders.models import LineCustomer, LineNotification, LineWebhookEvent, Order, OrderItem, Payment, PaymentMethod
 from orders.operations import confirm_shipping_and_request_payment, mark_shipped
 from orders.payment_links import PaymentLinkError, make_payment_token, resolve_payment_token
@@ -98,10 +99,47 @@ class LineLoginCheckoutTests(TestCase):
         self.client.post(reverse("orders:cart_add", args=[self.product.slug]), {"quantity": 1})
         self._complete_callback(friend=False)
         get_response = self.client.get(reverse("orders:checkout"))
-        self.assertContains(get_response, "加入好友並繼續")
+        self.assertContains(get_response, "加入 LINE 好友")
+        self.assertContains(get_response, "購買商品必須加入 Rfull 官方 LINE 好友")
+        self.assertContains(get_response, "data-line-friend-watch")
         self.assertNotContains(get_response, "<form class=\"contact-form checkout-form\"", html=False)
         self.assertFalse(Order.objects.exists())
         self._complete_callback(friend=True)
+        self.assertContains(self.client.get(reverse("orders:checkout")), "送出訂單")
+
+    def test_callback_friendship_change_confirms_friend_when_status_api_fails(self):
+        self.client.post(reverse("orders:cart_add", args=[self.product.slug]), {"quantity": 1})
+        self.client.get(reverse("line_login_start"))
+        oauth = self.client.session["line_oauth"]
+        with patch("orders.views.exchange_code", return_value={"access_token": "temporary", "id_token": "id-token"}), \
+             patch("orders.views.verify_id_token", return_value={"sub": "U-added-during-login", "name": "林小姐"}), \
+             patch("orders.views.get_friendship_status", side_effect=LineLoginError("LINE API rejected the request (403).")):
+            response = self.client.get(reverse("line_login_callback"), {
+                "state": oauth["state"], "code": "authorization-code", "friendship_status_changed": "true",
+            })
+
+        self.assertRedirects(response, reverse("orders:checkout"))
+        self.assertTrue(self.client.session["line_friend_verified"])
+        self.assertNotIn("line_friend_check_failed", self.client.session)
+        self.assertTrue(LineCustomer.objects.get(line_user_id="U-added-during-login").is_friend)
+        self.assertContains(self.client.get(reverse("orders:checkout")), "送出訂單")
+
+    def test_follow_webhook_unlocks_waiting_checkout_status(self):
+        self.client.post(reverse("orders:cart_add", args=[self.product.slug]), {"quantity": 1})
+        self._complete_callback(friend=False, sub="U-follow-after-login")
+
+        pending = self.client.get(reverse("orders:line_friend_status"))
+        self.assertEqual(pending.json(), {"authenticated": True, "friend": False})
+        process_event({
+            "type": "follow", "webhookEventId": "follow-after-login",
+            "source": {"type": "user", "userId": "U-follow-after-login"},
+        })
+        confirmed = self.client.get(reverse("orders:line_friend_status"))
+
+        self.assertTrue(confirmed.json()["friend"])
+        self.assertEqual(confirmed.json()["redirect"], reverse("orders:checkout"))
+        self.assertTrue(self.client.session["line_friend_verified"])
+        self.assertNotIn("line_friend_wait_started_at", self.client.session)
         self.assertContains(self.client.get(reverse("orders:checkout")), "送出訂單")
 
     def test_friendship_api_failure_keeps_verified_line_identity(self):
@@ -122,7 +160,8 @@ class LineLoginCheckoutTests(TestCase):
         self.assertIn(str(self.product.pk), self.client.session["cart"])
         checkout = self.client.get(reverse("orders:checkout"))
         self.assertContains(checkout, "LINE 登入已完成")
-        self.assertContains(checkout, "重新確認好友狀態")
+        self.assertContains(checkout, "加入 LINE 好友")
+        self.assertContains(checkout, "已完成加入，繼續購買")
         self.assertNotContains(checkout, "<form class=\"contact-form checkout-form\"", html=False)
 
     def test_friendship_retry_clears_previous_failure(self):

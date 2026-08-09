@@ -100,7 +100,7 @@ SMTP互換設定です。特定配信会社に依存しません。
 
 ## LINE Login / Messaging API
 
-購入ではLINE LoginとRfull公式アカウントの友だち追加が必須です。ブラウザ上の自己申告チェックではなく、callbackでLINE Login APIのFriendship Status APIを呼び、`friendFlag=true`を確認したsessionだけが注文を送信できます。LINE access token、authorization code、PKCE verifierはDBへ保存せず、callback処理後に破棄します。
+購入ではLINE LoginとRfull公式アカウントの友だち追加が必須です。ブラウザ上の自己申告チェックではなく、Friendship Status API、LINE Login callbackの`friendship_status_changed=true`、または署名検証済みfollow Webhookで友だち状態を確認したsessionだけが注文を送信できます。LINE access token、authorization code、PKCE verifierはDBへ保存せず、callback処理後に破棄します。
 
 必要な環境変数：
 
@@ -125,7 +125,7 @@ Login authorization requestは`response_type=code`、`scope=openid profile`、`b
 
 Messaging APIのChannel Access Tokenはサーバー側だけで使用します。通知はOrder commit後に送信し、失敗しても注文・送料・入金・発送DB更新はrollbackしません。各送信を`LineNotification`へ保存し、通知種別とdedupe keyのunique制約、LINEの`X-Line-Retry-Key`で二重送信を防ぎます。失敗通知はAdminから同じretry keyで再試行できます。
 
-WebhookはJSON parse前のraw bodyとMessaging API Channel Secretを使い、`x-line-signature`をHMAC-SHA256で検証します。署名不正・未添付のpayloadは処理しません。`webhookEventId`を保存して再送を冪等処理し、follow/unfollowを`LineCustomer`の友だち・ブロック状態へ反映します。Checkoutの正本確認はWebhookだけに依存せず、LINE Login APIの結果を必須にしています。
+WebhookはJSON parse前のraw bodyとMessaging API Channel Secretを使い、`x-line-signature`をHMAC-SHA256で検証します。署名不正・未添付のpayloadは処理しません。`webhookEventId`を保存して再送を冪等処理し、follow/unfollowを`LineCustomer`の友だち・ブロック状態へ反映します。友だち追加画面からCheckoutへ戻った際は、ログイン開始後のfollow Webhookをポーリングで検出して配送フォームを開放します。
 
 参考: [LINE Login web integration](https://developers.line.biz/en/docs/line-login/integrate-line-login/)、[Add Friend Option](https://developers.line.biz/en/docs/line-login/link-a-bot/)、[Webhook signature](https://developers.line.biz/en/docs/messaging-api/verify-webhook-signature/)
 

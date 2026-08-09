@@ -5,13 +5,14 @@ import time
 from django.conf import settings
 from django.contrib import messages
 from django.db import transaction
-from django.http import HttpResponseBadRequest, HttpResponse, HttpResponseForbidden
+from django.http import HttpResponseBadRequest, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_GET, require_POST
 
 from catalog.models import Product
 from core.models import SiteSettings
@@ -128,6 +129,37 @@ def _session_line_customer(request):
     return LineCustomer.objects.filter(pk=customer_id, is_friend=True, is_blocked=False).first()
 
 
+def _set_verified_line_friend(request, customer):
+    request.session["line_customer_id"] = customer.pk
+    request.session["line_friend_checked_at"] = time.time()
+    request.session["line_friend_verified"] = True
+    request.session.pop("line_friend_check_failed", None)
+    request.session.pop("line_friend_wait_started_at", None)
+
+
+@never_cache
+@require_GET
+def line_friend_status(request):
+    customer_id = request.session.get("line_customer_id")
+    waiting_since = request.session.get("line_friend_wait_started_at")
+    customer = LineCustomer.objects.filter(pk=customer_id).first() if customer_id else None
+    evidence_at = None
+    if customer:
+        evidence_at = customer.followed_at or customer.friend_checked_at
+    recently_confirmed = bool(
+        customer
+        and customer.is_friend
+        and not customer.is_blocked
+        and waiting_since
+        and evidence_at
+        and evidence_at.timestamp() >= waiting_since - 5
+    )
+    if recently_confirmed:
+        _set_verified_line_friend(request, customer)
+        return JsonResponse({"authenticated": True, "friend": True, "redirect": reverse("orders:checkout")})
+    return JsonResponse({"authenticated": bool(customer), "friend": False})
+
+
 def line_login_start(request):
     if not line_settings_configured():
         messages.error(request, "LINE 登入目前尚未完成設定，請稍後再試。")
@@ -139,6 +171,7 @@ def line_login_start(request):
     request.session["line_oauth"] = {
         "state": values["state"], "nonce": values["nonce"],
         "code_verifier": values["code_verifier"], "next": next_url,
+        "started_at": time.time(),
     }
     return redirect(authorization_url(state=values["state"], nonce=values["nonce"], code_challenge=values["code_challenge"]))
 
@@ -170,13 +203,17 @@ def line_login_callback(request):
         messages.error(request, "LINE 登入驗證失敗，請稍後再試。")
         return redirect("orders:checkout")
 
+    friendship_status_changed = request.GET.get("friendship_status_changed")
     try:
         is_friend = get_friendship_status(tokens["access_token"])
     except LineLoginError as exc:
         # The ID token already proves the login. A separate friendship API
         # outage or channel-linking error must not discard that identity.
         logger.warning("LINE Login friendship status check failed: %s", exc)
-        is_friend = None
+        # LINE documents this callback value as an alternative way to detect
+        # that the user added or unblocked the linked Official Account during
+        # this authorization flow.
+        is_friend = True if friendship_status_changed == "true" else None
 
     now = timezone.now()
     customer, created = LineCustomer.objects.get_or_create(
@@ -196,15 +233,19 @@ def line_login_callback(request):
     customer.save()
     request.session.cycle_key()
     request.session["line_customer_id"] = customer.pk
-    if is_friend is None:
+    if is_friend is True:
+        _set_verified_line_friend(request, customer)
+    elif is_friend is None:
         request.session.pop("line_friend_checked_at", None)
         request.session["line_friend_verified"] = False
         request.session["line_friend_check_failed"] = True
-        messages.warning(request, "LINE 登入已完成，但暫時無法確認好友狀態。請稍後重新確認。")
+        request.session["line_friend_wait_started_at"] = oauth.get("started_at", time.time())
+        messages.warning(request, "LINE 登入已完成。購買前請加入 Rfull 官方 LINE 好友。")
     else:
         request.session["line_friend_checked_at"] = time.time()
         request.session["line_friend_verified"] = is_friend
         request.session.pop("line_friend_check_failed", None)
+        request.session["line_friend_wait_started_at"] = oauth.get("started_at", time.time())
     if is_friend is True:
         messages.success(request, "LINE 登入及好友狀態已確認。")
     elif is_friend is False:
