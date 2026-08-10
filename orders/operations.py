@@ -14,15 +14,15 @@ def confirm_shipping_and_request_payment(order_id):
         .get(pk=order_id)
     )
     if order.shipping_fee is None:
-        raise ValidationError("送料を入力して保存してから実行してください。")
+        raise ValidationError("請先填寫運費並儲存，再執行此操作。")
     if order.status == Order.Status.CANCELLED:
-        raise ValidationError("キャンセル済み注文では実行できません。")
+        raise ValidationError("已取消的訂單無法執行此操作。")
     if order.is_paid:
-        raise ValidationError("入金済み注文では実行できません。")
+        raise ValidationError("已付款的訂單無法執行此操作。")
     if not order.line_customer_id:
-        raise ValidationError("LINE購入者が紐付いていません。")
+        raise ValidationError("此訂單尚未綁定 LINE 購買者。")
     if not order.line_customer.is_friend or order.line_customer.is_blocked:
-        raise ValidationError("購入者へLINE通知できないため、友だち状態を確認してください。")
+        raise ValidationError("目前無法傳送 LINE 通知，請確認購買者的好友狀態。")
     requested_total = order.subtotal + order.shipping_fee
     if (
         order.status == Order.Status.AWAITING_PAYMENT
@@ -44,12 +44,12 @@ def confirm_manual_payment(order_id, payment_id):
     order = Order.objects.select_for_update().get(pk=order_id)
     payment = Payment.objects.select_for_update().select_related("method").get(pk=payment_id, order=order)
     if order.status == Order.Status.CANCELLED or order.final_total is None:
-        raise ValidationError("この注文は入金確認できません。")
+        raise ValidationError("此訂單無法確認付款。")
     if not payment.method or payment.method.code not in {
         PaymentMethod.Method.TAIWAN_PAY,
         PaymentMethod.Method.BANK_TRANSFER,
     }:
-        raise ValidationError("Admin確認は台灣 Payまたは銀行振込だけに使用できます。")
+        raise ValidationError("後台手動確認僅適用於台灣 Pay 或銀行轉帳。")
     if payment.status == Payment.Status.CONFIRMED:
         return payment
     payment.amount = order.final_total
@@ -65,11 +65,11 @@ def confirm_manual_payment(order_id, payment_id):
 def mark_shipped(order_id):
     order = Order.objects.select_for_update().get(pk=order_id)
     if not order.is_paid:
-        raise ValidationError("入金確認前の注文は発送できません。")
+        raise ValidationError("尚未確認付款的訂單不能出貨。")
     if order.status == Order.Status.CANCELLED:
-        raise ValidationError("キャンセル済み注文は発送できません。")
+        raise ValidationError("已取消的訂單不能出貨。")
     if not order.carrier.strip():
-        raise ValidationError("配送会社を入力して保存してから実行してください。")
+        raise ValidationError("請先填寫物流公司並儲存，再執行此操作。")
     if order.status == Order.Status.SHIPPED:
         return order
     order.status = Order.Status.SHIPPED
@@ -84,9 +84,9 @@ def mark_shipped(order_id):
 def mark_preparing(order_id):
     order = Order.objects.select_for_update().get(pk=order_id)
     if not order.is_paid:
-        raise ValidationError("入金確認前の注文は発送準備中にできません。")
+        raise ValidationError("尚未確認付款的訂單不能更新為出貨準備中。")
     if order.status in {Order.Status.CANCELLED, Order.Status.SHIPPED, Order.Status.COMPLETED}:
-        raise ValidationError("現在の状態から発送準備中へ変更できません。")
+        raise ValidationError("目前訂單狀態無法更新為出貨準備中。")
     order.status = Order.Status.PREPARING
     order.full_clean()
     order.save(update_fields=("status", "updated_at"))
@@ -97,7 +97,7 @@ def mark_preparing(order_id):
 def complete_order(order_id):
     order = Order.objects.select_for_update().get(pk=order_id)
     if order.status != Order.Status.SHIPPED:
-        raise ValidationError("発送済み注文だけを完了にできます。")
+        raise ValidationError("只有已出貨的訂單可以標記為已完成。")
     order.status = Order.Status.COMPLETED
     order.full_clean()
     order.save(update_fields=("status", "updated_at"))
@@ -108,9 +108,9 @@ def complete_order(order_id):
 def cancel_order(order_id):
     order = Order.objects.select_for_update().get(pk=order_id)
     if order.status in {Order.Status.SHIPPED, Order.Status.COMPLETED}:
-        raise ValidationError("発送済み・完了注文は通常のキャンセル操作では取り消せません。")
+        raise ValidationError("已出貨或已完成的訂單無法使用一般取消操作。")
     if order.is_paid:
-        raise ValidationError("入金済み注文は返金確認なしにキャンセルできません。")
+        raise ValidationError("已付款訂單必須先確認退款，不能直接取消。")
     order.status = Order.Status.CANCELLED
     order.save(update_fields=("status", "updated_at"))
     return order

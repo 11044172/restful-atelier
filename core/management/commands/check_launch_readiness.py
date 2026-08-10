@@ -10,21 +10,21 @@ from orders.payment_providers import get_provider
 
 
 class Command(BaseCommand):
-    help = "本番公開に必要な設定を確認します。"
+    help = "檢查正式上線所需的設定。"
 
     def handle(self, *args, **options):
         site = SiteSettings.load()
         failures = []
         warnings = []
         if settings.DEBUG:
-            failures.append("DEBUG が有効です")
+            failures.append("DEBUG 目前為啟用狀態")
         canonical = urlsplit(settings.CANONICAL_ORIGIN)
         if canonical.scheme != "https" or not canonical.hostname or canonical.path not in {"", "/"}:
-            failures.append("CANONICAL_ORIGIN はパスを含まないHTTPS originで設定してください")
+            failures.append("CANONICAL_ORIGIN 必須是不含路徑的 HTTPS origin")
         elif canonical.hostname not in settings.ALLOWED_HOSTS:
-            failures.append("CANONICAL_ORIGINのhostがALLOWED_HOSTSに含まれていません")
+            failures.append("CANONICAL_ORIGIN 的 host 未列入 ALLOWED_HOSTS")
         if settings.CANONICAL_ORIGIN not in settings.CSRF_TRUSTED_ORIGINS:
-            failures.append("CANONICAL_ORIGINがCSRF_TRUSTED_ORIGINSに含まれていません")
+            failures.append("CANONICAL_ORIGIN 未列入 CSRF_TRUSTED_ORIGINS")
         line_settings = {
             "LINE_LOGIN_CHANNEL_ID": settings.LINE_LOGIN_CHANNEL_ID,
             "LINE_LOGIN_CHANNEL_SECRET": settings.LINE_LOGIN_CHANNEL_SECRET,
@@ -35,16 +35,16 @@ class Command(BaseCommand):
         }
         for name, value in line_settings.items():
             if not value:
-                failures.append(f"{name} が未設定です")
+                failures.append(f"{name} 尚未設定")
         if not site.line_url:
-            failures.append("Site SettingsのLINE友だち追加URLが未設定です")
+            failures.append("網站設定中尚未填寫 LINE 加好友網址")
         if settings.LINE_LOGIN_CALLBACK_URL and not settings.LINE_LOGIN_CALLBACK_URL.startswith("https://"):
-            failures.append("LINE_LOGIN_CALLBACK_URL がHTTPSではありません")
+            failures.append("LINE_LOGIN_CALLBACK_URL 不是 HTTPS 網址")
         expected_callback = f"{settings.CANONICAL_ORIGIN}/auth/line/callback/"
         if settings.LINE_LOGIN_CALLBACK_URL and settings.LINE_LOGIN_CALLBACK_URL != expected_callback:
-            failures.append(f"LINE_LOGIN_CALLBACK_URL は {expected_callback} と一致させてください")
+            failures.append(f"LINE_LOGIN_CALLBACK_URL 必須與 {expected_callback} 一致")
         if not settings.CANONICAL_ORIGIN.startswith("https://"):
-            failures.append("CANONICAL_ORIGIN がHTTPSではありません")
+            failures.append("CANONICAL_ORIGIN 不是 HTTPS 網址")
         configured_payment_methods = []
         for method in PaymentMethod.objects.filter(enabled=True):
             if method.code == PaymentMethod.Method.BANK_TRANSFER:
@@ -56,27 +56,27 @@ class Command(BaseCommand):
             if configured:
                 configured_payment_methods.append(method.code)
             else:
-                failures.append(f"有効なPayment Methodの設定が不完全です: {method.display_name}")
+                failures.append(f"已啟用的付款方式設定不完整：{method.display_name}")
         if not configured_payment_methods:
-            failures.append("利用可能かつ設定済みのPayment Methodがありません")
+            failures.append("沒有可用且設定完整的付款方式")
         if not (site.order_notification_email or settings.ORDER_NOTIFICATION_EMAIL):
-            failures.append("注文通知 Email が未設定です")
+            failures.append("訂單通知 Email 尚未設定")
         if not settings.SEO_INDEX_ENABLED:
-            warnings.append("SEO_INDEX_ENABLED が無効です")
+            warnings.append("SEO_INDEX_ENABLED 目前為停用狀態")
         if not settings.STORAGES["default"]["BACKEND"].startswith("storages.backends.s3"):
-            failures.append("S3/R2 メディアストレージが未設定です")
+            failures.append("S3/R2 媒體儲存尚未設定")
         required = {"privacy-policy", "shopping-guide", "payment-methods", "shipping-policy", "preorder-information", "returns-policy"}
         published = set(PolicyPage.objects.filter(slug__in=required, published=True).exclude(body="").values_list("slug", flat=True))
         for slug in sorted(required - published):
-            failures.append(f"必須ポリシーが未公開または本文未入力です: {slug}")
+            failures.append(f"必要的政策頁面尚未公開或未填寫內文：{slug}")
         if not site.checkout_enabled:
-            warnings.append("checkout_enabled が無効です")
+            warnings.append("checkout_enabled 目前為停用狀態")
         elif not line_settings_configured():
-            failures.append("LINE設定が不完全なためcheckout_enabledを有効にできません")
+            failures.append("LINE 設定不完整，無法啟用 checkout_enabled")
         for warning in warnings:
             self.stdout.write(self.style.WARNING(f"WARN: {warning}"))
         if failures:
             for failure in failures:
                 self.stdout.write(self.style.ERROR(f"NG: {failure}"))
-            raise CommandError(f"本番公開準備に {len(failures)} 件の未完了項目があります。")
-        self.stdout.write(self.style.SUCCESS("本番公開の必須設定を確認しました。"))
+            raise CommandError(f"正式上線前仍有 {len(failures)} 項未完成設定。")
+        self.stdout.write(self.style.SUCCESS("已完成正式上線必要設定的檢查。"))

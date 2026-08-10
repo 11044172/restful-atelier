@@ -4,4 +4,4 @@ from django.apps import AppConfig
 class InquiriesConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "inquiries"
-    verbose_name = "問い合わせ"
+    verbose_name = "客戶諮詢"

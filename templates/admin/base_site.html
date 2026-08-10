@@ -16,7 +16,7 @@
 {% endblock %}
 
 {% block branding %}
-  <a class="brand-lockup" href="{% url 'admin:index' %}" aria-label="運営ダッシュボードへ">
+  <a class="brand-lockup" href="{% url 'admin:index' %}" aria-label="前往營運儀表板">
     <span class="brand-seal" aria-hidden="true">靜</span>
     <span class="brand-copy">
       <strong>靜院居家</strong>
@@ -30,11 +30,11 @@
 {% endblock %}
 
 {% block userlinks %}
-  {% if site_url %}<a href="{{ site_url }}" target="_blank" rel="noopener">サイトを表示</a>{% endif %}
-  {% if user.has_usable_password %}<a href="{% url 'admin:password_change' %}">パスワード</a>{% endif %}
+  {% if site_url %}<a href="{{ site_url }}" target="_blank" rel="noopener">查看網站</a>{% endif %}
+  {% if user.has_usable_password %}<a href="{% url 'admin:password_change' %}">變更密碼</a>{% endif %}
   <form id="logout-form" method="post" action="{% url 'admin:logout' %}">
     {% csrf_token %}
-    <button type="submit">ログアウト</button>
+    <button type="submit">登出</button>
   </form>
 {% endblock %}
 

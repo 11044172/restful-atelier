@@ -46,7 +46,7 @@ def process_event(event):
     now = timezone.now()
     customer, _ = LineCustomer.objects.get_or_create(
         line_user_id=line_user_id,
-        defaults={"display_name": "LINE顧客"},
+        defaults={"display_name": "LINE 顧客"},
     )
     if event_type == "follow":
         customer.is_friend = True

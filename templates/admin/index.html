@@ -10,7 +10,7 @@
   <header class="dashboard-hero">
     <div>
       <p class="eyebrow">TODAY'S OPERATIONS</p>
-      <h1>おはようございます。<br><span>今日の運営状況</span>を確認しましょう。</h1>
+      <h1>早安。<br>一起確認<span>今日的營運狀況</span>。</h1>
     </div>
     <div class="hero-date">
       <span>{% now "Y.m.d" %}</span>
@@ -18,40 +18,40 @@
     </div>
   </header>
 
-  <section class="metric-grid" aria-label="運営サマリー">
+  <section class="metric-grid" aria-label="營運摘要">
     {% if can_view_orders %}
     <a class="metric-card metric-emphasis" href="{% url 'admin:orders_order_changelist' %}">
-      <span class="metric-kicker">対応待ち</span>
+      <span class="metric-kicker">待處理訂單</span>
       <strong>{{ orders_need_action }}</strong>
-      <p>件の注文に確認が必要です</p>
-      <i>注文を確認 ↗</i>
+      <p>筆訂單等待確認</p>
+      <i>查看訂單 ↗</i>
     </a>
     <a class="metric-card" href="{% url 'admin:orders_order_changelist' %}">
-      <span class="metric-kicker">本日の注文</span>
+      <span class="metric-kicker">今日訂單</span>
       <strong>{{ orders_today }}</strong>
-      <p>新しく受け付けた注文</p>
+      <p>今日新成立的訂單</p>
     </a>
     {% if can_view_payments %}<div class="metric-card">
-      <span class="metric-kicker">30日間の入金</span>
+      <span class="metric-kicker">近 30 日付款</span>
       <strong class="metric-money">NT$ {{ sales_30_days|floatformat:0|intcomma }}</strong>
-      <p>確認済み決済の合計</p>
+      <p>已確認付款金額合計</p>
     </div>{% endif %}
     {% endif %}
     {% if can_view_inquiries %}
     <a class="metric-card" href="{% url 'admin:inquiries_inquiry_changelist' %}?status__exact=new">
-      <span class="metric-kicker">新着問い合わせ</span>
+      <span class="metric-kicker">新諮詢</span>
       <strong>{{ new_inquiries }}</strong>
-      <p>未対応のメッセージ</p>
+      <p>尚未處理的留言</p>
     </a>
     {% endif %}
   </section>
 
   {% if failed_notifications or low_stock_count %}
-  <section class="attention-strip" aria-label="注意が必要な項目">
-    <div><span class="attention-dot"></span><strong>確認が必要な項目</strong></div>
+  <section class="attention-strip" aria-label="需要注意的項目">
+    <div><span class="attention-dot"></span><strong>需要確認的項目</strong></div>
     <div class="attention-links">
-      {% if low_stock_count and can_view_products %}<a href="{% url 'admin:catalog_product_changelist' %}">在庫少 {{ low_stock_count }}件 <b>→</b></a>{% endif %}
-      {% if failed_notifications and can_view_notifications %}<a href="{% url 'admin:orders_linenotification_changelist' %}?status__exact=failed">LINE通知失敗 {{ failed_notifications }}件 <b>→</b></a>{% endif %}
+      {% if low_stock_count and can_view_products %}<a href="{% url 'admin:catalog_product_changelist' %}">低庫存 {{ low_stock_count }} 項 <b>→</b></a>{% endif %}
+      {% if failed_notifications and can_view_notifications %}<a href="{% url 'admin:orders_linenotification_changelist' %}?status__exact=failed">LINE 通知失敗 {{ failed_notifications }} 筆 <b>→</b></a>{% endif %}
     </div>
   </section>
   {% endif %}
@@ -60,20 +60,20 @@
     {% if can_view_orders %}
     <section class="dashboard-panel dashboard-panel-wide">
       <header class="panel-heading">
-        <div><span>ORDER QUEUE</span><h2>進行中の注文</h2></div>
-        <a href="{% url 'admin:orders_order_changelist' %}">すべて見る ↗</a>
+        <div><span>ORDER QUEUE</span><h2>進行中的訂單</h2></div>
+        <a href="{% url 'admin:orders_order_changelist' %}">查看全部 ↗</a>
       </header>
-      <div class="operations-table" role="table" aria-label="進行中の注文">
+      <div class="operations-table" role="table" aria-label="進行中的訂單">
         {% for order in recent_orders %}
         <a class="operations-row" href="{% url 'admin:orders_order_change' order.pk %}" role="row">
-          <div><small>注文番号</small><strong>{{ order.public_number }}</strong></div>
+          <div><small>訂單編號</small><strong>{{ order.public_number }}</strong></div>
           <div><small>顧客</small><span>{{ order.customer_name }}</span></div>
-          <div><small>金額</small><span>{% if order.final_total is not None %}NT$ {{ order.final_total|floatformat:0|intcomma }}{% else %}送料未確定{% endif %}</span></div>
-          <div><small>状態</small><span class="status-pill status-{{ order.status }}">{{ order.get_status_display }}</span></div>
+          <div><small>金額</small><span>{% if order.final_total is not None %}NT$ {{ order.final_total|floatformat:0|intcomma }}{% else %}運費尚未確定{% endif %}</span></div>
+          <div><small>狀態</small><span class="status-pill status-{{ order.status }}">{{ order.get_status_display }}</span></div>
           <b aria-hidden="true">→</b>
         </a>
         {% empty %}
-        <div class="empty-state"><span>○</span><p>進行中の注文はありません。</p></div>
+        <div class="empty-state"><span>○</span><p>目前沒有進行中的訂單。</p></div>
         {% endfor %}
       </div>
     </section>
@@ -83,8 +83,8 @@
       {% if can_view_inquiries %}
       <section class="dashboard-panel compact-panel">
         <header class="panel-heading">
-          <div><span>INQUIRIES</span><h2>問い合わせ</h2></div>
-          <a href="{% url 'admin:inquiries_inquiry_changelist' %}">一覧 ↗</a>
+          <div><span>INQUIRIES</span><h2>客戶諮詢</h2></div>
+          <a href="{% url 'admin:inquiries_inquiry_changelist' %}">查看全部 ↗</a>
         </header>
         <div class="compact-list">
           {% for inquiry in recent_inquiries %}
@@ -93,7 +93,7 @@
             <span><strong>{{ inquiry.name }}</strong><small>{{ inquiry.category }} · {{ inquiry.created_at|date:"m/d H:i" }}</small></span>
             <i>→</i>
           </a>
-          {% empty %}<p class="quiet-empty">対応中の問い合わせはありません。</p>{% endfor %}
+          {% empty %}<p class="quiet-empty">目前沒有待處理的客戶諮詢。</p>{% endfor %}
         </div>
       </section>
       {% endif %}
@@ -101,16 +101,16 @@
       {% if can_view_products %}
       <section class="dashboard-panel compact-panel">
         <header class="panel-heading">
-          <div><span>INVENTORY</span><h2>在庫アラート</h2></div>
-          <a href="{% url 'admin:catalog_product_changelist' %}">商品一覧 ↗</a>
+          <div><span>INVENTORY</span><h2>庫存提醒</h2></div>
+          <a href="{% url 'admin:catalog_product_changelist' %}">商品列表 ↗</a>
         </header>
         <div class="stock-list">
           {% for product in low_stock_products %}
           <a href="{% url 'admin:catalog_product_change' product.pk %}">
             <span><strong>{{ product.name }}</strong><small>{{ product.sku }}</small></span>
-            <b class="stock-count {% if product.stock == 0 %}is-empty{% endif %}">{{ product.stock }}<small>点</small></b>
+            <b class="stock-count {% if product.stock == 0 %}is-empty{% endif %}">{{ product.stock }}<small>件</small></b>
           </a>
-          {% empty %}<p class="quiet-empty">在庫は安定しています。</p>{% endfor %}
+          {% empty %}<p class="quiet-empty">目前庫存狀況穩定。</p>{% endfor %}
         </div>
       </section>
       {% endif %}
@@ -118,12 +118,12 @@
   </div>
 
   <section class="quick-management">
-    <header class="panel-heading"><div><span>QUICK ACCESS</span><h2>よく使う管理メニュー</h2></div></header>
+    <header class="panel-heading"><div><span>QUICK ACCESS</span><h2>常用管理功能</h2></div></header>
     <div class="quick-grid">
-      {% if perms.catalog.view_product %}<a href="{% url 'admin:catalog_product_changelist' %}"><span>PRODUCT</span><strong>商品を管理</strong><p>在庫・価格・画像・公開状態</p><i>↗</i></a>{% endif %}
-      {% if perms.content.view_interiorproject %}<a href="{% url 'admin:content_interiorproject_changelist' %}"><span>PROJECT</span><strong>室内設計を編集</strong><p>作品写真・コンセプト・公開</p><i>↗</i></a>{% endif %}
-      {% if perms.core.view_sitesettings %}<a href="{% url 'admin:core_sitesettings_changelist' %}"><span>WEBSITE</span><strong>サイト設定</strong><p>連絡先・SNS・LINE・注文受付</p><i>↗</i></a>{% endif %}
-      {% if perms.orders.view_paymentmethod %}<a href="{% url 'admin:orders_paymentmethod_changelist' %}"><span>PAYMENT</span><strong>支払方法の設定</strong><p>利用状態・QR・お客様向け案内</p><i>↗</i></a>{% endif %}
+      {% if perms.catalog.view_product %}<a href="{% url 'admin:catalog_product_changelist' %}"><span>PRODUCT</span><strong>管理商品</strong><p>庫存、售價、圖片與公開狀態</p><i>↗</i></a>{% endif %}
+      {% if perms.content.view_interiorproject %}<a href="{% url 'admin:content_interiorproject_changelist' %}"><span>PROJECT</span><strong>編輯室內設計</strong><p>作品圖片、設計概念與公開狀態</p><i>↗</i></a>{% endif %}
+      {% if perms.core.view_sitesettings %}<a href="{% url 'admin:core_sitesettings_changelist' %}"><span>WEBSITE</span><strong>網站設定</strong><p>聯絡方式、SNS、LINE 與結帳功能</p><i>↗</i></a>{% endif %}
+      {% if perms.orders.view_paymentmethod %}<a href="{% url 'admin:orders_paymentmethod_changelist' %}"><span>PAYMENT</span><strong>付款方式設定</strong><p>啟用狀態、QR 圖片與顧客說明</p><i>↗</i></a>{% endif %}
     </div>
   </section>
 </div>

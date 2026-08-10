@@ -13,7 +13,7 @@ class ProductImageInline(admin.TabularInline):
     readonly_fields = ("preview",)
     ordering = ("sort_order",)
 
-    @admin.display(description="プレビュー")
+    @admin.display(description="圖片預覽")
     def preview(self, obj):
         if obj.pk and obj.image:
             return format_html('<img src="{}" style="width:72px;height:72px;object-fit:cover" alt="">', obj.image.url)
@@ -46,11 +46,11 @@ class ProductAdmin(admin.ModelAdmin):
     inlines = (ProductImageInline, ProductSpecificationInline)
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (
-        ("基本", {"fields": ("category", "name", "slug", "sku", "maker", "series", "subcategory")}),
-        ("内容", {"fields": ("short_description", "description", "care", "shipping_note", "maker_story")}),
-        ("販売", {"fields": ("price", "stock", "is_preorder", "preorder_note", "badge_label", "is_published", "sort_order")}),
-        ("仮画像", {"fields": ("image_label", "tone"), "description": "正式画像が未登録の場合のみ表示されます。"}),
-        ("日時", {"fields": ("created_at", "updated_at")}),
+        ("基本資訊", {"fields": ("category", "name", "slug", "sku", "maker", "series", "subcategory")}),
+        ("商品內容", {"fields": ("short_description", "description", "care", "shipping_note", "maker_story")}),
+        ("販售設定", {"fields": ("price", "stock", "is_preorder", "preorder_note", "badge_label", "is_published", "sort_order")}),
+        ("預留圖片", {"fields": ("image_label", "tone"), "description": "僅在尚未上傳正式圖片時顯示。"}),
+        ("建立與更新時間", {"fields": ("created_at", "updated_at")}),
     )
     list_per_page = 25
 

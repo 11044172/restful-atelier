@@ -23,7 +23,7 @@ class InquiryAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
     list_per_page = 25
 
-    @admin.display(description="ステータス", ordering="status")
+    @admin.display(description="處理狀態", ordering="status")
     def status_badge(self, obj):
         return format_html(
             '<span class="status-pill status-{}">{}</span>',

@@ -1,11 +1,11 @@
 Rfull 網站收到新訂單。
 
-注文番号：{{ order.public_number }}
+訂單編號：{{ order.public_number }}
 顧客名：{{ order.customer_name }}
 電話：{{ order.phone }}
 Email：{{ order.email }}
 商品合計：NT$ {{ order.subtotal }}
-送料：未確定
+運費：尚未確定
 最終金額：未確定
 
 商品：

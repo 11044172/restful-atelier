@@ -12,7 +12,7 @@ class InteriorProjectImageInline(admin.TabularInline):
     fields = ("preview", "image", "alt_text", "caption", "tone", "sort_order")
     readonly_fields = ("preview",)
 
-    @admin.display(description="プレビュー")
+    @admin.display(description="圖片預覽")
     def preview(self, obj):
         if obj.pk and obj.image:
             return format_html('<img src="{}" style="width:72px;height:72px;object-fit:cover" alt="">', obj.image.url)

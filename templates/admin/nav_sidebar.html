@@ -1,48 +1,48 @@
 {% load static %}
-<button class="sticky toggle-nav-sidebar" id="toggle-nav-sidebar" aria-label="メニューを開閉"></button>
-<nav class="sticky custom-sidebar" id="nav-sidebar" aria-label="管理メニュー">
+<button class="sticky toggle-nav-sidebar" id="toggle-nav-sidebar" aria-label="開啟或收合選單"></button>
+<nav class="sticky custom-sidebar" id="nav-sidebar" aria-label="後台管理選單">
   <div class="sidebar-intro">
     <span>OPERATIONS</span>
-    <p>日々の運営とコンテンツをここから管理します。</p>
+    <p>從這裡管理每日營運、訂單與網站內容。</p>
   </div>
 
   <div class="nav-section">
-    <p class="nav-section-label">概要</p>
-    <a class="nav-entry nav-dashboard" href="{% url 'admin:index' %}"><span aria-hidden="true">01</span>ダッシュボード</a>
+    <p class="nav-section-label">總覽</p>
+    <a class="nav-entry nav-dashboard" href="{% url 'admin:index' %}"><span aria-hidden="true">01</span>營運儀表板</a>
   </div>
 
   {% if perms.orders.view_order or perms.inquiries.view_inquiry or perms.orders.view_payment %}
   <div class="nav-section">
-    <p class="nav-section-label">顧客対応</p>
-    {% if perms.orders.view_order %}<a class="nav-entry" href="{% url 'admin:orders_order_changelist' %}"><span aria-hidden="true">02</span>注文管理</a>{% endif %}
-    {% if perms.inquiries.view_inquiry %}<a class="nav-entry" href="{% url 'admin:inquiries_inquiry_changelist' %}"><span aria-hidden="true">03</span>問い合わせ</a>{% endif %}
-    {% if perms.orders.view_payment %}<a class="nav-entry" href="{% url 'admin:orders_payment_changelist' %}"><span aria-hidden="true">04</span>支払い履歴</a>{% endif %}
+    <p class="nav-section-label">顧客服務</p>
+    {% if perms.orders.view_order %}<a class="nav-entry" href="{% url 'admin:orders_order_changelist' %}"><span aria-hidden="true">02</span>訂單管理</a>{% endif %}
+    {% if perms.inquiries.view_inquiry %}<a class="nav-entry" href="{% url 'admin:inquiries_inquiry_changelist' %}"><span aria-hidden="true">03</span>客戶諮詢</a>{% endif %}
+    {% if perms.orders.view_payment %}<a class="nav-entry" href="{% url 'admin:orders_payment_changelist' %}"><span aria-hidden="true">04</span>付款記錄</a>{% endif %}
   </div>
   {% endif %}
 
   {% if perms.catalog.view_product or perms.catalog.view_productcategory %}
   <div class="nav-section">
-    <p class="nav-section-label">ショップ</p>
+    <p class="nav-section-label">商店</p>
     {% if perms.catalog.view_product %}<a class="nav-entry" href="{% url 'admin:catalog_product_changelist' %}"><span aria-hidden="true">05</span>商品</a>{% endif %}
-    {% if perms.catalog.view_productcategory %}<a class="nav-entry" href="{% url 'admin:catalog_productcategory_changelist' %}"><span aria-hidden="true">06</span>カテゴリ</a>{% endif %}
+    {% if perms.catalog.view_productcategory %}<a class="nav-entry" href="{% url 'admin:catalog_productcategory_changelist' %}"><span aria-hidden="true">06</span>商品分類</a>{% endif %}
   </div>
   {% endif %}
 
   {% if perms.content.view_interiorproject or perms.content.view_publication or perms.content.view_policypage %}
   <div class="nav-section">
-    <p class="nav-section-label">コンテンツ</p>
+    <p class="nav-section-label">網站內容</p>
     {% if perms.content.view_interiorproject %}<a class="nav-entry" href="{% url 'admin:content_interiorproject_changelist' %}"><span aria-hidden="true">07</span>室内設計</a>{% endif %}
     {% if perms.content.view_publication %}<a class="nav-entry" href="{% url 'admin:content_publication_changelist' %}"><span aria-hidden="true">08</span>出版物</a>{% endif %}
-    {% if perms.content.view_policypage %}<a class="nav-entry" href="{% url 'admin:content_policypage_changelist' %}"><span aria-hidden="true">09</span>ポリシー</a>{% endif %}
+    {% if perms.content.view_policypage %}<a class="nav-entry" href="{% url 'admin:content_policypage_changelist' %}"><span aria-hidden="true">09</span>政策頁面</a>{% endif %}
   </div>
   {% endif %}
 
   <div class="nav-section">
-    <p class="nav-section-label">設定・連携</p>
-    {% if perms.core.view_sitesettings %}<a class="nav-entry" href="{% url 'admin:core_sitesettings_changelist' %}"><span aria-hidden="true">10</span>サイト設定</a>{% endif %}
-    {% if perms.orders.view_paymentmethod %}<a class="nav-entry" href="{% url 'admin:orders_paymentmethod_changelist' %}"><span aria-hidden="true">11</span>支払方法</a>{% endif %}
-    {% if perms.orders.view_linenotification %}<a class="nav-entry" href="{% url 'admin:orders_linenotification_changelist' %}"><span aria-hidden="true">12</span>LINE通知</a>{% endif %}
-    {% if perms.orders.view_linecustomer %}<a class="nav-entry" href="{% url 'admin:orders_linecustomer_changelist' %}"><span aria-hidden="true">13</span>LINE顧客</a>{% endif %}
-    {% if perms.auth.view_user %}<a class="nav-entry" href="{% url 'admin:auth_user_changelist' %}"><span aria-hidden="true">14</span>管理ユーザー</a>{% endif %}
+    <p class="nav-section-label">設定與連結</p>
+    {% if perms.core.view_sitesettings %}<a class="nav-entry" href="{% url 'admin:core_sitesettings_changelist' %}"><span aria-hidden="true">10</span>網站設定</a>{% endif %}
+    {% if perms.orders.view_paymentmethod %}<a class="nav-entry" href="{% url 'admin:orders_paymentmethod_changelist' %}"><span aria-hidden="true">11</span>付款方式</a>{% endif %}
+    {% if perms.orders.view_linenotification %}<a class="nav-entry" href="{% url 'admin:orders_linenotification_changelist' %}"><span aria-hidden="true">12</span>LINE 通知</a>{% endif %}
+    {% if perms.orders.view_linecustomer %}<a class="nav-entry" href="{% url 'admin:orders_linecustomer_changelist' %}"><span aria-hidden="true">13</span>LINE 顧客</a>{% endif %}
+    {% if perms.auth.view_user %}<a class="nav-entry" href="{% url 'admin:auth_user_changelist' %}"><span aria-hidden="true">14</span>後台管理員</a>{% endif %}
   </div>
 </nav>

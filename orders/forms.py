@@ -6,7 +6,7 @@ class CheckoutForm(forms.Form):
     phone = forms.CharField(label="電話", max_length=60, widget=forms.TextInput(attrs={"autocomplete": "tel"}))
     email = forms.EmailField(label="Email", widget=forms.EmailInput(attrs={"autocomplete": "email"}))
     shipping_information = forms.CharField(label="配送資訊", widget=forms.Textarea(attrs={"rows": 4, "autocomplete": "street-address"}))
-    customer_note = forms.CharField(label="備考", required=False, widget=forms.Textarea(attrs={"rows": 4}))
+    customer_note = forms.CharField(label="備註", required=False, widget=forms.Textarea(attrs={"rows": 4}))
     idempotency_key = forms.CharField(widget=forms.HiddenInput)
     website = forms.CharField(required=False, widget=forms.HiddenInput, label="")
 

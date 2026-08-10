@@ -43,7 +43,7 @@ PUBLICATIONS = [("no-04-qinghuan", "No. 04", "清歡", "一碗粥、一盞茶、
 
 
 class Command(BaseCommand):
-    help = "Astroデモの初期コンテンツをDBへ投入します（既存レコードは上書きしません）。"
+    help = "將 Astro 示範網站的初始內容寫入資料庫（不會覆寫現有資料）。"
 
     def handle(self, *args, **options):
         SiteSettings.objects.get_or_create(pk=1)
@@ -53,7 +53,7 @@ class Command(BaseCommand):
             category_map[slug] = category
         for index, row in enumerate(PRODUCTS, 1):
             slug, sku, category_slug, maker, series, name, price, stock, preorder, subcategory, tone, badge, description, specs = row
-            product, created = Product.objects.get_or_create(slug=slug, defaults={"sku": sku, "category": category_map[category_slug], "maker": maker, "series": series, "name": name, "price": price, "stock": stock, "is_preorder": preorder, "preorder_note": "預購・詳細はLINEでご案内します。" if preorder else "", "subcategory": subcategory, "tone": tone, "badge_label": badge, "image_label": slug.replace("-", " ").upper(), "description": description, "short_description": description[:280], "care": "天然材質與手工作品各有細微差異。使用後請保持清潔與乾燥。", "shipping_note": "退換貨條件は正式ポリシーをご確認ください。", "maker_story": f"{maker} による小量製作の器物です。", "sort_order": index, "is_published": True})
+            product, created = Product.objects.get_or_create(slug=slug, defaults={"sku": sku, "category": category_map[category_slug], "maker": maker, "series": series, "name": name, "price": price, "stock": stock, "is_preorder": preorder, "preorder_note": "預購商品詳情將透過 LINE 說明。" if preorder else "", "subcategory": subcategory, "tone": tone, "badge_label": badge, "image_label": slug.replace("-", " ").upper(), "description": description, "short_description": description[:280], "care": "天然材質與手工作品各有細微差異。使用後請保持清潔與乾燥。", "shipping_note": "請查看正式退換貨政策。", "maker_story": f"由 {maker} 小量製作的生活器物。", "sort_order": index, "is_published": True})
             if created:
                 for spec_order, (label, value) in enumerate(specs, 1):
                     ProductSpecification.objects.create(product=product, label=label, value=value, sort_order=spec_order)
@@ -76,4 +76,4 @@ class Command(BaseCommand):
         policies = [("privacy-policy", "隱私權政策"), ("shopping-guide", "購物須知"), ("payment-methods", "付款方式"), ("shipping-policy", "配送政策"), ("preorder-information", "預購商品說明"), ("returns-policy", "退換貨政策")]
         for index, (slug, title) in enumerate(policies, 1):
             PolicyPage.objects.get_or_create(slug=slug, defaults={"title": title, "body": "", "published": False, "sort_order": index})
-        self.stdout.write(self.style.SUCCESS("初期データを確認・投入しました。"))
+        self.stdout.write(self.style.SUCCESS("已檢查並建立初始資料。"))

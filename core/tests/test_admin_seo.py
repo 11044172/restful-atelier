@@ -54,11 +54,11 @@ class SeoAndAdminTests(TestCase):
 
         response = self.client.get(reverse("admin:index"))
 
-        self.assertContains(response, "今日の運営状況")
+        self.assertContains(response, "今日的營運狀況")
         self.assertContains(response, self.order.public_number)
         self.assertContains(response, self.inquiry.name)
         self.assertContains(response, self.product.name)
-        self.assertContains(response, "よく使う管理メニュー")
+        self.assertContains(response, "常用管理功能")
 
     def test_backoffice_dashboard_respects_model_permissions(self):
         limited = get_user_model().objects.create_user("catalog-staff", password="password", is_staff=True)
@@ -68,7 +68,7 @@ class SeoAndAdminTests(TestCase):
         response = self.client.get(reverse("admin:index"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "商品を管理")
+        self.assertContains(response, "管理商品")
         self.assertNotContains(response, self.order.public_number)
         self.assertNotContains(response, self.inquiry.email)
 

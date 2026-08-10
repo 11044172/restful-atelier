@@ -1,3 +1,3 @@
 {% extends 'base.html' %}
 {% block page_title %}付款連結無法使用{% endblock %}
-{% block content %}<section class="order-complete page-shell"><p class="eyebrow">PAYMENT LINK</p><h1>此付款連結目前無法使用</h1>{% if reason == 'expired' %}<p>連結已逾期，請透過 Rfull 官方 LINE 聯絡我們重新發送。</p>{% elif reason == 'paid' %}<p>這筆訂單已完成入金確認，無需再次付款。</p>{% elif reason == 'cancelled' %}<p>這筆訂單已取消。</p>{% else %}<p>連結不正確、已更新或尚未開放。請從最新的 LINE 訊息重新開啟。</p>{% endif %}<a class="button-link button-dark" href="{% url 'catalog:shop' %}">返回商店 →</a></section>{% endblock %}
+{% block content %}<section class="order-complete page-shell"><p class="eyebrow">PAYMENT LINK</p><h1>此付款連結目前無法使用</h1>{% if reason == 'expired' %}<p>連結已逾期，請透過 Rfull 官方 LINE 聯絡我們重新傳送。</p>{% elif reason == 'paid' %}<p>這筆訂單已確認付款，無需再次付款。</p>{% elif reason == 'cancelled' %}<p>這筆訂單已取消。</p>{% else %}<p>連結不正確、已更新或尚未開放。請從最新的 LINE 訊息重新開啟。</p>{% endif %}<a class="button-link button-dark" href="{% url 'catalog:shop' %}">返回商店 →</a></section>{% endblock %}

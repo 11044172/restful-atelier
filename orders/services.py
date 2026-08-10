@@ -36,9 +36,9 @@ def create_order_from_cart(*, cart, cleaned_data, line_customer=None):
         product = locked_products.get(cart_item["product"].pk)
         quantity = cart_item["quantity"]
         if not product:
-            raise CartValidationError("購物車の商品が現在購入できません。")
+            raise CartValidationError("購物車內有目前無法購買的商品。")
         if not product.is_preorder and product.stock < quantity:
-            raise CartValidationError(f"「{product.name}」の在庫は {product.stock} 件です。数量を調整してください。")
+            raise CartValidationError(f"「{product.name}」目前庫存為 {product.stock} 件，請調整數量。")
         line_total = product.price * Decimal(quantity)
         subtotal += line_total
         prepared.append((product, quantity, line_total))
@@ -84,7 +84,7 @@ def send_order_emails(order):
     site = SiteSettings.load()
     order_admin_url = f"{settings.CANONICAL_ORIGIN}{reverse('admin:orders_order_change', args=[order.pk])}"
     context = {"order": order, "site_settings": site, "order_admin_url": order_admin_url}
-    subject = f"[Rfull] 注文受付 {order.public_number}"
+    subject = f"[Rfull] 訂單已成立 {order.public_number}"
     customer_body = render_to_string("orders/email/customer_received.txt", context)
     staff_body = render_to_string("orders/email/staff_received.txt", context)
     try:

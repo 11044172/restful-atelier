@@ -8,9 +8,9 @@ from django.utils import timezone
 class BackofficeAdminSite(AdminSite):
     """Branded operations console backed by Django's permission system."""
 
-    site_header = "靜院居家 運営管理"
-    site_title = "靜院居家 運営管理"
-    index_title = "運営ダッシュボード"
+    site_header = "靜院居家 營運管理"
+    site_title = "靜院居家 營運管理"
+    index_title = "營運儀表板"
     index_template = "admin/index.html"
     login_template = "admin/login.html"
     enable_nav_sidebar = True
