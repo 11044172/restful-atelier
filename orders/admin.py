@@ -3,8 +3,12 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import admin
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db.models import Exists, OuterRef, Subquery
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import path, reverse
+from django.utils.html import format_html
+
+from core.admin_site import backoffice_site
 
 from .line_messaging import schedule_payment_request, schedule_shipping_notification, retry_notification
 from .models import LineCustomer, LineNotification, LineWebhookEvent, Order, OrderItem, Payment, PaymentMethod
@@ -33,10 +37,10 @@ class LineNotificationInline(admin.TabularInline):
     readonly_fields = fields
 
 
-@admin.register(Order)
+@admin.register(Order, site=backoffice_site)
 class OrderAdmin(admin.ModelAdmin):
     change_form_template = "admin/orders/order/change_form.html"
-    list_display = ("public_number", "customer_name", "created_at", "status", "line_state", "friend_state", "subtotal", "shipping_fee", "final_total", "payment_state", "shipment_state", "last_line_notification")
+    list_display = ("public_number", "customer_name", "created_at", "status_badge", "line_state", "friend_state", "subtotal", "shipping_fee", "final_total", "payment_state", "shipment_state", "last_line_notification")
     list_filter = ("status", "created_at", "paid_at", "shipped_at")
     list_select_related = ("line_customer",)
     search_fields = ("public_number", "customer_name", "phone", "email", "tracking_number")
@@ -51,10 +55,30 @@ class OrderAdmin(admin.ModelAdmin):
         ("入金・発送", {"fields": ("paid_at", "shipped_at", "carrier", "tracking_number", "tracking_url")}),
         ("管理", {"fields": ("admin_note", "idempotency_key", "payment_link_version", "payment_request_total", "inventory_reserved", "inventory_released")}),
     )
+    list_per_page = 25
+
+    def get_queryset(self, request):
+        confirmed = Payment.objects.filter(order_id=OuterRef("pk"), status=Payment.Status.CONFIRMED)
+        last_sent = LineNotification.objects.filter(
+            order_id=OuterRef("pk"), sent_at__isnull=False
+        ).order_by("-sent_at").values("sent_at")[:1]
+        return super().get_queryset(request).annotate(
+            has_confirmed_payment=Exists(confirmed),
+            last_notification_at=Subquery(last_sent),
+        )
+
+    @admin.display(description="ステータス", ordering="status")
+    def status_badge(self, obj):
+        return format_html(
+            '<span class="status-pill status-{}">{}</span>',
+            obj.status,
+            obj.get_status_display(),
+        )
 
     @admin.display(description="入金", boolean=True)
     def payment_state(self, obj):
-        return obj.is_paid
+        annotated = getattr(obj, "has_confirmed_payment", None)
+        return annotated if annotated is not None else obj.is_paid
 
     @admin.display(description="発送")
     def shipment_state(self, obj):
@@ -86,6 +110,8 @@ class OrderAdmin(admin.ModelAdmin):
 
     @admin.display(description="最終LINE通知")
     def last_line_notification(self, obj):
+        if hasattr(obj, "last_notification_at"):
+            return obj.last_notification_at or "—"
         latest = obj.line_notifications.filter(sent_at__isnull=False).order_by("-sent_at").first()
         return latest.sent_at if latest else "—"
 
@@ -166,14 +192,14 @@ class OrderAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
-@admin.register(PaymentMethod)
+@admin.register(PaymentMethod, site=backoffice_site)
 class PaymentMethodAdmin(admin.ModelAdmin):
     list_display = ("display_name", "code", "enabled", "provider", "sort_order")
     list_editable = ("enabled", "sort_order")
     list_filter = ("enabled", "code")
 
 
-@admin.register(Payment)
+@admin.register(Payment, site=backoffice_site)
 class PaymentAdmin(admin.ModelAdmin):
     list_display = ("order", "method", "amount", "status", "paid_at", "created_at")
     list_filter = ("status", "method", "created_at")
@@ -181,7 +207,7 @@ class PaymentAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
 
 
-@admin.register(LineCustomer)
+@admin.register(LineCustomer, site=backoffice_site)
 class LineCustomerAdmin(admin.ModelAdmin):
     list_display = ("display_name", "masked_id", "is_friend", "is_blocked", "last_login_at", "friend_checked_at")
     search_fields = ("display_name",)
@@ -200,7 +226,7 @@ class LineCustomerAdmin(admin.ModelAdmin):
         return False
 
 
-@admin.register(LineNotification)
+@admin.register(LineNotification, site=backoffice_site)
 class LineNotificationAdmin(admin.ModelAdmin):
     list_display = ("order", "notification_type", "status", "sent_at", "failed_at", "retry_count", "http_status")
     list_filter = ("notification_type", "status", "created_at")
@@ -217,7 +243,7 @@ class LineNotificationAdmin(admin.ModelAdmin):
         self.message_user(request, f"{count}件を再試行しました。")
 
 
-@admin.register(LineWebhookEvent)
+@admin.register(LineWebhookEvent, site=backoffice_site)
 class LineWebhookEventAdmin(admin.ModelAdmin):
     list_display = ("masked_event_id", "event_type", "processed_at")
     readonly_fields = ("masked_event_id", "event_type", "processed_at")

@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
@@ -41,11 +42,35 @@ class SeoAndAdminTests(TestCase):
     def test_admin_operational_pages_load(self):
         self.client.force_login(self.user)
         for url in (
+            reverse("admin:index"),
             reverse("admin:catalog_product_changelist"), reverse("admin:catalog_product_change", args=[self.product.pk]),
             reverse("admin:orders_order_changelist"), reverse("admin:orders_order_change", args=[self.order.pk]),
             reverse("admin:inquiries_inquiry_changelist"), reverse("admin:core_sitesettings_change", args=[self.site.pk]),
         ):
             self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_backoffice_dashboard_summarizes_work_needing_attention(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("admin:index"))
+
+        self.assertContains(response, "今日の運営状況")
+        self.assertContains(response, self.order.public_number)
+        self.assertContains(response, self.inquiry.name)
+        self.assertContains(response, self.product.name)
+        self.assertContains(response, "よく使う管理メニュー")
+
+    def test_backoffice_dashboard_respects_model_permissions(self):
+        limited = get_user_model().objects.create_user("catalog-staff", password="password", is_staff=True)
+        limited.user_permissions.add(Permission.objects.get(codename="view_product"))
+        self.client.force_login(limited)
+
+        response = self.client.get(reverse("admin:index"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "商品を管理")
+        self.assertNotContains(response, self.order.public_number)
+        self.assertNotContains(response, self.inquiry.email)
 
     def test_launch_readiness_reports_missing_real_configuration(self):
         with self.assertRaises(CommandError):

@@ -1,16 +1,16 @@
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 
 from content.sitemaps import sitemaps
+from core.admin_site import backoffice_site
 from core import views as core_views
 from orders import views as order_views
 
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    path("admin/", backoffice_site.urls),
     path("healthz/", core_views.healthz, name="healthz"),
     path("auth/line/login/", order_views.line_login_start, name="line_login_start"),
     path("auth/line/callback/", order_views.line_login_callback, name="line_login_callback"),

@@ -1,9 +1,16 @@
 from django.contrib import admin
+from django.contrib.auth.admin import GroupAdmin, UserAdmin
+from django.contrib.auth.models import Group, User
 
+from .admin_site import backoffice_site
 from .models import SiteSettings
 
 
-@admin.register(SiteSettings)
+backoffice_site.register(User, UserAdmin)
+backoffice_site.register(Group, GroupAdmin)
+
+
+@admin.register(SiteSettings, site=backoffice_site)
 class SiteSettingsAdmin(admin.ModelAdmin):
     fieldsets = (
         ("ブランド", {"fields": ("brand_name", "public_name", "english_name", "meta_description")}),

@@ -1,0 +1,50 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}ログイン · {{ site_title }}{% endblock %}
+{% block bodyclass %}{{ block.super }} login backoffice-login{% endblock %}
+{% block usertools %}{% endblock %}
+{% block nav-global %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block content_title %}{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="login-layout">
+  <section class="login-story" aria-hidden="true">
+    <div class="login-story-mark">靜</div>
+    <div>
+      <span>RESTFULL ATELIER</span>
+      <h1>暮らしを整えるように、<br>運営も静かに整える。</h1>
+      <p>OPERATIONS MANAGEMENT</p>
+    </div>
+  </section>
+  <section class="login-card">
+    <div class="login-card-inner">
+      <p class="eyebrow">MANAGEMENT LOGIN</p>
+      <h2>運営管理画面</h2>
+      <p class="login-lead">アカウント情報を入力してください。</p>
+
+      {% if form.errors %}<p class="errornote">ユーザー名またはパスワードを確認してください。</p>{% endif %}
+      {% if user.is_authenticated %}<p class="errornote">このアカウントには管理権限がありません。</p>{% endif %}
+
+      <form action="{{ app_path }}" method="post" id="login-form">
+        {% csrf_token %}
+        <div class="form-row">
+          {{ form.username.errors }}
+          <label for="{{ form.username.id_for_label }}">ユーザー名</label>
+          {{ form.username }}
+        </div>
+        <div class="form-row">
+          {{ form.password.errors }}
+          <label for="{{ form.password.id_for_label }}">パスワード</label>
+          {{ form.password }}
+          <input type="hidden" name="next" value="{{ next }}">
+        </div>
+        <div class="submit-row"><input type="submit" value="ログイン"></div>
+      </form>
+      <small class="login-security">● 管理者専用の保護されたページです</small>
+    </div>
+  </section>
+</div>
+{% endblock %}

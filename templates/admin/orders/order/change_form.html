@@ -5,15 +5,28 @@
 {% block submit_buttons_bottom %}
   {{ block.super }}
   {% if original %}
-    <div class="submit-row">
-      <button type="submit" formaction="{% url 'admin:orders_order_confirm_shipping' original.pk %}">確定運費並發送付款通知</button>
-      <button type="submit" formaction="{% url 'admin:orders_order_resend_payment' original.pk %}">重新發送付款通知</button>
-      <button type="submit" formaction="{% url 'admin:orders_order_confirm_payment' original.pk %}">確認入金</button>
-      <button type="submit" formaction="{% url 'admin:orders_order_mark_shipped' original.pk %}">標記為已出貨並發送 LINE 通知</button>
-      <button type="submit" formaction="{% url 'admin:orders_order_resend_shipping' original.pk %}">重新發送出貨通知</button>
-      <button type="submit" formaction="{% url 'admin:orders_order_mark_preparing' original.pk %}">標記為出貨準備中</button>
-      <button type="submit" formaction="{% url 'admin:orders_order_complete' original.pk %}">標記為完成</button>
-      <button type="submit" formaction="{% url 'admin:orders_order_cancel' original.pk %}">取消訂單</button>
+    <div class="order-operation-panel">
+      <div class="operation-heading">
+        <span>NEXT ACTION</span>
+        <div><h2>注文の進行操作</h2><p>現在の状態に合わせて必要な操作だけを表示しています。</p></div>
+      </div>
+      <div class="operation-actions">
+        {% if original.status == 'received' or original.status == 'shipping_review' %}
+          <button class="operation-primary" type="submit" formaction="{% url 'admin:orders_order_confirm_shipping' original.pk %}" data-confirm="入力した送料を確定し、お客様へLINE支払い通知を送ります。実行しますか？">送料を確定し支払い案内を送る <span>→</span></button>
+        {% elif original.status == 'awaiting_payment' %}
+          <button class="operation-primary" type="submit" formaction="{% url 'admin:orders_order_confirm_payment' original.pk %}" data-confirm="登録済みの支払いを入金確認済みにしますか？">入金を確認する <span>→</span></button>
+        {% elif original.status == 'paid' %}
+          <button class="operation-primary" type="submit" formaction="{% url 'admin:orders_order_mark_preparing' original.pk %}">発送準備中にする <span>→</span></button>
+        {% elif original.status == 'preparing' %}
+          <button class="operation-primary" type="submit" formaction="{% url 'admin:orders_order_mark_shipped' original.pk %}" data-confirm="発送済みに更新し、お客様へLINE通知を送ります。追跡情報に間違いがないか確認しましたか？">発送済みにし通知を送る <span>→</span></button>
+        {% elif original.status == 'shipped' %}
+          <button class="operation-primary" type="submit" formaction="{% url 'admin:orders_order_complete' original.pk %}">注文を完了する <span>→</span></button>
+        {% endif %}
+
+        {% if original.status == 'awaiting_payment' %}<button type="submit" formaction="{% url 'admin:orders_order_resend_payment' original.pk %}" data-confirm="支払い案内を再送しますか？">支払い案内を再送</button>{% endif %}
+        {% if original.status == 'shipped' %}<button type="submit" formaction="{% url 'admin:orders_order_resend_shipping' original.pk %}" data-confirm="発送通知を再送しますか？">発送通知を再送</button>{% endif %}
+        {% if original.status != 'completed' and original.status != 'cancelled' %}<button class="operation-danger" type="submit" formaction="{% url 'admin:orders_order_cancel' original.pk %}" data-confirm="この注文をキャンセルします。確保済みの通常在庫は自動で戻ります。実行しますか？">注文をキャンセル</button>{% endif %}
+      </div>
     </div>
   {% endif %}
 {% endblock %}

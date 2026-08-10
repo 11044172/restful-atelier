@@ -1,0 +1,43 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} · {% endif %}{{ title }} · {{ site_title }}{% endblock %}
+
+{% block dark-mode-vars %}{% endblock %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'admin/css/backoffice.css' %}">
+{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <script src="{% static 'admin/js/backoffice.js' %}" defer></script>
+{% endblock %}
+
+{% block branding %}
+  <a class="brand-lockup" href="{% url 'admin:index' %}" aria-label="運営ダッシュボードへ">
+    <span class="brand-seal" aria-hidden="true">靜</span>
+    <span class="brand-copy">
+      <strong>靜院居家</strong>
+      <small>RESTFULL ATELIER · OPERATIONS</small>
+    </span>
+  </a>
+{% endblock %}
+
+{% block welcome-msg %}
+  <span class="user-presence"><i aria-hidden="true"></i>{% firstof user.get_short_name user.get_username %}</span>
+{% endblock %}
+
+{% block userlinks %}
+  {% if site_url %}<a href="{{ site_url }}" target="_blank" rel="noopener">サイトを表示</a>{% endif %}
+  {% if user.has_usable_password %}<a href="{% url 'admin:password_change' %}">パスワード</a>{% endif %}
+  <form id="logout-form" method="post" action="{% url 'admin:logout' %}">
+    {% csrf_token %}
+    <button type="submit">ログアウト</button>
+  </form>
+{% endblock %}
+
+{% block nav-global %}
+  <span class="environment-label">MANAGEMENT</span>
+{% endblock %}
