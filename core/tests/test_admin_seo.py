@@ -1,3 +1,5 @@
+from io import StringIO
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core.management import call_command
@@ -75,6 +77,19 @@ class SeoAndAdminTests(TestCase):
     def test_launch_readiness_reports_missing_real_configuration(self):
         with self.assertRaises(CommandError):
             call_command("check_launch_readiness")
+
+    @override_settings(STORAGES={
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {"custom_domain": None, "querystring_auth": False},
+        },
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+    })
+    def test_launch_readiness_rejects_unreadable_private_r2_media(self):
+        output = StringIO()
+        with self.assertRaises(CommandError):
+            call_command("check_launch_readiness", stdout=output)
+        self.assertIn("R2 媒體沒有公開網域，也未啟用簽署網址", output.getvalue())
 
     @override_settings(
         DEBUG=False,

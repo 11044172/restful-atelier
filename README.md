@@ -79,10 +79,11 @@ python manage.py collectstatic --noinput
 - `AWS_STORAGE_BUCKET_NAME`
 - `AWS_S3_ENDPOINT_URL`（R2 API endpoint）
 - `AWS_S3_REGION_NAME=auto`
-- `AWS_S3_CUSTOM_DOMAIN`（公開用カスタムドメインを使う場合）
-- `AWS_QUERYSTRING_AUTH=False`（公開画像の場合）
+- `AWS_S3_CUSTOM_DOMAIN`（公開用のR2カスタムドメインまたは`r2.dev`ドメインを使う場合）
+- `AWS_QUERYSTRING_AUTH=True`（公開ドメインを使わず、R2 API endpointから署名付きURLで配信する場合）
+- `AWS_QUERYSTRING_EXPIRE=3600`（署名付きURLの有効期間／秒）
 
-R2側では公開配信方法・CORS・カスタムドメインを別途設定してください。資格情報やbucket名をGitへcommitしないでください。商品画像、作品画像、出版物、Taiwan Pay QRはすべて同じstorage abstractionを使います。アップロード時は容量、MIME、Pillowによる画像整合性を検証します。
+R2への保存とブラウザへの公開配信は別の設定です。公開ドメインを設定しない場合は`AWS_QUERYSTRING_AUTH=True`のまま運用してください。公開カスタムドメインに切り替える場合のみ`AWS_S3_CUSTOM_DOMAIN`を設定し、公開バケットで`AWS_QUERYSTRING_AUTH=False`を使えます。R2側では必要に応じて公開配信・CORS・カスタムドメインを設定してください。資格情報やbucket名をGitへcommitしないでください。商品画像、作品画像、出版物、Taiwan Pay QRはすべて同じstorage abstractionを使います。アップロード時は容量、MIME、Pillowによる画像整合性を検証します。
 
 ## Email
 
@@ -288,7 +289,7 @@ Blueprintが自動設定する値：
 - `EMAIL_PORT=587` / `EMAIL_USE_TLS=True`
 - `ORDER_NOTIFICATION_EMAIL=rfullshop@gmail.com`
 - `ORDER_NOTIFICATION_EMAILS`（追加通知先をカンマ区切りでRenderの非公開環境変数へ設定）
-- `AWS_S3_REGION_NAME=auto` / `AWS_QUERYSTRING_AUTH=False`
+- `AWS_S3_REGION_NAME=auto` / `AWS_QUERYSTRING_AUTH=True` / `AWS_QUERYSTRING_EXPIRE=3600`
 - `MAX_IMAGE_UPLOAD_MB=10`
 - `CONTACT_RATE_LIMIT=5` / `CHECKOUT_RATE_LIMIT=5`
 - `LINE_LOGIN_CALLBACK_URL=https://restfull-xhex.onrender.com/auth/line/callback/`

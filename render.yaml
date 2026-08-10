@@ -64,7 +64,9 @@ services:
       - key: AWS_S3_CUSTOM_DOMAIN
         sync: false
       - key: AWS_QUERYSTRING_AUTH
-        value: "False"
+        value: "True"
+      - key: AWS_QUERYSTRING_EXPIRE
+        value: "3600"
       - key: MAX_IMAGE_UPLOAD_MB
         value: "10"
       - key: TURNSTILE_SITE_KEY

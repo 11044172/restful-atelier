@@ -100,17 +100,26 @@ STORAGES = {
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-if os.getenv("AWS_STORAGE_BUCKET_NAME"):
+R2_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "").strip()
+R2_CUSTOM_DOMAIN = os.getenv("AWS_S3_CUSTOM_DOMAIN", "").strip()
+if R2_CUSTOM_DOMAIN.startswith(("https://", "http://")):
+    R2_CUSTOM_DOMAIN = R2_CUSTOM_DOMAIN.split("://", 1)[1]
+R2_CUSTOM_DOMAIN = R2_CUSTOM_DOMAIN.rstrip("/")
+
+if R2_BUCKET_NAME:
     STORAGES["default"] = {
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
             "access_key": os.getenv("AWS_ACCESS_KEY_ID"),
             "secret_key": os.getenv("AWS_SECRET_ACCESS_KEY"),
-            "bucket_name": os.getenv("AWS_STORAGE_BUCKET_NAME"),
+            "bucket_name": R2_BUCKET_NAME,
             "endpoint_url": os.getenv("AWS_S3_ENDPOINT_URL"),
             "region_name": os.getenv("AWS_S3_REGION_NAME", "auto"),
-            "custom_domain": os.getenv("AWS_S3_CUSTOM_DOMAIN") or None,
-            "querystring_auth": env_bool("AWS_QUERYSTRING_AUTH", False),
+            "custom_domain": R2_CUSTOM_DOMAIN or None,
+            # R2's S3 API endpoint is private even when uploads work. Without
+            # a public r2.dev/custom domain, media must use presigned URLs.
+            "querystring_auth": env_bool("AWS_QUERYSTRING_AUTH", not bool(R2_CUSTOM_DOMAIN)),
+            "querystring_expire": int(os.getenv("AWS_QUERYSTRING_EXPIRE", "3600")),
             "file_overwrite": False,
         },
     }

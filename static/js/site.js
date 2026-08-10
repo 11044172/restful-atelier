@@ -125,5 +125,16 @@
     setInterval(checkFriend, 2500);
     checkFriend();
   }
+  const paymentMethods = $('[data-payment-methods]');
+  if (paymentMethods) {
+    $$('[data-payment-method]', paymentMethods).forEach((method) => {
+      method.addEventListener('toggle', () => {
+        if (!method.open) return;
+        $$('[data-payment-method]', paymentMethods).forEach((other) => {
+          if (other !== method) other.open = false;
+        });
+      });
+    });
+  }
   updateFavorites(); window.addEventListener('storage', updateFavorites); window.addEventListener('pageshow', updateFavorites);
 })();

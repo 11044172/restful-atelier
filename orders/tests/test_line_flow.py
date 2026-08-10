@@ -343,6 +343,37 @@ class NotificationPaymentShippingTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Payment.objects.filter(status=Payment.Status.CONFIRMED).exists())
 
+    def test_payment_methods_start_collapsed_and_taiwan_pay_qr_is_rendered(self):
+        order = self._awaiting_payment()
+        site = SiteSettings.load()
+        site.bank_name = "測試銀行"
+        site.bank_code = "001"
+        site.bank_account_number = "123456"
+        site.bank_account_name = "Rfull"
+        site.save()
+        PaymentMethod.objects.create(
+            code=PaymentMethod.Method.TAIWAN_PAY,
+            enabled=True,
+            display_name="Taiwan Pay",
+            instructions="請掃描 QR Code",
+            qr_image="payments/methods/taiwan-pay.png",
+            sort_order=1,
+        )
+        PaymentMethod.objects.create(
+            code=PaymentMethod.Method.BANK_TRANSFER,
+            enabled=True,
+            display_name="銀行轉帳",
+            sort_order=2,
+        )
+
+        response = self.client.get(reverse("payment", args=[make_payment_token(order)]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<details class="payment-method" data-payment-method>', count=2, html=False)
+        self.assertNotContains(response, '<details class="payment-method" data-payment-method open', html=False)
+        self.assertContains(response, 'src="/media/payments/methods/taiwan-pay.png"', html=False)
+        self.assertContains(response, "請選擇付款方式")
+
     @patch("orders.line_messaging.push_message")
     def test_payment_confirmed_notification_is_deduped(self, push):
         order = self._awaiting_payment()

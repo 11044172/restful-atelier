@@ -65,6 +65,10 @@ class Command(BaseCommand):
             warnings.append("SEO_INDEX_ENABLED 目前為停用狀態")
         if not settings.STORAGES["default"]["BACKEND"].startswith("storages.backends.s3"):
             failures.append("S3/R2 媒體儲存尚未設定")
+        else:
+            storage_options = settings.STORAGES["default"].get("OPTIONS", {})
+            if not storage_options.get("custom_domain") and not storage_options.get("querystring_auth"):
+                failures.append("R2 媒體沒有公開網域，也未啟用簽署網址，瀏覽器將無法讀取圖片")
         required = {"privacy-policy", "shopping-guide", "payment-methods", "shipping-policy", "preorder-information", "returns-policy"}
         published = set(PolicyPage.objects.filter(slug__in=required, published=True).exclude(body="").values_list("slug", flat=True))
         for slug in sorted(required - published):
