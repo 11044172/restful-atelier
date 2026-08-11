@@ -43,7 +43,7 @@ jobs:
       - run: python manage.py migrate --noinput
       - run: python -m compileall -q catalog content core inquiries orders config
       - run: ruff check --select E9,F63,F7,F82 catalog content core inquiries orders config
-      - run: coverage run --source=catalog,content,core,inquiries,orders manage.py test
+      - run: coverage run --source=catalog,content,core,inquiries,orders manage.py test --verbosity 2
       - run: coverage report --show-missing
 
   frontend:
