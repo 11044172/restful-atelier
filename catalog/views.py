@@ -42,12 +42,16 @@ def search(request):
     query = request.GET.get("q", "").strip()
     products = Product.objects.published().select_related("category").prefetch_related("images", "specifications")
     if query:
+        lookup = "icontains" if query.isascii() else "contains"
         specification_matches = ProductSpecification.objects.filter(product_id=OuterRef("pk")).filter(
-            Q(label__icontains=query) | Q(value__icontains=query)
+            Q(**{f"label__{lookup}": query}) | Q(**{f"value__{lookup}": query})
         )
         products = products.filter(
-            Q(name__icontains=query) | Q(short_description__icontains=query) | Q(description__icontains=query)
-            | Q(category__name__icontains=query) | Q(category__english_name__icontains=query)
+            Q(**{f"name__{lookup}": query})
+            | Q(**{f"short_description__{lookup}": query})
+            | Q(**{f"description__{lookup}": query})
+            | Q(**{f"category__name__{lookup}": query})
+            | Q(**{f"category__english_name__{lookup}": query})
             | Exists(specification_matches)
         )
     page_obj = Paginator(products, 24).get_page(request.GET.get("page"))
