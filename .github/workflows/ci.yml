@@ -46,8 +46,14 @@ jobs:
       - run: coverage erase
       - name: Test catalog pricing
         run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test catalog.tests.test_models_views.CatalogTests.test_decimal_price_and_stock_label --verbosity 2
-      - name: Test catalog search
-        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test catalog.tests.test_models_views.CatalogTests.test_search_uses_name_category_description_and_specification --verbosity 2
+      - name: Test catalog search by product name
+        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test catalog.tests.test_models_views.CatalogTests.test_search_uses_product_name --verbosity 2
+      - name: Test catalog search by category
+        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test catalog.tests.test_models_views.CatalogTests.test_search_uses_category_name --verbosity 2
+      - name: Test catalog search by description
+        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test catalog.tests.test_models_views.CatalogTests.test_search_uses_description --verbosity 2
+      - name: Test catalog search by specification
+        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test catalog.tests.test_models_views.CatalogTests.test_search_uses_specification --verbosity 2
       - name: Test unpublished catalog visibility
         run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test catalog.tests.test_models_views.CatalogTests.test_unpublished_product_is_not_public --verbosity 2
       - name: Test invalid image rejection

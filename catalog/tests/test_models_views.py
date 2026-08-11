@@ -22,10 +22,21 @@ class CatalogTests(TestCase):
         self.product.stock = 1
         self.assertEqual(self.product.stock_label, "僅剩 1 件")
 
-    def test_search_uses_name_category_description_and_specification(self):
-        for query in ("測試", "茶道", "安靜", "粗陶"):
-            response = self.client.get(reverse("catalog:search"), {"q": query})
-            self.assertContains(response, self.product.name)
+    def assert_search_finds_product(self, query):
+        response = self.client.get(reverse("catalog:search"), {"q": query})
+        self.assertContains(response, self.product.name)
+
+    def test_search_uses_product_name(self):
+        self.assert_search_finds_product("測試")
+
+    def test_search_uses_category_name(self):
+        self.assert_search_finds_product("茶道")
+
+    def test_search_uses_description(self):
+        self.assert_search_finds_product("安靜")
+
+    def test_search_uses_specification(self):
+        self.assert_search_finds_product("粗陶")
 
     def test_unpublished_product_is_not_public(self):
         self.product.is_published = False
