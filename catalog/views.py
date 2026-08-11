@@ -1,4 +1,5 @@
-from django.db.models import Q
+from django.core.paginator import Paginator
+from django.db.models import Prefetch, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 
@@ -6,8 +7,8 @@ from .models import Product, ProductCategory
 
 
 def shop(request):
-    categories = ProductCategory.objects.filter(is_active=True).prefetch_related("products")
     products = Product.objects.published().select_related("category").prefetch_related("images")
+    categories = ProductCategory.objects.filter(is_active=True).prefetch_related(Prefetch("products", queryset=Product.objects.published()))
     return render(request, "catalog/shop.html", {"categories": categories, "products": products, "featured_products": products[:4], "shop_page": True})
 
 
@@ -22,7 +23,8 @@ def category_detail(request, slug):
     if ordering not in order_map:
         raise Http404
     products = products.order_by(*order_map[ordering])
-    return render(request, "catalog/category_detail.html", {"category": category, "products": products, "selected_subcategory": subcategory, "selected_sort": ordering, "shop_page": True})
+    page_obj = Paginator(products, 24).get_page(request.GET.get("page"))
+    return render(request, "catalog/category_detail.html", {"category": category, "products": page_obj.object_list, "page_obj": page_obj, "product_count": page_obj.paginator.count, "selected_subcategory": subcategory, "selected_sort": ordering, "shop_page": True})
 
 
 def product_detail(request, slug):
@@ -45,7 +47,8 @@ def search(request):
             | Q(category__name__icontains=query) | Q(category__english_name__icontains=query)
             | Q(specifications__label__icontains=query) | Q(specifications__value__icontains=query)
         ).distinct()
-    return render(request, "catalog/search.html", {"query": query, "products": products, "shop_page": True})
+    page_obj = Paginator(products, 24).get_page(request.GET.get("page"))
+    return render(request, "catalog/search.html", {"query": query, "products": page_obj.object_list, "page_obj": page_obj, "product_count": page_obj.paginator.count, "shop_page": True})
 
 
 def favorites(request):

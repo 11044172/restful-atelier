@@ -1,4 +1,5 @@
 from decimal import Decimal
+from io import BytesIO
 
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -6,6 +7,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from catalog.models import Product, ProductCategory, ProductImage, ProductSpecification
+from PIL import Image
 
 
 class CatalogTests(TestCase):
@@ -32,5 +34,28 @@ class CatalogTests(TestCase):
 
     def test_invalid_image_is_rejected(self):
         image = ProductImage(product=self.product, alt_text="broken", image=SimpleUploadedFile("bad.jpg", b"not-an-image", content_type="image/jpeg"))
+        with self.assertRaises(ValidationError):
+            image.full_clean()
+
+    def test_animated_and_extension_mismatch_images_are_rejected(self):
+        frames = [Image.new("RGB", (10, 10), color) for color in ("red", "blue")]
+        animated = BytesIO()
+        frames[0].save(animated, format="GIF", save_all=True, append_images=frames[1:])
+        png = BytesIO()
+        Image.new("RGB", (10, 10), "red").save(png, format="PNG")
+        uploads = [
+            SimpleUploadedFile("animated.gif", animated.getvalue(), content_type="image/gif"),
+            SimpleUploadedFile("mismatch.jpg", png.getvalue(), content_type="image/jpeg"),
+        ]
+        for upload in uploads:
+            with self.subTest(upload=upload.name):
+                image = ProductImage(product=self.product, alt_text="unsafe", image=upload)
+                with self.assertRaises(ValidationError):
+                    image.full_clean()
+
+    def test_oversized_dimensions_are_rejected(self):
+        data = BytesIO()
+        Image.new("RGB", (8001, 1), "white").save(data, format="PNG")
+        image = ProductImage(product=self.product, alt_text="wide", image=SimpleUploadedFile("wide.png", data.getvalue(), content_type="image/png"))
         with self.assertRaises(ValidationError):
             image.full_clean()

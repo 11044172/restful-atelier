@@ -22,6 +22,9 @@ if os.getenv("RENDER_EXTERNAL_URL") and os.environ["RENDER_EXTERNAL_URL"] not in
 CANONICAL_ORIGIN = os.getenv("CANONICAL_ORIGIN", os.getenv("RENDER_EXTERNAL_URL", "https://restfull-xhex.onrender.com")).rstrip("/")
 CANONICAL_REDIRECT_HOSTS = [value.strip().lower() for value in os.getenv("CANONICAL_REDIRECT_HOSTS", "").split(",") if value.strip()]
 SEO_INDEX_ENABLED = env_bool("SEO_INDEX_ENABLED", False)
+DEPLOYMENT_ENV = os.getenv("DEPLOYMENT_ENV", "development").strip().lower()
+CREDENTIAL_SET_NAME = os.getenv("CREDENTIAL_SET_NAME", DEPLOYMENT_ENV).strip().lower()
+OUTBOX_WORKER_CONFIGURED = env_bool("OUTBOX_WORKER_CONFIGURED", False)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -43,12 +46,16 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "core.middleware.CanonicalHostMiddleware",
+    "core.middleware.ClientIPMiddleware",
+    "core.middleware.AdminLoginRateLimitMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "core.middleware.SecurityHeadersMiddleware",
+    "core.middleware.RequestObservabilityMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -94,7 +101,7 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static", BASE_DIR / "src" / "styles", BASE_DIR / "public"]
 STORAGES = {
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
 }
 MEDIA_URL = "/media/"
@@ -142,7 +149,13 @@ TURNSTILE_SITE_KEY = os.getenv("TURNSTILE_SITE_KEY", "")
 TURNSTILE_SECRET_KEY = os.getenv("TURNSTILE_SECRET_KEY", "")
 CONTACT_RATE_LIMIT = int(os.getenv("CONTACT_RATE_LIMIT", "5"))
 CHECKOUT_RATE_LIMIT = int(os.getenv("CHECKOUT_RATE_LIMIT", "5"))
+ADMIN_LOGIN_RATE_LIMIT = int(os.getenv("ADMIN_LOGIN_RATE_LIMIT", "8"))
+SLOW_REQUEST_MS = int(os.getenv("SLOW_REQUEST_MS", "1500"))
 MAX_IMAGE_UPLOAD_MB = int(os.getenv("MAX_IMAGE_UPLOAD_MB", "10"))
+MAX_IMAGE_WIDTH = int(os.getenv("MAX_IMAGE_WIDTH", "8000"))
+MAX_IMAGE_HEIGHT = int(os.getenv("MAX_IMAGE_HEIGHT", "8000"))
+MAX_IMAGE_PIXELS = int(os.getenv("MAX_IMAGE_PIXELS", "40000000"))
+TRUSTED_PROXY_IPS = {value.strip() for value in os.getenv("TRUSTED_PROXY_IPS", "").split(",") if value.strip()}
 
 LINE_LOGIN_CHANNEL_ID = os.getenv("LINE_LOGIN_CHANNEL_ID", "")
 LINE_LOGIN_CHANNEL_SECRET = os.getenv("LINE_LOGIN_CHANNEL_SECRET", "")
@@ -173,3 +186,15 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"structured": {"format": "time=%(asctime)s level=%(levelname)s logger=%(name)s message=%(message)s"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "structured"}},
+    "loggers": {
+        "restfull": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO"), "propagate": False},
+        "orders": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO"), "propagate": False},
+        "django.request": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+    },
+}

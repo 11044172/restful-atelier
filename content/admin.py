@@ -52,8 +52,8 @@ class PublicationAdmin(admin.ModelAdmin):
 
 @admin.register(PolicyPage, site=backoffice_site)
 class PolicyPageAdmin(admin.ModelAdmin):
-    list_display = ("title", "slug", "published", "sort_order", "updated_at")
-    list_filter = ("published",)
+    list_display = ("title", "slug", "version", "effective_date", "legal_reviewed", "published", "sort_order", "updated_at")
+    list_filter = ("published", "legal_reviewed")
     list_editable = ("published", "sort_order")
     search_fields = ("title", "body")
     prepopulated_fields = {"slug": ("title",)}

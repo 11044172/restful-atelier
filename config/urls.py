@@ -12,6 +12,7 @@ from orders import views as order_views
 urlpatterns = [
     path("admin/", backoffice_site.urls),
     path("healthz/", core_views.healthz, name="healthz"),
+    path("readiness/", core_views.readiness, name="readiness"),
     path("auth/line/login/", order_views.line_login_start, name="line_login_start"),
     path("auth/line/callback/", order_views.line_login_callback, name="line_login_callback"),
     path("webhooks/line/messaging/", order_views.line_messaging_webhook, name="line_messaging_webhook"),

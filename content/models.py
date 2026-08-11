@@ -1,7 +1,7 @@
 from django.db import models
 from django.urls import reverse
 
-from core.validators import validate_image_upload
+from core.validators import sanitize_image_field, validate_image_upload
 
 
 class InteriorProject(models.Model):
@@ -36,6 +36,10 @@ class InteriorProject(models.Model):
     def get_absolute_url(self):
         return reverse("content:project_detail", args=[self.slug])
 
+    def save(self, *args, **kwargs):
+        sanitize_image_field(self, "featured_image")
+        super().save(*args, **kwargs)
+
 
 class InteriorProjectImage(models.Model):
     project = models.ForeignKey(InteriorProject, verbose_name="作品", on_delete=models.CASCADE, related_name="images")
@@ -49,6 +53,10 @@ class InteriorProjectImage(models.Model):
         ordering = ("sort_order", "pk")
         verbose_name = "作品圖片"
         verbose_name_plural = "作品圖片"
+
+    def save(self, *args, **kwargs):
+        sanitize_image_field(self, "image")
+        super().save(*args, **kwargs)
 
 
 class Publication(models.Model):
@@ -78,11 +86,18 @@ class Publication(models.Model):
     def get_absolute_url(self):
         return reverse("content:publication_detail", args=[self.slug])
 
+    def save(self, *args, **kwargs):
+        sanitize_image_field(self, "cover_image")
+        super().save(*args, **kwargs)
+
 
 class PolicyPage(models.Model):
     title = models.CharField("頁面標題", max_length=220)
     slug = models.SlugField("slug", max_length=240, unique=True)
     body = models.TextField("內文", blank=True)
+    version = models.CharField("版本", max_length=40, blank=True)
+    effective_date = models.DateField("生效日期", null=True, blank=True)
+    legal_reviewed = models.BooleanField("事業者法務確認済み", default=False)
     published = models.BooleanField("公開", default=False)
     sort_order = models.PositiveIntegerField("顯示順序", default=0)
     updated_at = models.DateTimeField("更新時間", auto_now=True)
@@ -97,3 +112,9 @@ class PolicyPage(models.Model):
 
     def get_absolute_url(self):
         return reverse("content:policy", args=[self.slug])
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        if self.published and (not self.body.strip() or not self.version.strip() or not self.effective_date):
+            raise ValidationError("公開政策頁面必須有本文、版本與生效日期。")

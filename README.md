@@ -325,6 +325,14 @@ GitHub ActionsはPostgreSQL 17でsystem check、migration consistency、migrate�
 
 ## Launch checklist
 
+正式運用の詳細手順は次をsource of truthとして使用します。
+
+- [日常運用・注文・通知・個資](docs/OPERATIONS.md)
+- [Backup / Restore](docs/BACKUP_RESTORE.md)
+- [正式公開Runbook](docs/LAUNCH_RUNBOOK.md)
+- [Security運用](docs/SECURITY.md)
+- [台湾EC政策ドラフト根拠](docs/LEGAL_DRAFT_NOTES.md)
+
 - [ ] 正式LINE公式URL / 友達追加URLを設定
 - [ ] Login / Messaging Channelを同じProvider配下に作成
 - [ ] Login ChannelへRfull公式LINEをリンク

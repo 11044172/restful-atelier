@@ -1,6 +1,8 @@
 from django.db import connection
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
+from django.db.migrations.executor import MigrationExecutor
+from orders.models import NotificationOutbox
 
 
 def home(request):
@@ -26,6 +28,21 @@ def healthz(request):
     except Exception:
         return JsonResponse({"status": "unavailable"}, status=503)
     return JsonResponse({"status": "ok"})
+
+
+def readiness(request):
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+        executor = MigrationExecutor(connection)
+        pending = executor.migration_plan(executor.loader.graph.leaf_nodes())
+        backlog = NotificationOutbox.objects.exclude(status=NotificationOutbox.Status.SENT).count()
+        dead = NotificationOutbox.objects.filter(status=NotificationOutbox.Status.DEAD).count()
+    except Exception:
+        return JsonResponse({"status": "unavailable"}, status=503)
+    status = "ready" if not pending else "not_ready"
+    return JsonResponse({"status": status, "pending_migrations": len(pending), "outbox_backlog": backlog, "outbox_dead": dead}, status=200 if not pending else 503)
 
 
 def robots_txt(request):

@@ -48,7 +48,7 @@ class ProductAdmin(admin.ModelAdmin):
     fieldsets = (
         ("基本資訊", {"fields": ("category", "name", "slug", "sku", "maker", "series", "subcategory")}),
         ("商品內容", {"fields": ("short_description", "description", "care", "shipping_note", "maker_story")}),
-        ("販售設定", {"fields": ("price", "stock", "is_preorder", "preorder_note", "badge_label", "is_published", "sort_order")}),
+        ("販售設定", {"fields": ("price", "stock", "sale_starts_at", "sale_ends_at", "is_preorder", "preorder_note", "preorder_limit", "preorder_delivery_estimate", "badge_label", "is_published", "sort_order")}),
         ("預留圖片", {"fields": ("image_label", "tone"), "description": "僅在尚未上傳正式圖片時顯示。"}),
         ("建立與更新時間", {"fields": ("created_at", "updated_at")}),
     )

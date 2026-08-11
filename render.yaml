@@ -31,6 +31,12 @@ services:
         value: ""
       - key: SEO_INDEX_ENABLED
         value: "False"
+      - key: DEPLOYMENT_ENV
+        value: staging
+      - key: CREDENTIAL_SET_NAME
+        value: staging
+      - key: OUTBOX_WORKER_CONFIGURED
+        value: "False"
       - key: DJANGO_SECURE_SSL_REDIRECT
         value: "True"
       - key: DJANGO_HSTS_SECONDS
@@ -77,6 +83,16 @@ services:
         value: "5"
       - key: CHECKOUT_RATE_LIMIT
         value: "5"
+      - key: ADMIN_LOGIN_RATE_LIMIT
+        value: "8"
+      - key: MAX_IMAGE_WIDTH
+        value: "8000"
+      - key: MAX_IMAGE_HEIGHT
+        value: "8000"
+      - key: MAX_IMAGE_PIXELS
+        value: "40000000"
+      - key: TRUSTED_PROXY_IPS
+        sync: false
       - key: LINE_LOGIN_CHANNEL_ID
         sync: false
       - key: LINE_LOGIN_CHANNEL_SECRET
