@@ -5,6 +5,7 @@
   <p class="eyebrow">PAYMENT INFORMATION</p>
   <h1>付款資訊</h1>
   <p class="order-number">{{ order.public_number }}</p>
+  <div class="payment-order-items">{% for item in order.items.all %}<div class="summary-line"><span>{{ item.product_name_snapshot }} × {{ item.quantity }}（單價 {{ item.unit_price_snapshot|currency }}）</span><span>{{ item.line_total|currency }}</span></div>{% endfor %}</div>
   <dl class="product-specs">
     <div><dt>商品合計</dt><dd>{{ order.subtotal|currency }}</dd></div>
     <div><dt>運費</dt><dd>{{ order.shipping_fee|currency }}</dd></div>
@@ -12,6 +13,12 @@
   <div class="summary-total"><span>最終付款金額</span><strong>{{ order.final_total|currency }}</strong></div>
 
   {% if methods %}
+  <form method="post" class="payment-confirm-form">{% csrf_token %}{{ form.non_field_errors }}
+    <div class="field"><label for="{{ form.payment_method.id_for_label }}">付款方式</label>{{ form.payment_method }}{{ form.payment_method.errors }}</div>
+    <div class="policy-consent">{{ form.final_terms_accepted }}<label for="{{ form.final_terms_accepted.id_for_label }}">商品、數量、運費、最終合計與<a href="{% url 'content:policy' 'shopping-guide' %}" target="_blank">購物須知</a>、<a href="{% url 'content:policy' 'returns-policy' %}" target="_blank">退換貨政策</a>を確認しました。</label>{{ form.final_terms_accepted.errors }}</div>
+    <button class="form-submit" type="submit">付款方式を確認 <span>→</span></button>
+  </form>
+  {% if selected_method %}<div class="status-note">「{{ selected_method.display_name }}」を選択しました。下記案内に従ってお支払いください。入金確認まで注文は「等待付款」です。</div>{% endif %}
   <div class="payment-methods" data-payment-methods>
     <div class="payment-method-list-heading">
       <p class="eyebrow">PAYMENT METHOD</p>
@@ -20,7 +27,7 @@
     </div>
     <div class="payment-method-list">
       {% for method in methods %}
-      <details class="payment-method" data-payment-method>
+      <details class="payment-method" data-payment-method{% if selected_method.pk == method.pk %} open{% endif %}>
         <summary class="payment-method-summary">
           <span class="payment-method-index">0{{ forloop.counter }}</span>
           <span>{{ method.display_name }}</span>
@@ -37,9 +44,9 @@
           </dl>
           {% endif %}
           {% if method.qr_image %}
-          <img class="payment-qr" src="{{ method.qr_image.url }}" alt="{{ method.display_name }} QR">
+          <img class="payment-qr" src="{{ method.qr_image.url }}" alt="{{ method.display_name }} QR" width="480" height="480" loading="lazy" decoding="async">
           {% elif method.code == 'taiwan_pay' and site_settings.taiwan_pay_qr %}
-          <img class="payment-qr" src="{{ site_settings.taiwan_pay_qr.url }}" alt="Taiwan Pay QR">
+          <img class="payment-qr" src="{{ site_settings.taiwan_pay_qr.url }}" alt="Taiwan Pay QR" width="480" height="480" loading="lazy" decoding="async">
           {% endif %}
         </div>
       </details>

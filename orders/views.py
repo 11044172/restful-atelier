@@ -19,14 +19,16 @@ from core.models import SiteSettings
 from core.line_config import line_settings_configured
 from inquiries.antispam import rate_limit_exceeded, verify_turnstile
 from .cart import Cart
-from .forms import CheckoutForm
+from content.models import PolicyPage
+from .forms import CheckoutForm, PaymentSelectionForm
 from .line_login import LineLoginError, authorization_url, exchange_code, generate_oauth_values, get_friendship_status, verify_id_token
-from .line_messaging import schedule_order_received
+from .notifications import enqueue_order_notifications
 from .line_webhooks import parse_payload, process_event, valid_signature
-from .models import LineCustomer, Order, PaymentMethod
-from .payment_links import PaymentLinkError, resolve_payment_token
+from .models import LineCustomer, Order, Payment, PaymentMethod, PolicyAcceptance
+from .operations import cancel_order, record_audit
+from .payment_links import PaymentLinkError, resolve_cancel_token, resolve_payment_token
 from .payment_providers import get_provider
-from .services import CartValidationError, create_order_from_cart, send_order_emails
+from .services import CartValidationError, create_order_from_cart
 
 
 logger = logging.getLogger(__name__)
@@ -49,7 +51,10 @@ def cart_add(request, slug):
     else:
         Cart(request).add(product, quantity)
         messages.success(request, "商品已加入購物車。")
-    return redirect(request.POST.get("next") or "orders:cart")
+    next_url = request.POST.get("next", "")
+    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        return redirect(next_url)
+    return redirect("orders:cart")
 
 
 @require_POST
@@ -96,6 +101,12 @@ def checkout(request):
                 "phone": previous_order.phone,
                 "email": previous_order.email,
                 "shipping_information": previous_order.shipping_information,
+                "recipient_name": previous_order.recipient_name,
+                "postal_code": previous_order.postal_code,
+                "city": previous_order.city,
+                "district": previous_order.district,
+                "street_address": previous_order.street_address,
+                "delivery_note": previous_order.delivery_note,
             })
         form = CheckoutForm(initial=initial)
     else:
@@ -113,14 +124,18 @@ def checkout(request):
                 try:
                     if not line_customer:
                         raise CartValidationError("請先使用 LINE 登入並加入 Rfull 官方帳號。")
-                    order, created = create_order_from_cart(cart=cart, cleaned_data=form.cleaned_data, line_customer=line_customer)
+                    policies = {page.slug: page.version for page in PolicyPage.objects.filter(published=True).exclude(version="")}
+                    order, created = create_order_from_cart(
+                        cart=cart, cleaned_data=form.cleaned_data, line_customer=line_customer,
+                        policy_versions=policies,
+                        request_metadata={"ip_address": getattr(request, "client_ip", None), "user_agent": request.headers.get("user-agent", "")},
+                    )
                 except CartValidationError as exc:
                     form.add_error(None, str(exc))
                 else:
                     if created:
                         cart.clear()
-                        transaction.on_commit(lambda: send_order_emails(order))
-                        transaction.on_commit(lambda order_id=order.pk: schedule_order_received(order_id))
+                        transaction.on_commit(lambda order_id=order.pk: enqueue_order_notifications(order_id, "order_received"))
                     request.session.pop("checkout_token", None)
                     request.session["completed_order"] = order.public_number
                     return redirect("orders:complete", order_number=order.public_number)
@@ -268,12 +283,16 @@ def line_login_callback(request):
     return redirect(oauth.get("next") or "orders:checkout")
 
 
+@never_cache
 def payment(request, token):
     try:
         order = resolve_payment_token(token)
     except PaymentLinkError as exc:
         status = 410 if str(exc) in {"expired", "cancelled", "paid"} else 404
         return render(request, "orders/payment_link_error.html", {"reason": str(exc), "noindex": True}, status=status)
+    session_customer = request.session.get("line_customer_id")
+    if session_customer and order.line_customer_id and session_customer != order.line_customer_id:
+        return HttpResponseForbidden("此安全連結不屬於目前登入的LINE顧客。")
     site = SiteSettings.load()
     methods = []
     for method in PaymentMethod.objects.filter(enabled=True):
@@ -286,7 +305,53 @@ def payment(request, token):
         elif not method.provider or get_provider(method.provider) is None:
             continue
         methods.append(method)
-    return render(request, "orders/payment_instructions.html", {"order": order, "methods": methods, "shop_page": True, "noindex": True})
+    form = PaymentSelectionForm(request.POST or None, methods=methods)
+    selected_method = None
+    if request.method == "POST" and form.is_valid():
+        selected_method = form.cleaned_data["payment_method"]
+        PolicyAcceptance.objects.get_or_create(
+            order=order, line_customer=order.line_customer, document_type="final-payment-terms",
+            version=f"payment-link-v{order.payment_link_version}",
+            defaults={"ip_address": getattr(request, "client_ip", None), "user_agent": request.headers.get("user-agent", "")[:300]},
+        )
+        for policy in PolicyPage.objects.filter(published=True).exclude(version=""):
+            PolicyAcceptance.objects.get_or_create(
+                order=order,
+                line_customer=order.line_customer,
+                document_type=f"final-payment:{policy.slug}",
+                version=policy.version,
+                defaults={"ip_address": getattr(request, "client_ip", None), "user_agent": request.headers.get("user-agent", "")[:300]},
+            )
+        payment_record, created = Payment.objects.get_or_create(
+            order=order, method=selected_method, status=Payment.Status.AWAITING_CONFIRMATION,
+            defaults={"amount": order.final_total, "currency": "TWD", "idempotency_key": f"order:{order.pk}:method:{selected_method.pk}:v{order.payment_link_version}"},
+        )
+        if created:
+            record_audit(order, "payment_created", actor_label="customer", changes={"payment_id": payment_record.pk, "method": selected_method.code, "amount": str(order.final_total)})
+    return render(request, "orders/payment_instructions.html", {"order": order, "methods": methods, "form": form, "selected_method": selected_method, "shop_page": True, "noindex": True})
+
+
+@never_cache
+def cancel_order_link(request, token):
+    try:
+        order = resolve_cancel_token(token)
+    except PaymentLinkError as exc:
+        status = 410 if str(exc) == "expired" else 404
+        return render(request, "orders/payment_link_error.html", {"reason": str(exc), "noindex": True}, status=status)
+    session_customer = request.session.get("line_customer_id")
+    if session_customer and order.line_customer_id and session_customer != order.line_customer_id:
+        return HttpResponseForbidden("此安全連結不屬於目前登入的LINE顧客。")
+    cancellable = not order.is_paid and order.status in {Order.Status.RECEIVED, Order.Status.SHIPPING_REVIEW, Order.Status.AWAITING_PAYMENT}
+    if request.method == "POST" and cancellable:
+        try:
+            cancel_order(order.pk, actor_label="customer-signed-link")
+        except Exception as exc:
+            messages.error(request, str(exc))
+        else:
+            order.refresh_from_db()
+            messages.success(request, "訂單已取消。")
+            cancellable = False
+    return render(request, "orders/cancel_order.html", {"order": order, "cancellable": cancellable, "shop_page": True, "noindex": True})
 
 
 @csrf_exempt

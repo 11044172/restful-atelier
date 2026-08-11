@@ -31,9 +31,14 @@
     {% if has_previous_order %}<div class="status-note previous-order-note"><strong>已帶入上次購買資料</strong><br>請確認以下內容，只需修改有變更的項目。</div>{% endif %}
     <div class="field-row"><div class="field"><label for="{{ form.customer_name.id_for_label }}">姓名 <span>必填</span></label>{{ form.customer_name }}{{ form.customer_name.errors }}</div><div class="field"><label for="{{ form.phone.id_for_label }}">電話 <span>必填</span></label>{{ form.phone }}{{ form.phone.errors }}</div></div>
     <div class="field"><label for="{{ form.email.id_for_label }}">Email <span>必填</span></label>{{ form.email }}{{ form.email.errors }}</div>
-    <div class="field"><label for="{{ form.shipping_information.id_for_label }}">配送資訊 <span>必填</span></label>{{ form.shipping_information }}{{ form.shipping_information.errors }}</div>
+    {{ form.shipping_information }}
+    <div class="field"><label for="{{ form.recipient_name.id_for_label }}">收件人 <span>必填</span></label>{{ form.recipient_name }}{{ form.recipient_name.errors }}</div>
+    <div class="field-row"><div class="field"><label for="{{ form.postal_code.id_for_label }}">郵遞區號 <span>必填</span></label>{{ form.postal_code }}{{ form.postal_code.errors }}</div><div class="field"><label for="{{ form.city.id_for_label }}">縣市 <span>必填</span></label>{{ form.city }}{{ form.city.errors }}</div></div>
+    <div class="field-row"><div class="field"><label for="{{ form.district.id_for_label }}">鄉鎮市區 <span>必填</span></label>{{ form.district }}{{ form.district.errors }}</div><div class="field"><label for="{{ form.street_address.id_for_label }}">街道地址 <span>必填</span></label>{{ form.street_address }}{{ form.street_address.errors }}</div></div>
+    <div class="field"><label for="{{ form.delivery_note.id_for_label }}">配送備註</label>{{ form.delivery_note }}{{ form.delivery_note.errors }}</div>
     <div class="field"><label for="{{ form.customer_note.id_for_label }}">備註</label>{{ form.customer_note }}{{ form.customer_note.errors }}</div>
     <p class="manual-shipping-note">運費將由工作人員確認商品與配送方式後另行通知。送出後尚未完成付款，也不需要立即付款。</p>
+    <div class="policy-consent">{{ form.policies_accepted }}<label for="{{ form.policies_accepted.id_for_label }}">送出訂單代表訂單受理與運費確認請求，尚未付款。我已閱讀並同意 <a href="{% url 'content:policy' 'shopping-guide' %}" target="_blank">購物須知</a>、<a href="{% url 'content:policy' 'payment-methods' %}" target="_blank">付款說明</a>、<a href="{% url 'content:policy' 'shipping-policy' %}" target="_blank">配送說明</a>、<a href="{% url 'content:policy' 'preorder-information' %}" target="_blank">預購說明</a>、<a href="{% url 'content:policy' 'returns-policy' %}" target="_blank">退換貨政策</a>與<a href="{% url 'content:policy' 'privacy-policy' %}" target="_blank">隱私權政策</a>。</label>{{ form.policies_accepted.errors }}</div>
     {% if turnstile_site_key %}<div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>{% endif %}
     <button class="form-submit" type="submit" {% if not checkout_enabled %}disabled{% endif %}>送出訂單 <span>→</span></button>
   </form>

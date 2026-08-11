@@ -10,7 +10,7 @@ from django.urls import reverse
 from catalog.models import Product, ProductCategory
 from core.models import SiteSettings
 from orders.cart import Cart
-from orders.models import LineCustomer, Order, Payment, PaymentMethod
+from orders.models import LineCustomer, NotificationOutbox, Order, Payment, PaymentMethod
 from unittest.mock import patch
 from orders.services import CartValidationError, create_order_from_cart
 
@@ -100,6 +100,8 @@ class OrderFlowTests(TestCase):
     def test_preorder_does_not_decrement_normal_stock(self):
         self.product.is_preorder = True
         self.product.stock = 0
+        self.product.preorder_limit = 10
+        self.product.preorder_delivery_estimate = "2026年10月"
         self.product.save()
         self.create_order(5)
         self.product.refresh_from_db()
@@ -138,12 +140,12 @@ class OrderFlowTests(TestCase):
         self.client.post(reverse("orders:cart_add", args=[self.product.slug]), {"quantity": 1})
         response = self.client.get(reverse("orders:checkout"))
         token = self.client.session["checkout_token"]
-        data = {**self.cleaned, "idempotency_key": token, "website": ""}
-        with patch("orders.views.send_order_emails"), patch("orders.views.schedule_order_received"):
-            with self.captureOnCommitCallbacks(execute=True):
-                first = self.client.post(reverse("orders:checkout"), data)
+        data = {**self.cleaned, "idempotency_key": token, "website": "", "policies_accepted": "on"}
+        with self.captureOnCommitCallbacks(execute=True):
+            first = self.client.post(reverse("orders:checkout"), data)
         self.assertEqual(first.status_code, 302)
         self.assertEqual(Order.objects.count(), 1)
+        self.assertEqual(NotificationOutbox.objects.count(), 2)
 
     def test_csrf_is_enforced(self):
         client = Client(enforce_csrf_checks=True)

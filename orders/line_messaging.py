@@ -1,6 +1,7 @@
 import json
 import logging
 import uuid
+from datetime import timedelta
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -9,7 +10,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from .models import LineNotification, Order
-from .payment_links import make_payment_url
+from .payment_links import make_cancel_url, make_payment_url
 
 
 logger = logging.getLogger(__name__)
@@ -17,9 +18,11 @@ PUSH_URL = "https://api.line.me/v2/bot/message/push"
 
 
 class LineMessagingError(Exception):
-    def __init__(self, message, *, http_status=None):
+    def __init__(self, message, *, http_status=None, retryable=False, response_metadata=None):
         super().__init__(message)
         self.http_status = http_status
+        self.retryable = retryable
+        self.response_metadata = response_metadata or {}
 
 
 def money(value):
@@ -36,7 +39,7 @@ def _row(label, value, *, emphasis=False):
     }
 
 
-def _flex_message(*, alt_text, title, rows, note=None, button=None):
+def _flex_message(*, alt_text, title, rows, note=None, buttons=None):
     body = [
         {"type": "text", "text": "Rfull", "size": "xs", "color": "#8A8178"},
         {"type": "text", "text": title, "size": "xl", "weight": "bold", "margin": "md", "color": "#222222"},
@@ -46,8 +49,11 @@ def _flex_message(*, alt_text, title, rows, note=None, button=None):
     if note:
         body.append({"type": "text", "text": note, "size": "sm", "color": "#666666", "wrap": True, "margin": "xl"})
     bubble = {"type": "bubble", "styles": {"body": {"backgroundColor": "#FAF9F7"}}, "body": {"type": "box", "layout": "vertical", "paddingAll": "24px", "contents": body}}
-    if button:
-        bubble["footer"] = {"type": "box", "layout": "vertical", "paddingAll": "20px", "contents": [{"type": "button", "height": "sm", "style": "primary", "color": "#4C5148", "action": {"type": "uri", "label": button[0], "uri": button[1]}}]}
+    if buttons:
+        contents = []
+        for index, button in enumerate(buttons):
+            contents.append({"type": "button", "height": "sm", "style": "primary" if index == 0 else "secondary", "color": "#4C5148", "action": {"type": "uri", "label": button[0], "uri": button[1]}})
+        bubble["footer"] = {"type": "box", "layout": "vertical", "spacing": "sm", "paddingAll": "20px", "contents": contents}
     return {"type": "flex", "altText": alt_text, "contents": bubble}
 
 
@@ -61,15 +67,20 @@ def build_order_received(order):
 
 
 def build_payment_request(order):
+    rows = [_row("訂單編號", order.public_number)]
+    for item in order.items.all():
+        rows.append(_row(f"{item.product_name_snapshot} × {item.quantity}", money(item.line_total)))
+    rows.extend([
+        _row("商品小計", money(order.subtotal)),
+        _row("運費", money(order.shipping_fee)),
+        _row("合計金額", money(order.final_total), emphasis=True),
+    ])
     return _flex_message(
         alt_text=f"訂單 {order.public_number} 運費已確認，付款金額 {money(order.final_total)}。",
         title="運費已確認",
-        rows=[
-            _row("訂單編號", order.public_number), _row("商品金額", money(order.subtotal)),
-            _row("運費", money(order.shipping_fee)), _row("付款金額", money(order.final_total), emphasis=True),
-        ],
-        note="請由下方安全連結前往 Rfull 付款頁面。",
-        button=("前往付款", make_payment_url(order)),
+        rows=rows,
+        note="請確認最終內容後選擇付款，或在未付款時取消訂單。安全連結有期限。",
+        buttons=(("支払う", make_payment_url(order)), ("注文をキャンセル", make_cancel_url(order))),
     )
 
 
@@ -91,7 +102,16 @@ def build_shipping_notification(order):
         title="您的商品已出貨",
         rows=rows,
         note="感謝您的耐心等候。",
-        button=("查看配送狀態", order.tracking_url) if order.tracking_url else None,
+        buttons=(("查看配送狀態", order.tracking_url),) if order.tracking_url else None,
+    )
+
+
+def build_cancelled(order):
+    return _flex_message(
+        alt_text=f"訂單 {order.public_number} 已取消。",
+        title="訂單已取消",
+        rows=[_row("訂單編號", order.public_number), _row("商品小計", money(order.subtotal))],
+        note="此訂單未付款並已取消；已保留的一般商品庫存已安全還原。如有疑問請聯絡店家。",
     )
 
 
@@ -100,6 +120,7 @@ BUILDERS = {
     LineNotification.Type.PAYMENT_REQUEST: build_payment_request,
     LineNotification.Type.PAYMENT_CONFIRMED: build_payment_confirmed,
     LineNotification.Type.ORDER_SHIPPED: build_shipping_notification,
+    LineNotification.Type.ORDER_CANCELLED: build_cancelled,
 }
 
 
@@ -118,9 +139,17 @@ def push_message(*, line_user_id, message, retry_key):
             if response.status != 200:
                 raise LineMessagingError("LINE Messaging API returned an unexpected response.", http_status=response.status)
     except HTTPError as exc:
-        raise LineMessagingError("LINE Messaging API rejected the notification.", http_status=exc.code) from exc
+        metadata = {"accepted_request_id": exc.headers.get("x-line-accepted-request-id", ""), "request_id": exc.headers.get("x-line-request-id", "")}
+        if exc.code == 409:
+            return metadata
+        raise LineMessagingError(
+            "LINE Messaging API rejected the notification.",
+            http_status=exc.code,
+            retryable=exc.code == 429 or 500 <= exc.code < 600,
+            response_metadata=metadata,
+        ) from exc
     except (URLError, TimeoutError) as exc:
-        raise LineMessagingError("LINE Messaging API timed out or was unavailable.") from exc
+        raise LineMessagingError("LINE Messaging API timed out or was unavailable.", retryable=True) from exc
 
 
 def _default_dedupe_key(order, notification_type):
@@ -144,6 +173,8 @@ def send_order_notification(order_id, notification_type, *, force=False):
         notification = LineNotification.objects.get(order=order, notification_type=notification_type, dedupe_key=key)
         created = False
     if not created:
+        if notification.status == LineNotification.Status.FAILED:
+            return retry_notification(notification.pk)
         return notification
     if not settings.LINE_MESSAGING_CHANNEL_ACCESS_TOKEN:
         error = LineMessagingError("LINE Messaging API is not configured.")
@@ -180,6 +211,10 @@ def retry_notification(notification_id):
     notification = LineNotification.objects.select_related("order__line_customer").get(pk=notification_id)
     if notification.status != LineNotification.Status.FAILED:
         return notification
+    if notification.created_at < timezone.now() - timedelta(hours=23):
+        notification.error_message = "LINE retry keyの安全な再試行期限を超えました。新規手動再送として管理者が判断してください。"
+        notification.save(update_fields=("error_message", "updated_at"))
+        return notification
     notification.retry_count += 1
     notification.status = LineNotification.Status.PENDING
     notification.save(update_fields=("retry_count", "status", "updated_at"))
@@ -205,16 +240,20 @@ def retry_notification(notification_id):
 
 
 def schedule_order_received(order_id):
-    return send_order_notification(order_id, LineNotification.Type.ORDER_RECEIVED)
+    from .notifications import enqueue_order_notifications
+    return enqueue_order_notifications(order_id, LineNotification.Type.ORDER_RECEIVED, channels=("line",))
 
 
 def schedule_payment_request(order_id, *, force=False):
-    return send_order_notification(order_id, LineNotification.Type.PAYMENT_REQUEST, force=force)
+    from .notifications import enqueue_order_notifications
+    return enqueue_order_notifications(order_id, LineNotification.Type.PAYMENT_REQUEST, channels=("line",), force=force)
 
 
 def schedule_payment_confirmed(order_id):
-    return send_order_notification(order_id, LineNotification.Type.PAYMENT_CONFIRMED)
+    from .notifications import enqueue_order_notifications
+    return enqueue_order_notifications(order_id, LineNotification.Type.PAYMENT_CONFIRMED, channels=("line",))
 
 
 def schedule_shipping_notification(order_id, *, force=False):
-    return send_order_notification(order_id, LineNotification.Type.ORDER_SHIPPED, force=force)
+    from .notifications import enqueue_order_notifications
+    return enqueue_order_notifications(order_id, LineNotification.Type.ORDER_SHIPPED, channels=("line",), force=force)

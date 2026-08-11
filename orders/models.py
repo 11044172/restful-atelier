@@ -4,10 +4,10 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils import timezone
 
-from core.validators import validate_image_upload
+from core.validators import sanitize_image_field, validate_image_upload
 
 
 def generate_order_number():
@@ -28,7 +28,10 @@ class Order(models.Model):
         SHIPPED = "shipped", "已出貨"
         COMPLETED = "completed", "已完成"
         CANCELLED = "cancelled", "已取消"
+        REFUND_PENDING = "refund_pending", "退款處理中"
+        REFUNDED = "refunded", "已退款"
 
+    public_id = models.UUIDField("內部安全識別碼", default=uuid.uuid4, unique=True, editable=False)
     public_number = models.CharField("訂單編號", max_length=32, unique=True, default=generate_order_number, editable=False)
     access_token = models.CharField("顧客存取金鑰", max_length=64, unique=True, default=generate_access_token, editable=False)
     idempotency_key = models.CharField("防止重複送出金鑰", max_length=128, unique=True, editable=False)
@@ -40,6 +43,12 @@ class Order(models.Model):
     phone = models.CharField("電話", max_length=60)
     email = models.EmailField("Email")
     shipping_information = models.TextField("收件與配送資訊")
+    recipient_name = models.CharField("收件人", max_length=160, blank=True)
+    postal_code = models.CharField("郵遞區號", max_length=12, blank=True)
+    city = models.CharField("縣市", max_length=60, blank=True)
+    district = models.CharField("鄉鎮市區", max_length=80, blank=True)
+    street_address = models.CharField("街道地址", max_length=300, blank=True)
+    delivery_note = models.CharField("配送備註", max_length=300, blank=True)
     customer_note = models.TextField("顧客備註", blank=True)
     subtotal = models.DecimalField("商品小計", max_digits=12, decimal_places=0)
     shipping_fee = models.DecimalField("運費", max_digits=12, decimal_places=0, null=True, blank=True)
@@ -53,10 +62,12 @@ class Order(models.Model):
     tracking_number = models.CharField("追蹤號碼", max_length=160, blank=True)
     tracking_url = models.URLField("追蹤網址", blank=True)
     payment_link_version = models.PositiveIntegerField("付款連結版本", default=0, editable=False)
+    cancel_link_version = models.PositiveIntegerField("取消連結版本", default=0, editable=False)
     payment_request_total = models.DecimalField("付款通知金額", max_digits=12, decimal_places=0, null=True, blank=True, editable=False)
     admin_note = models.TextField("管理備註", blank=True)
     inventory_reserved = models.BooleanField("庫存已保留", default=False, editable=False)
     inventory_released = models.BooleanField("庫存已還原", default=False, editable=False)
+    cancelled_at = models.DateTimeField("取消時間", null=True, blank=True)
 
     class Meta:
         ordering = ("-created_at",)
@@ -161,6 +172,7 @@ class LineNotification(models.Model):
         PAYMENT_REQUEST = "payment_request", "付款通知"
         PAYMENT_CONFIRMED = "payment_confirmed", "付款確認"
         ORDER_SHIPPED = "order_shipped", "出貨通知"
+        ORDER_CANCELLED = "order_cancelled", "取消通知"
 
     class Status(models.TextChoices):
         PENDING = "pending", "傳送中"
@@ -194,6 +206,42 @@ class LineNotification(models.Model):
 
     def __str__(self):
         return f"{self.order.public_number} / {self.get_notification_type_display()}"
+
+
+class NotificationOutbox(models.Model):
+    class Channel(models.TextChoices):
+        LINE = "line", "LINE"
+        EMAIL = "email", "Email"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "等待傳送"
+        PROCESSING = "processing", "傳送中"
+        RETRY = "retry", "等待重試"
+        SENT = "sent", "已傳送"
+        DEAD = "dead", "人工處理"
+
+    order = models.ForeignKey(Order, verbose_name="訂單", on_delete=models.CASCADE, related_name="notification_outbox")
+    channel = models.CharField("管道", max_length=16, choices=Channel.choices)
+    event_type = models.CharField("事件", max_length=40)
+    dedupe_key = models.CharField("冪等金鑰", max_length=180)
+    payload = models.JSONField("工作資料", default=dict, blank=True)
+    status = models.CharField("狀態", max_length=16, choices=Status.choices, default=Status.PENDING)
+    attempt_count = models.PositiveIntegerField("嘗試次數", default=0)
+    max_attempts = models.PositiveSmallIntegerField("最大嘗試次數", default=8)
+    next_attempt_at = models.DateTimeField("下次嘗試", default=timezone.now)
+    locked_at = models.DateTimeField("鎖定時間", null=True, blank=True)
+    last_error = models.TextField("最後錯誤", blank=True)
+    response_metadata = models.JSONField("回應資料", default=dict, blank=True)
+    sent_at = models.DateTimeField("傳送時間", null=True, blank=True)
+    created_at = models.DateTimeField("建立時間", auto_now_add=True)
+    updated_at = models.DateTimeField("更新時間", auto_now=True)
+
+    class Meta:
+        ordering = ("next_attempt_at", "pk")
+        verbose_name = "通知佇列"
+        verbose_name_plural = "通知佇列"
+        constraints = [models.UniqueConstraint(fields=("channel", "event_type", "dedupe_key"), name="unique_outbox_delivery")]
+        indexes = [models.Index(fields=("status", "next_attempt_at"))]
 
 
 class LineWebhookEvent(models.Model):
@@ -230,6 +278,10 @@ class PaymentMethod(models.Model):
     def __str__(self):
         return self.display_name
 
+    def save(self, *args, **kwargs):
+        sanitize_image_field(self, "qr_image")
+        super().save(*args, **kwargs)
+
 
 class Payment(models.Model):
     class Status(models.TextChoices):
@@ -238,6 +290,10 @@ class Payment(models.Model):
         CONFIRMED = "confirmed", "已確認"
         FAILED = "failed", "失敗"
         CANCELLED = "cancelled", "已取消"
+        PARTIALLY_REFUNDED = "partially_refunded", "部分退款"
+        REFUNDED = "refunded", "全額退款"
+        OVERPAID = "overpaid", "過入金"
+        CHARGEBACK = "chargeback", "爭議款／拒付"
 
     order = models.ForeignKey(Order, verbose_name="訂單", on_delete=models.PROTECT, related_name="payments")
     method = models.ForeignKey(PaymentMethod, verbose_name="付款方式", on_delete=models.PROTECT, null=True, blank=True, related_name="payments")
@@ -246,8 +302,17 @@ class Payment(models.Model):
     status = models.CharField("付款狀態", max_length=32, choices=Status.choices, default=Status.PENDING)
     provider_reference = models.CharField("金流參考編號", max_length=255, blank=True)
     provider_event_id = models.CharField("金流事件 ID", max_length=255, null=True, blank=True, unique=True)
+    idempotency_key = models.CharField("付款冪等金鑰", max_length=160, null=True, blank=True, unique=True)
     currency = models.CharField("幣別", max_length=3, default="TWD")
     paid_at = models.DateTimeField("付款時間", null=True, blank=True)
+    confirmed_at = models.DateTimeField("確認時間", null=True, blank=True)
+    cancelled_at = models.DateTimeField("取消時間", null=True, blank=True)
+    refunded_amount = models.DecimalField("退款金額", max_digits=12, decimal_places=0, default=0)
+    refund_status = models.CharField("退款狀態", max_length=32, blank=True)
+    refund_reason = models.TextField("退款原因", blank=True)
+    refunded_at = models.DateTimeField("退款時間", null=True, blank=True)
+    refund_operator = models.ForeignKey("auth.User", verbose_name="退款操作人", on_delete=models.SET_NULL, null=True, blank=True, related_name="operated_refunds")
+    provider_metadata = models.JSONField("金流回應資料", default=dict, blank=True)
     note = models.TextField("備註", blank=True)
     created_at = models.DateTimeField("建立時間", auto_now_add=True)
     updated_at = models.DateTimeField("更新時間", auto_now=True)
@@ -256,6 +321,10 @@ class Payment(models.Model):
         ordering = ("-created_at",)
         verbose_name = "付款記錄"
         verbose_name_plural = "付款記錄"
+        constraints = [
+            models.UniqueConstraint(fields=("order",), condition=Q(status="confirmed"), name="one_confirmed_payment_per_order"),
+            models.CheckConstraint(condition=Q(refunded_amount__gte=0), name="payment_refund_amount_nonnegative"),
+        ]
 
     def __str__(self):
         return f"{self.order.public_number} / {self.get_status_display()}"
@@ -279,13 +348,57 @@ class Payment(models.Model):
             self.clean()
         if self.status == self.Status.CONFIRMED and not self.paid_at:
             self.paid_at = timezone.now()
+        if self.status == self.Status.CONFIRMED and not self.confirmed_at:
+            self.confirmed_at = timezone.now()
         super().save(*args, **kwargs)
         if self.status == self.Status.CONFIRMED:
+            previous_order_status = self.order.status
             updates = {"paid_at": self.paid_at}
             if self.order.status in {Order.Status.RECEIVED, Order.Status.SHIPPING_REVIEW, Order.Status.AWAITING_PAYMENT}:
                 updates["status"] = Order.Status.PAID
             Order.objects.filter(pk=self.order_id).update(**updates)
             if previous_status != self.Status.CONFIRMED:
-                from .line_messaging import schedule_payment_confirmed
+                OrderAuditLog.objects.create(
+                    order_id=self.order_id,
+                    event="payment_record_confirmed",
+                    actor_label="payment-model",
+                    from_status=previous_order_status,
+                    to_status=updates.get("status", previous_order_status),
+                    changes={"payment_id": self.pk, "amount": str(self.amount), "currency": self.currency},
+                )
+                from .notifications import enqueue_order_notifications
 
-                transaction.on_commit(lambda order_id=self.order_id: schedule_payment_confirmed(order_id))
+                transaction.on_commit(lambda order_id=self.order_id: enqueue_order_notifications(order_id, "payment_confirmed"))
+
+
+class PolicyAcceptance(models.Model):
+    order = models.ForeignKey(Order, verbose_name="訂單", on_delete=models.PROTECT, related_name="policy_acceptances")
+    line_customer = models.ForeignKey(LineCustomer, verbose_name="顧客", on_delete=models.PROTECT, null=True, blank=True, related_name="policy_acceptances")
+    document_type = models.CharField("文件類型", max_length=80)
+    version = models.CharField("版本", max_length=40)
+    accepted_at = models.DateTimeField("同意時間", auto_now_add=True)
+    ip_address = models.GenericIPAddressField("IP", null=True, blank=True)
+    user_agent = models.CharField("瀏覽器", max_length=300, blank=True)
+
+    class Meta:
+        verbose_name = "政策同意記錄"
+        verbose_name_plural = "政策同意記錄"
+        constraints = [models.UniqueConstraint(fields=("order", "document_type", "version"), name="unique_order_policy_acceptance")]
+
+
+class OrderAuditLog(models.Model):
+    order = models.ForeignKey(Order, verbose_name="訂單", on_delete=models.PROTECT, related_name="audit_logs")
+    event = models.CharField("操作", max_length=40)
+    actor = models.ForeignKey("auth.User", verbose_name="後台操作人", on_delete=models.SET_NULL, null=True, blank=True, related_name="order_audit_logs")
+    actor_label = models.CharField("操作來源", max_length=160, blank=True)
+    from_status = models.CharField("變更前狀態", max_length=32, blank=True)
+    to_status = models.CharField("變更後狀態", max_length=32, blank=True)
+    changes = models.JSONField("變更內容", default=dict, blank=True)
+    metadata = models.JSONField("補充資料", default=dict, blank=True)
+    created_at = models.DateTimeField("操作時間", auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at", "-pk")
+        verbose_name = "訂單監査記錄"
+        verbose_name_plural = "訂單監査記錄"
+        indexes = [models.Index(fields=("order", "created_at")), models.Index(fields=("event", "created_at"))]

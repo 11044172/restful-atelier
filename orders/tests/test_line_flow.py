@@ -19,7 +19,8 @@ from orders.cart import Cart
 from orders.line_login import LineLoginError, generate_oauth_values, verify_id_token
 from orders.line_messaging import LineMessagingError, schedule_order_received, send_order_notification
 from orders.line_webhooks import process_event
-from orders.models import LineCustomer, LineNotification, LineWebhookEvent, Order, OrderItem, Payment, PaymentMethod
+from orders.models import LineCustomer, LineNotification, LineWebhookEvent, NotificationOutbox, Order, OrderItem, Payment, PaymentMethod
+from orders.notifications import process_next_outbox
 from orders.operations import confirm_shipping_and_request_payment, mark_shipped
 from orders.payment_links import PaymentLinkError, make_payment_token, resolve_payment_token
 from orders.services import create_order_from_cart, send_order_emails
@@ -236,6 +237,8 @@ class NotificationPaymentShippingTests(TestCase):
     def test_order_received_is_sent_once(self, push):
         schedule_order_received(self.order.pk)
         schedule_order_received(self.order.pk)
+        self.assertEqual(NotificationOutbox.objects.count(), 1)
+        process_next_outbox()
         self.assertEqual(push.call_count, 1)
         self.assertEqual(LineNotification.objects.filter(notification_type=LineNotification.Type.ORDER_RECEIVED).count(), 1)
 
@@ -248,8 +251,7 @@ class NotificationPaymentShippingTests(TestCase):
                 self.assertEqual(notification.status, LineNotification.Status.FAILED)
                 self.assertTrue(Order.objects.filter(pk=self.order.pk).exists())
 
-    @patch("orders.operations.schedule_payment_request")
-    def test_shipping_confirmation_uses_snapshot_total_and_notifies_once(self, notify):
+    def test_shipping_confirmation_uses_snapshot_total_and_notifies_once(self):
         self.order.shipping_fee = 200
         self.order.save()
         with self.captureOnCommitCallbacks(execute=True):
@@ -260,7 +262,7 @@ class NotificationPaymentShippingTests(TestCase):
         self.assertEqual(self.order.final_total, 3200)
         self.assertEqual(self.order.status, Order.Status.AWAITING_PAYMENT)
         self.assertEqual(self.order.payment_link_version, 1)
-        notify.assert_called_once_with(self.order.pk)
+        self.assertEqual(NotificationOutbox.objects.filter(event_type="payment_request").count(), 2)
 
     @override_settings(
         EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
@@ -277,8 +279,7 @@ class NotificationPaymentShippingTests(TestCase):
         self.assertIn("staff-one@example.com", staff_email.to)
         self.assertIn("staff-two@example.com", staff_email.to)
 
-    @patch("orders.operations.schedule_payment_request")
-    def test_admin_confirmation_saves_posted_shipping_fee_and_schedules_line_payment(self, notify):
+    def test_admin_confirmation_saves_posted_shipping_fee_and_schedules_line_payment(self):
         admin_user = get_user_model().objects.create_superuser(
             username="shipping-admin", email="admin@example.com", password="password",
         )
@@ -296,7 +297,7 @@ class NotificationPaymentShippingTests(TestCase):
         self.assertEqual(self.order.final_total, 3240)
         self.assertEqual(self.order.status, Order.Status.AWAITING_PAYMENT)
         self.assertEqual(self.order.payment_link_version, 1)
-        notify.assert_called_once_with(self.order.pk)
+        self.assertEqual(NotificationOutbox.objects.filter(event_type="payment_request").count(), 2)
 
     def _awaiting_payment(self):
         self.order.shipping_fee = 200
@@ -384,6 +385,7 @@ class NotificationPaymentShippingTests(TestCase):
             payment.save()
         with self.captureOnCommitCallbacks(execute=True):
             payment.save()
+        process_next_outbox()
         self.assertEqual(LineNotification.objects.filter(notification_type=LineNotification.Type.PAYMENT_CONFIRMED).count(), 1)
         self.assertEqual(push.call_count, 1)
 
@@ -403,6 +405,8 @@ class NotificationPaymentShippingTests(TestCase):
         with self.captureOnCommitCallbacks(execute=True):
             mark_shipped(order.pk)
         mark_shipped(order.pk)
+        while NotificationOutbox.objects.filter(event_type="order_shipped").exclude(status=NotificationOutbox.Status.SENT).exists():
+            process_next_outbox()
         order.refresh_from_db()
         self.assertEqual(order.status, Order.Status.SHIPPED)
         self.assertEqual(LineNotification.objects.filter(notification_type=LineNotification.Type.ORDER_SHIPPED).count(), 1)
