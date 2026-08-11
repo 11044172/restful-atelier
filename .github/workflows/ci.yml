@@ -41,6 +41,7 @@ jobs:
       - run: DJANGO_SECURE_SSL_REDIRECT=True python manage.py check --deploy
       - run: python manage.py makemigrations --check --dry-run
       - run: python manage.py migrate --noinput
+      - run: python manage.py collectstatic --noinput
       - run: python -m compileall -q catalog content core inquiries orders config
       - run: ruff check --select E9,F63,F7,F82 catalog content core inquiries orders config
       - name: Test against PostgreSQL 17
