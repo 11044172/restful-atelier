@@ -3,15 +3,17 @@ import hashlib
 import hmac
 import json
 import time
+from datetime import timedelta
 from decimal import Decimal
-from urllib.parse import parse_qs, urlparse
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
 
 from django.contrib.auth import get_user_model
 from django.core import mail, signing
 from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from catalog.models import Product, ProductCategory
 from core.models import SiteSettings
@@ -199,6 +201,46 @@ class LineLoginCheckoutTests(TestCase):
         self.assertContains(checkout, "加入 LINE 好友")
         self.assertContains(checkout, "已完成加入，繼續購買")
         self.assertNotContains(checkout, "<form class=\"contact-form checkout-form\"", html=False)
+
+    def test_friendship_api_failure_reuses_existing_webhook_confirmation(self):
+        customer = LineCustomer.objects.create(
+            line_user_id="U-existing-friend",
+            display_name="林小姐",
+            is_friend=True,
+            followed_at=timezone.now() - timedelta(days=3),
+        )
+        self.client.get(reverse("line_login_start"))
+        oauth = self.client.session["line_oauth"]
+        with patch("orders.views.exchange_code", return_value={"access_token": "temporary", "id_token": "id-token"}), \
+             patch("orders.views.verify_id_token", return_value={"sub": customer.line_user_id, "name": "林小姐"}), \
+             patch("orders.views.get_friendship_status", side_effect=LineLoginError("LINE API rejected the request (403).")):
+            response = self.client.get(reverse("line_login_callback"), {
+                "state": oauth["state"], "code": "authorization-code",
+            })
+
+        self.assertRedirects(response, reverse("orders:checkout"))
+        self.assertTrue(self.client.session["line_friend_verified"])
+        self.assertNotIn("line_friend_check_failed", self.client.session)
+        self.assertContains(self.client.get(reverse("orders:checkout")), "送出訂單")
+
+    def test_status_poll_accepts_existing_webhook_confirmation(self):
+        customer = LineCustomer.objects.create(
+            line_user_id="U-existing-poll",
+            display_name="林小姐",
+            is_friend=True,
+            followed_at=timezone.now() - timedelta(days=3),
+        )
+        session = self.client.session
+        session["line_customer_id"] = customer.pk
+        session["line_friend_verified"] = False
+        session["line_friend_wait_started_at"] = time.time()
+        session.save()
+
+        response = self.client.get(reverse("orders:line_friend_status"))
+
+        self.assertTrue(response.json()["friend"])
+        self.assertTrue(self.client.session["line_friend_verified"])
+        self.assertNotIn("line_friend_wait_started_at", self.client.session)
 
     def test_friendship_retry_clears_previous_failure(self):
         self._complete_callback(friend=True, sub="U-retry")

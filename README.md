@@ -127,7 +127,7 @@ Login authorization requestは`response_type=code`、`scope=openid profile`、`b
 
 Messaging APIのChannel Access Tokenはサーバー側だけで使用します。通知はOrder commit後に送信し、失敗しても注文・送料・入金・発送DB更新はrollbackしません。各送信を`LineNotification`へ保存し、通知種別とdedupe keyのunique制約、LINEの`X-Line-Retry-Key`で二重送信を防ぎます。失敗通知はAdminから同じretry keyで再試行できます。
 
-WebhookはJSON parse前のraw bodyとMessaging API Channel Secretを使い、`x-line-signature`をHMAC-SHA256で検証します。署名不正・未添付のpayloadは処理しません。`webhookEventId`を保存して再送を冪等処理し、follow/unfollowを`LineCustomer`の友だち・ブロック状態へ反映します。友だち追加画面からCheckoutへ戻った際は、ログイン開始後のfollow Webhookをポーリングで検出して配送フォームを開放します。
+WebhookはJSON parse前のraw bodyとMessaging API Channel Secretを使い、`x-line-signature`をHMAC-SHA256で検証します。署名不正・未添付のpayloadは処理しません。`webhookEventId`を保存して再送を冪等処理し、follow/unfollowを`LineCustomer`の友だち・ブロック状態へ反映します。友だち追加画面からCheckoutへ戻った際は、署名検証済みWebhookまたはFriendship Status APIで保存した現在の友だち状態をポーリングで検出して配送フォームを開放します。Friendship Status APIが一時的に失敗した場合も、後続のunfollowで取り消されていない保存済みの確認結果を再利用します。
 
 参考: [LINE Login web integration](https://developers.line.biz/en/docs/line-login/integrate-line-login/)、[Add Friend Option](https://developers.line.biz/en/docs/line-login/link-a-bot/)、[Webhook signature](https://developers.line.biz/en/docs/messaging-api/verify-webhook-signature/)
 

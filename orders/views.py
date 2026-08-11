@@ -159,6 +159,16 @@ def _session_line_customer(request):
     return LineCustomer.objects.filter(pk=customer_id, is_friend=True, is_blocked=False).first()
 
 
+def _has_confirmed_line_friend(customer):
+    """Return whether LINE has previously provided positive friendship evidence."""
+    return bool(
+        customer
+        and customer.is_friend
+        and not customer.is_blocked
+        and (customer.followed_at or customer.friend_checked_at)
+    )
+
+
 def _set_verified_line_friend(request, customer):
     request.session["line_customer_id"] = customer.pk
     request.session["line_friend_checked_at"] = time.time()
@@ -173,18 +183,12 @@ def line_friend_status(request):
     customer_id = request.session.get("line_customer_id")
     waiting_since = request.session.get("line_friend_wait_started_at")
     customer = LineCustomer.objects.filter(pk=customer_id).first() if customer_id else None
-    evidence_at = None
-    if customer:
-        evidence_at = customer.followed_at or customer.friend_checked_at
-    recently_confirmed = bool(
-        customer
-        and customer.is_friend
-        and not customer.is_blocked
-        and waiting_since
-        and evidence_at
-        and evidence_at.timestamp() >= waiting_since - 5
-    )
-    if recently_confirmed:
+    # A signed follow webhook or a successful Friendship Status API check is
+    # durable positive evidence until an unfollow webhook or a later API check
+    # marks the customer as no longer being a friend. Requiring that evidence
+    # to be newer than this particular login attempt traps existing friends in
+    # the waiting screen when the Friendship Status API is temporarily down.
+    if waiting_since and _has_confirmed_line_friend(customer):
         _set_verified_line_friend(request, customer)
         return JsonResponse({"authenticated": True, "friend": True, "redirect": reverse("orders:checkout")})
     return JsonResponse({"authenticated": bool(customer), "friend": False})
@@ -263,7 +267,8 @@ def line_login_callback(request):
     customer.save()
     request.session.cycle_key()
     request.session["line_customer_id"] = customer.pk
-    if is_friend is True:
+    confirmed_friend = is_friend is True or (is_friend is None and _has_confirmed_line_friend(customer))
+    if confirmed_friend:
         _set_verified_line_friend(request, customer)
     elif is_friend is None:
         request.session.pop("line_friend_checked_at", None)
@@ -276,7 +281,7 @@ def line_login_callback(request):
         request.session["line_friend_verified"] = is_friend
         request.session.pop("line_friend_check_failed", None)
         request.session["line_friend_wait_started_at"] = oauth.get("started_at", time.time())
-    if is_friend is True:
+    if confirmed_friend:
         messages.success(request, "LINE 登入及好友狀態已確認。")
     elif is_friend is False:
         messages.warning(request, "請先加入 Rfull 官方 LINE，才能送出訂單。")
