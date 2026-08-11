@@ -76,7 +76,7 @@ class SeoAndAdminTests(TestCase):
 
     def test_launch_readiness_reports_missing_real_configuration(self):
         with self.assertRaises(CommandError):
-            call_command("check_launch_readiness")
+            call_command("check_launch_readiness", production=True)
 
     @override_settings(STORAGES={
         "default": {
