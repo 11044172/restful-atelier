@@ -1,1 +1,12 @@
-{% extends 'base.html' %}{% block page_title %}商品搜尋{% endblock %}{% block product_slugs %}{% for product in products %}{{ product.slug }},{% endfor %}{% endblock %}{% block content %}<nav class="breadcrumbs page-shell" aria-label="麵包屑"><a href="{% url 'catalog:shop' %}">靜及第</a><span>/</span><span>搜尋</span></nav><header class="utility-page-header page-shell"><p class="eyebrow">SEARCH・器物搜尋</p><h1>{% if query %}「{{ query }}」{% else %}全部商品{% endif %}</h1><p>{% if query %}找到 {{ products|length }} 件商品{% else %}共 {{ products|length }} 件商品{% endif %}</p></header><section class="catalog utility-catalog page-shell"><form class="inline-search" action="{% url 'catalog:search' %}" role="search"><label class="sr-only" for="result-search">搜尋商品</label><input id="result-search" name="q" type="search" value="{{ query }}" placeholder="例如：陶、茶、亞麻"><button type="submit">搜尋 →</button></form><div class="product-grid catalog-grid">{% for product in products %}{% include 'includes/product_card.html' %}{% empty %}<div class="empty-state"><h2>找不到符合條件的商品</h2><p>可以換一個詞試試，<br>或回到全部商品慢慢看看。</p></div>{% endfor %}</div></section>{% endblock %}
+{% extends 'base.html' %}
+{% block page_title %}商品搜尋{% endblock %}
+{% block product_slugs %}{% for product in products %}{{ product.slug }},{% endfor %}{% endblock %}
+{% block content %}
+<nav class="breadcrumbs page-shell" aria-label="麵包屑"><a href="{% url 'catalog:shop' %}">靜及第</a><span>/</span><span>搜尋</span></nav>
+<header class="utility-page-header page-shell"><p class="eyebrow">SEARCH・器物搜尋</p><h1>{% if query %}「{{ query }}」{% else %}全部商品{% endif %}</h1><p>{% if query %}找到 {{ product_count }} 件商品{% else %}共 {{ product_count }} 件商品{% endif %}</p></header>
+<section class="catalog utility-catalog page-shell">
+  <form class="inline-search" action="{% url 'catalog:search' %}" role="search"><label class="sr-only" for="result-search">搜尋商品</label><input id="result-search" name="q" type="search" value="{{ query }}" placeholder="例如：陶、茶、亞麻"><button type="submit">搜尋 →</button></form>
+  <div class="product-grid catalog-grid">{% for product in products %}{% include 'includes/product_card.html' %}{% empty %}<div class="empty-state"><h2>找不到符合條件的商品</h2><p>可以換一個詞試試，<br>或回到全部商品慢慢看看。</p></div>{% endfor %}</div>
+  {% include 'includes/pagination.html' %}
+</section>
+{% endblock %}

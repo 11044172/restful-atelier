@@ -1,5 +1,5 @@
-<header class="site-header" data-header>
-  <a class="brand-lockup" href="{% url 'core:home' %}" aria-label="靜院居家首頁"><strong>靜 院 居 家</strong><span>室內・居家・生活</span></a>
+{% load static %}<header class="site-header" data-header>
+  <a class="brand-lockup" href="{% url 'core:home' %}" aria-label="靜院居家首頁"><img class="brand-mark" src="{% static 'images/rfull-logo.jpg' %}" alt="Rfull" width="591" height="591"><span class="brand-name">靜 院 居 家</span><span>室內・居家・生活</span></a>
   <nav class="desktop-nav" aria-label="主要選單">
     <a href="{% url 'core:home' %}">首頁</a><a href="{% url 'content:project_list' %}">室內設計</a><a href="{% url 'content:publication_list' %}">出版品</a><a href="{% url 'core:about' %}">關於</a><a href="{% url 'inquiries:contact' %}">聯絡</a><a class="shop-entry" href="{% url 'catalog:shop' %}">靜及第・購物 <span>→</span></a>
   </nav>

@@ -1,11 +1,14 @@
-name: Django CI
+name: Release CI
 
 on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
-  test:
+  backend:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -14,30 +17,63 @@ jobs:
           POSTGRES_DB: restfull_test
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
+        ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-interval 10s --health-timeout 5s --health-retries 5
     env:
       DJANGO_DEBUG: "False"
       DJANGO_SECRET_KEY: ci-validation-only-long-random-value-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ
-      # TestClient uses HTTP by default. Production still enables this in
-      # render.yaml; disabling it here prevents every view test becoming 301.
       DJANGO_SECURE_SSL_REDIRECT: "False"
       DJANGO_HSTS_SECONDS: "31536000"
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/restfull_test
-      ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+      ALLOWED_HOSTS: localhost,127.0.0.1,testserver,restfull-xhex.onrender.com
+      CSRF_TRUSTED_ORIGINS: https://restfull-xhex.onrender.com
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -r requirements.txt
-      - run: python manage.py check --deploy
+          cache-dependency-path: requirements.lock
+      - run: pip install -r requirements.lock coverage ruff
+      - run: python manage.py check
+      - run: DJANGO_SECURE_SSL_REDIRECT=True python manage.py check --deploy
       - run: python manage.py makemigrations --check --dry-run
       - run: python manage.py migrate --noinput
-      - run: python manage.py test
+      - run: python -m compileall -q catalog content core inquiries orders config
+      - run: ruff check --select E9,F63,F7,F82 catalog content core inquiries orders config
+      - run: coverage run --source=catalog,content,core,inquiries,orders manage.py test
+      - run: coverage report --show-missing
+
+  frontend:
+    runs-on: ubuntu-latest
+    env:
+      ASTRO_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.16.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm audit --prod --audit-level high
+
+  dependency-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pip-audit
+      - run: pip-audit -r requirements.lock --no-deps --disable-pip
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

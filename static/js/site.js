@@ -51,10 +51,11 @@
     toast(active ? '已從收藏中移除。' : '已加入收藏。');
   }));
   const setupMenu = (toggle, menu) => {
+    menu.setAttribute('role', 'dialog'); menu.setAttribute('aria-modal', 'true');
     const focusable = $$('a,button,input,select,textarea,[tabindex]:not([tabindex="-1"])', menu);
-    const close = () => { toggle.setAttribute('aria-expanded', 'false'); toggle.setAttribute('aria-label', '開啟選單'); menu.setAttribute('aria-hidden', 'true'); document.body.classList.remove('menu-open'); };
+    const close = () => { const wasOpen = toggle.getAttribute('aria-expanded') === 'true'; toggle.setAttribute('aria-expanded', 'false'); toggle.setAttribute('aria-label', '開啟選單'); menu.setAttribute('aria-hidden', 'true'); document.body.classList.remove('menu-open'); if (wasOpen) toggle.focus(); };
     toggle.addEventListener('click', () => { const open = toggle.getAttribute('aria-expanded') !== 'true'; toggle.setAttribute('aria-expanded', String(open)); toggle.setAttribute('aria-label', open ? '關閉選單' : '開啟選單'); menu.setAttribute('aria-hidden', String(!open)); document.body.classList.toggle('menu-open', open); if (open) focusable[0]?.focus(); });
-    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); if (event.key === 'Tab' && toggle.getAttribute('aria-expanded') === 'true' && focusable.length) { const first = focusable[0]; const last = focusable[focusable.length - 1]; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); } } });
   };
   $$('.menu-toggle').forEach((toggle) => { const menu = document.getElementById(toggle.getAttribute('aria-controls')); if (menu) setupMenu(toggle, menu); });
   const categoryToggle = $('[data-shop-category-toggle]');
@@ -63,10 +64,12 @@
   categoryMenu?.addEventListener('click', (event) => event.stopPropagation());
   document.addEventListener('click', () => { categoryToggle?.setAttribute('aria-expanded', 'false'); categoryMenu?.setAttribute('aria-hidden', 'true'); categoryMenu?.classList.remove('is-open'); });
   const searchPanel = $('[data-search-panel]');
-  const setSearch = (open) => { searchPanel?.classList.toggle('is-open', open); searchPanel?.setAttribute('aria-hidden', String(!open)); document.body.classList.toggle('menu-open', open); if (open) setTimeout(() => $('input', searchPanel)?.focus(), 50); };
-  $('[data-search-toggle]')?.addEventListener('click', () => setSearch(true));
+  const searchToggle = $('[data-search-toggle]');
+  const setSearch = (open) => { searchPanel?.classList.toggle('is-open', open); searchPanel?.setAttribute('aria-hidden', String(!open)); searchToggle?.setAttribute('aria-expanded', String(open)); document.body.classList.toggle('menu-open', open); if (open) setTimeout(() => $('input', searchPanel)?.focus(), 50); else searchToggle?.focus(); };
+  searchToggle?.addEventListener('click', () => setSearch(true));
   $('[data-search-close]')?.addEventListener('click', () => setSearch(false));
   searchPanel?.addEventListener('click', (event) => { if (event.target === searchPanel) setSearch(false); });
+  document.addEventListener('keydown', (event) => { if (!searchPanel?.classList.contains('is-open')) return; if (event.key === 'Escape') { event.preventDefault(); setSearch(false); return; } if (event.key === 'Tab') { const focusable = $$('a,button,input,select,textarea,[tabindex]:not([tabindex="-1"])', searchPanel); const first = focusable[0]; const last = focusable[focusable.length - 1]; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); } } });
   $$('[data-quantity]').forEach((button) => button.addEventListener('click', () => { const input = button.closest('[data-quantity-root]')?.querySelector('[data-quantity-input]'); const output = button.closest('[data-quantity-root]')?.querySelector('[data-quantity-value]'); if (!input) return; input.value = String(Math.max(1, Math.min(99, Number(input.value) + Number(button.dataset.quantity)))); if (output) output.textContent = input.value; }));
   $$('[data-gallery-thumb]').forEach((button) => button.addEventListener('click', () => {
     const root = button.closest('[data-product-gallery]'); const main = $('[data-gallery-main]', root); if (!main) return;

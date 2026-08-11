@@ -11,3 +11,11 @@
 @media(prefers-reduced-motion:reduce){.payment-method-content{animation:none}.payment-method-toggle::before,.payment-method-toggle::after{transition:none}}
 .cart-remove-form{justify-self:end}
 @media(max-width:620px){.cart-remove-form{grid-column:3;grid-row:1;align-self:start}}
+.policy-consent { display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 12px; margin: 24px 0; font-size: 12px; line-height: 1.8; }
+.policy-consent input { width: 18px; height: 18px; margin-top: 4px; }
+.policy-consent a { text-decoration: underline; text-underline-offset: 3px; }
+.payment-confirm-form { margin: 42px 0; padding: 28px; border: 1px solid var(--color-line); }
+.payment-order-items { margin: 28px 0; }
+.policy-business { margin-top: 56px; padding-top: 32px; border-top: 1px solid var(--color-line); }
+.policy-business h2 { margin-bottom: 24px; font-family: var(--serif); font-weight: 400; }
+.pagination { display: flex; justify-content: center; align-items: center; gap: 28px; margin-top: 56px; font-size: 12px; }

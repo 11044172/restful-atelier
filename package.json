@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.16.0",
   "scripts": {
     "dev": "astro dev",
     "build": "astro check && astro build",
@@ -10,7 +11,7 @@
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
-    "astro": "^5.13.2",
+    "astro": "^7.2.0",
     "typescript": "^5.9.2"
   },
   "devDependencies": {}

@@ -47,6 +47,8 @@ address { font-style: normal; }
 .site-header, .shop-header { position: relative; z-index: 100; display: flex; align-items: center; justify-content: space-between; width: 100%; height: var(--header-height); padding: 0 max(32px, calc((100vw - 1440px) / 2)); border-bottom: 1px solid transparent; transition: background .35s ease, border-color .35s ease; }
 .site-header.is-scrolled, .shop-header.is-scrolled { position: sticky; top: 0; height: 76px; margin-bottom: 24px; border-color: var(--color-line); background: rgba(243, 239, 229, .92); backdrop-filter: blur(14px); }
 .brand-lockup, .shop-brand { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+.brand-mark { width: 96px; height: 42px; object-fit: cover; object-position: center; mix-blend-mode: multiply; }
+.brand-name { margin-top: 2px !important; font-family: var(--serif); font-size: 12px !important; font-weight: 400; letter-spacing: .3em !important; }
 .brand-lockup strong { font-family: var(--serif); font-size: 20px; font-weight: 400; letter-spacing: .36em; }
 .brand-lockup span, .shop-brand span { margin-top: 11px; font-size: 9px; letter-spacing: .24em; }
 .desktop-nav { display: flex; align-items: center; gap: clamp(19px, 2.1vw, 36px); font-size: 12px; letter-spacing: .08em; }
@@ -437,6 +439,7 @@ address { font-style: normal; }
   .desktop-nav, .shop-tools, .shop-category-nav, .shop-category-menu { display: none; }
   .menu-toggle { display: block; }
   .site-header, .shop-header { height: 78px; padding-inline: 24px; }
+  .brand-mark { width: 78px; height: 34px; }
   .site-header.is-scrolled, .shop-header.is-scrolled { height: 68px; }
   .shop-brand { position: static; transform: none; }
   .shop-menu-toggle { margin-left: auto; }
