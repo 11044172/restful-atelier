@@ -43,31 +43,12 @@ jobs:
       - run: python manage.py migrate --noinput
       - run: python -m compileall -q catalog content core inquiries orders config
       - run: ruff check --select E9,F63,F7,F82 catalog content core inquiries orders config
-      - run: coverage erase
-      - name: Test catalog pricing
-        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test catalog.tests.test_models_views.CatalogTests.test_decimal_price_and_stock_label --verbosity 2
-      - name: Test catalog search by product name
-        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test catalog.tests.test_models_views.CatalogTests.test_search_uses_product_name --verbosity 2
-      - name: Test catalog search by category
-        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test catalog.tests.test_models_views.CatalogTests.test_search_uses_category_name --verbosity 2
-      - name: Test catalog search by description
-        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test catalog.tests.test_models_views.CatalogTests.test_search_uses_description --verbosity 2
-      - name: Test catalog search by specification
-        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test catalog.tests.test_models_views.CatalogTests.test_search_uses_specification --verbosity 2
-      - name: Test unpublished catalog visibility
-        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test catalog.tests.test_models_views.CatalogTests.test_unpublished_product_is_not_public --verbosity 2
-      - name: Test invalid image rejection
-        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test catalog.tests.test_models_views.CatalogTests.test_invalid_image_is_rejected --verbosity 2
-      - name: Test animated and mismatched image rejection
-        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test catalog.tests.test_models_views.CatalogTests.test_animated_and_extension_mismatch_images_are_rejected --verbosity 2
-      - name: Test oversized image rejection
-        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test catalog.tests.test_models_views.CatalogTests.test_oversized_dimensions_are_rejected --verbosity 2
-      - name: Test content and core
-        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test content core --verbosity 2
-      - name: Test inquiries
-        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test inquiries --verbosity 2
-      - name: Test orders
-        run: coverage run --append --source=catalog,content,core,inquiries,orders manage.py test orders --verbosity 2
+      - name: Test against PostgreSQL 17
+        run: python manage.py test --verbosity 2
+      - name: Measure test coverage
+        env:
+          DATABASE_URL: sqlite:////tmp/restfull-coverage.sqlite3
+        run: coverage run --source=catalog,content,core,inquiries,orders manage.py test --verbosity 1
       - run: coverage report --show-missing
 
   frontend:
