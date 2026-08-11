@@ -1,0 +1,2 @@
+# False positive: RFC 4122 UUID used only as an X-Line-Retry-Key test fixture.
+694469f0f0e026800214f3a5da8785d86a507bb1:orders/tests/test_production_hardening.py:generic-api-key:99
