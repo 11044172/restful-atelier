@@ -7,7 +7,7 @@ services:
     buildCommand: ./build.sh
     preDeployCommand: python manage.py migrate
     initialDeployHook: python manage.py seed_initial_data
-    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 60
+    startCommand: ./start.sh
     healthCheckPath: /healthz/
     autoDeployTrigger: checksPass
     envVars:
@@ -36,7 +36,7 @@ services:
       - key: CREDENTIAL_SET_NAME
         value: staging
       - key: OUTBOX_WORKER_CONFIGURED
-        value: "False"
+        value: "True"
       - key: DJANGO_SECURE_SSL_REDIRECT
         value: "True"
       - key: DJANGO_HSTS_SECONDS

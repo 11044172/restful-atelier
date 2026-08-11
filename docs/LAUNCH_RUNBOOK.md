@@ -7,7 +7,7 @@
 3. 6政策を台湾の実際の商材、配送、例外、窓口に合わせて専門家・事業者が確認し、version、生效日、`legal_reviewed`を更新する。
 4. staging用とproduction用のDB、LINE channel、R2 bucket/prefix、SMTP、payment credential、domainを分離する。Renderで `DEPLOYMENT_ENV=production` と `CREDENTIAL_SET_NAME=production` を設定する。
 5. LINE callbackを `{正式origin}/auth/line/callback/`、webhookを `{正式origin}/webhooks/line/messaging/` に登録し、署名付きVerifyを行う。SMTP、R2、Turnstile、手動付款を疎通確認する。
-6. Render Background Workerを `python manage.py process_notification_outbox --limit 100000 --poll-seconds 2` で追加し、料金を承認後 `OUTBOX_WORKER_CONFIGURED=True` にする。
+6. RenderのWeb Serviceで`start.sh`がGunicornと通知workerを同時起動し、`OUTBOX_WORKER_CONFIGURED=True`であることを確認する。通知量が増えて独立Background Workerへ分離する場合だけ、追加料金を事前承認する。
 7. `python manage.py check_launch_readiness --external --production` を実行し、FAILを0にする。WARNも根拠と承認者を記録する。
 8. PostgreSQLとR2のbackupを取得し、restore testの最終成功日を確認する。
 9. 正式domainをRenderへ追加し、`ALLOWED_HOSTS`、`CSRF_TRUSTED_ORIGINS`、`CANONICAL_ORIGIN`、LINE callback/webhookを同時に切り替える。DNS変更は事業者承認後に行う。

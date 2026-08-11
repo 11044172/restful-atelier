@@ -10,7 +10,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--once", action="store_true", help="現在処理可能な通知を処理して終了")
-        parser.add_argument("--limit", type=int, default=100)
+        parser.add_argument("--limit", type=int, default=0, help="処理件数上限（0は無制限）")
         parser.add_argument("--poll-seconds", type=float, default=2.0)
 
     def handle(self, *args, **options):
@@ -20,7 +20,7 @@ class Command(BaseCommand):
             if job:
                 processed += 1
                 self.stdout.write(f"{job.pk}: {job.channel}/{job.event_type} -> {job.status}")
-                if processed >= options["limit"]:
+                if options["limit"] > 0 and processed >= options["limit"]:
                     break
                 continue
             if options["once"]:

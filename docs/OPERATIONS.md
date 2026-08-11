@@ -37,13 +37,13 @@ python manage.py manage_test_data --action delete-safe --execute
 
 ## 通知worker
 
-Webリクエストは外部APIを呼ばず、PostgreSQL Outboxへ記録する。常時実行するworker:
+Webリクエストは外部APIを呼ばず、PostgreSQL Outboxへ記録する。RenderのWeb Serviceは`start.sh`でGunicornと次のworkerを同時に監視・実行する。デプロイ時には未送信の`pending/retry`も自動的に処理される。
 
 ```bash
-python manage.py process_notification_outbox --limit 100000 --poll-seconds 2
+python manage.py process_notification_outbox --limit 0 --poll-seconds 2
 ```
 
-RenderでBackground Workerを追加すると料金が変わる可能性があるため、Blueprintでは自動作成していない。追加後に `OUTBOX_WORKER_CONFIGURED=True` とし、LINE／Emailのtest通知がsentになることを確認する。緊急時はRender Shellで `python manage.py process_notification_outbox --once` を実行できるが、常時運用の代替ではない。
+現在の注文量では既存Web Service内でworkerを動かし、追加サービス料金を発生させない。アクセス量や通知量が増えた場合はRender Background Workerへ分離し、Web側のworkerを停止して二重起動を避ける。緊急時はRender Shellで `python manage.py process_notification_outbox --once --limit 0` を実行できるが、常時運用の代替ではない。
 
 ## 障害時
 

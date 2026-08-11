@@ -1,10 +1,11 @@
 from decimal import Decimal
 from io import BytesIO
+from pathlib import Path
 from urllib.error import HTTPError
 from unittest.mock import patch
 
 from django.db import IntegrityError, transaction
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -14,6 +15,18 @@ from orders.models import LineCustomer, NotificationOutbox, Order, OrderAuditLog
 from orders.notifications import enqueue_order_notifications, process_next_outbox
 from orders.operations import cancel_order, mark_shipped, record_refund, transition
 from orders.payment_links import make_cancel_token, make_payment_token
+
+
+class DeploymentConfigurationTests(SimpleTestCase):
+    def test_render_web_service_runs_the_outbox_worker(self):
+        project_root = Path(__file__).resolve().parents[2]
+        render_config = (project_root / "render.yaml").read_text()
+        start_script = (project_root / "start.sh").read_text()
+
+        self.assertIn("startCommand: ./start.sh", render_config)
+        self.assertIn('- key: OUTBOX_WORKER_CONFIGURED\n        value: "True"', render_config)
+        self.assertIn("process_notification_outbox --limit 0", start_script)
+        self.assertIn("gunicorn config.wsgi:application", start_script)
 
 
 @override_settings(LINE_MESSAGING_CHANNEL_ACCESS_TOKEN="test-token", LINE_API_TIMEOUT=1, CANONICAL_ORIGIN="https://restfull-xhex.onrender.com")
