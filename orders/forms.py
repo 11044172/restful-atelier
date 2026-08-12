@@ -31,7 +31,7 @@ class CheckoutForm(forms.Form):
 
 
 class PaymentSelectionForm(forms.Form):
-    payment_method = forms.ModelChoiceField(label="付款方式", queryset=None)
+    payment_method = forms.ModelChoiceField(label="付款方式", queryset=None, widget=forms.RadioSelect)
     final_terms_accepted = forms.BooleanField(label="我已確認最終訂單金額並同意現行購物與退換貨政策。", required=True)
 
     def __init__(self, *args, methods=(), **kwargs):

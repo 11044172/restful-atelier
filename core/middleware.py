@@ -3,8 +3,7 @@ import logging
 import time
 
 from django.conf import settings
-from django.http import HttpResponsePermanentRedirect
-from django.http import JsonResponse
+from django.http import HttpResponsePermanentRedirect, JsonResponse
 
 logger = logging.getLogger("restfull.requests")
 
@@ -42,7 +41,11 @@ class SecurityHeadersMiddleware:
         response = self.get_response(request)
         response.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
         if request.path.startswith(("/pay/", "/shop/cancel/")):
-            response["Referrer-Policy"] = "no-referrer"
+            # Keep signed payment/cancellation URLs out of cross-origin
+            # referrers, while still allowing Django's HTTPS CSRF fallback to
+            # validate same-origin form submissions in WebViews that omit the
+            # Origin header (including LINE's in-app browser).
+            response["Referrer-Policy"] = "same-origin"
         response.setdefault(
             "Content-Security-Policy-Report-Only",
             "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "

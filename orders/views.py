@@ -312,8 +312,10 @@ def payment(request, token):
         methods.append(method)
     form = PaymentSelectionForm(request.POST or None, methods=methods)
     selected_method = None
+    selected_method_id = str(request.POST.get("payment_method", ""))
     if request.method == "POST" and form.is_valid():
         selected_method = form.cleaned_data["payment_method"]
+        selected_method_id = str(selected_method.pk)
         PolicyAcceptance.objects.get_or_create(
             order=order, line_customer=order.line_customer, document_type="final-payment-terms",
             version=f"payment-link-v{order.payment_link_version}",
@@ -333,7 +335,7 @@ def payment(request, token):
         )
         if created:
             record_audit(order, "payment_created", actor_label="customer", changes={"payment_id": payment_record.pk, "method": selected_method.code, "amount": str(order.final_total)})
-    return render(request, "orders/payment_instructions.html", {"order": order, "methods": methods, "form": form, "selected_method": selected_method, "shop_page": True, "noindex": True})
+    return render(request, "orders/payment_instructions.html", {"order": order, "methods": methods, "form": form, "selected_method": selected_method, "selected_method_id": selected_method_id, "shop_page": True, "noindex": True})
 
 
 @never_cache

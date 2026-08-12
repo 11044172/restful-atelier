@@ -73,7 +73,7 @@ class SignedActionsAndOutboxTests(TestCase):
 
     def test_signed_action_pages_are_not_cached_or_leaked_as_referrers(self):
         response = self.client.get(reverse("payment", args=[make_payment_token(self.order)]))
-        self.assertEqual(response["Referrer-Policy"], "no-referrer")
+        self.assertEqual(response["Referrer-Policy"], "same-origin")
         self.assertIn("no-cache", response["Cache-Control"])
 
     @patch("orders.line_messaging.push_message", side_effect=LineMessagingError("limited", http_status=429, retryable=True))

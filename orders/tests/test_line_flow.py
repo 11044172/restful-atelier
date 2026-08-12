@@ -11,7 +11,7 @@ from urllib.parse import parse_qs, urlparse
 from django.contrib.auth import get_user_model
 from django.core import mail, signing
 from django.core.exceptions import ValidationError
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -21,7 +21,7 @@ from orders.cart import Cart
 from orders.line_login import LineLoginError, generate_oauth_values, verify_id_token
 from orders.line_messaging import LineMessagingError, schedule_order_received, send_order_notification
 from orders.line_webhooks import process_event
-from orders.models import LineCustomer, LineNotification, LineWebhookEvent, NotificationOutbox, Order, OrderItem, Payment, PaymentMethod
+from orders.models import LineCustomer, LineNotification, LineWebhookEvent, NotificationOutbox, Order, OrderItem, Payment, PaymentMethod, PolicyAcceptance
 from orders.notifications import process_next_outbox
 from orders.operations import confirm_shipping_and_request_payment, mark_shipped
 from orders.payment_links import PaymentLinkError, make_payment_token, resolve_payment_token
@@ -386,7 +386,7 @@ class NotificationPaymentShippingTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Payment.objects.filter(status=Payment.Status.CONFIRMED).exists())
 
-    def test_payment_methods_start_collapsed_and_taiwan_pay_qr_is_rendered(self):
+    def test_payment_page_has_one_method_selector_and_shows_qr_after_acceptance(self):
         order = self._awaiting_payment()
         site = SiteSettings.load()
         site.bank_name = "測試銀行"
@@ -409,13 +409,61 @@ class NotificationPaymentShippingTests(TestCase):
             sort_order=2,
         )
 
-        response = self.client.get(reverse("payment", args=[make_payment_token(order)]))
+        url = reverse("payment", args=[make_payment_token(order)])
+        response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<details class="payment-method" data-payment-method>', count=2, html=False)
-        self.assertNotContains(response, '<details class="payment-method" data-payment-method open', html=False)
-        self.assertContains(response, 'src="/media/payments/methods/taiwan-pay.png"', html=False)
+        self.assertContains(response, 'name="payment_method"', count=2, html=False)
+        self.assertNotContains(response, '<select name="payment_method"', html=False)
+        self.assertNotContains(response, '<details class="payment-method"', html=False)
+        self.assertNotContains(response, 'src="/media/payments/methods/taiwan-pay.png"', html=False)
         self.assertContains(response, "請選擇付款方式")
+
+        taiwan_pay = PaymentMethod.objects.get(code=PaymentMethod.Method.TAIWAN_PAY)
+        response = self.client.post(url, {
+            "payment_method": taiwan_pay.pk,
+            "final_terms_accepted": "on",
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'src="/media/payments/methods/taiwan-pay.png"', html=False)
+        self.assertEqual(Payment.objects.filter(order=order, method=taiwan_pay, status=Payment.Status.AWAITING_CONFIRMATION).count(), 1)
+        self.assertEqual(PolicyAcceptance.objects.filter(order=order, document_type="final-payment-terms").count(), 1)
+
+    def test_payment_post_passes_csrf_in_webview_without_origin(self):
+        order = self._awaiting_payment()
+        site = SiteSettings.load()
+        site.bank_name = "測試銀行"
+        site.bank_code = "001"
+        site.bank_account_number = "123456"
+        site.bank_account_name = "Rfull"
+        site.save()
+        method = PaymentMethod.objects.create(
+            code=PaymentMethod.Method.BANK_TRANSFER,
+            enabled=True,
+            display_name="銀行轉帳",
+        )
+        url = reverse("payment", args=[make_payment_token(order)])
+        csrf_client = Client(enforce_csrf_checks=True)
+
+        get_response = csrf_client.get(url, secure=True)
+
+        self.assertEqual(get_response.status_code, 200)
+        self.assertEqual(get_response["Referrer-Policy"], "same-origin")
+        csrf_token = csrf_client.cookies["csrftoken"].value
+        post_response = csrf_client.post(
+            url,
+            {
+                "csrfmiddlewaretoken": csrf_token,
+                "payment_method": method.pk,
+                "final_terms_accepted": "on",
+            },
+            secure=True,
+            HTTP_REFERER=f"https://testserver{url}",
+        )
+
+        self.assertEqual(post_response.status_code, 200)
+        self.assertTrue(Payment.objects.filter(order=order, method=method).exists())
 
     @patch("orders.line_messaging.push_message")
     def test_payment_confirmed_notification_is_deduped(self, push):
