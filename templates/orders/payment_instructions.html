@@ -12,7 +12,7 @@
   </dl>
   <div class="summary-total"><span>最終付款金額</span><strong>{{ order.final_total|currency }}</strong></div>
 
-  {% if methods %}
+  {% if methods and not selected_method %}
   <form method="post" class="payment-confirm-form">{% csrf_token %}{{ form.non_field_errors }}
     <div class="payment-methods">
       <div class="payment-method-list-heading">
@@ -34,10 +34,15 @@
     <div class="policy-consent">{{ form.final_terms_accepted }}<label for="{{ form.final_terms_accepted.id_for_label }}">我已確認商品、數量、運費、最終合計，以及<a href="{% url 'content:policy' 'shopping-guide' %}" target="_blank">購物須知</a>與<a href="{% url 'content:policy' 'returns-policy' %}" target="_blank">退換貨政策</a>。</label>{{ form.final_terms_accepted.errors }}</div>
     <button class="form-submit" type="submit">確認並顯示付款資訊 <span>→</span></button>
   </form>
-  {% if selected_method %}
+  {% elif selected_method %}
   <section class="selected-payment-method" aria-labelledby="selected-payment-method-title">
-    <p class="eyebrow">PAYMENT DETAILS</p>
-    <h2 id="selected-payment-method-title">{{ selected_method.display_name }}</h2>
+    <div class="selected-payment-method-header">
+      <div>
+        <p class="eyebrow">PAYMENT DETAILS</p>
+        <h2 id="selected-payment-method-title">{{ selected_method.display_name }}</h2>
+      </div>
+      <a class="payment-method-change" href="{{ request.path }}">變更付款方式</a>
+    </div>
     <div class="status-note">已記錄您的選擇。請依照以下說明完成付款；在確認入帳前，訂單狀態將維持「等待付款」。</div>
     {% if selected_method.instructions %}<p class="selected-payment-instructions">{{ selected_method.instructions|linebreaksbr }}</p>{% endif %}
     {% if selected_method.code == 'bank_transfer' and site_settings.bank_name %}
@@ -54,7 +59,6 @@
     <img class="payment-qr" src="{{ site_settings.taiwan_pay_qr.url }}" alt="Taiwan Pay QR" width="480" height="480" loading="lazy" decoding="async">
     {% endif %}
   </section>
-  {% endif %}
   {% else %}
   <div class="status-note">目前沒有已完成設定的付款方式，請透過官方 LINE 與我們聯絡。</div>
   {% endif %}

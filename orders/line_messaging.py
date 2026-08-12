@@ -80,7 +80,7 @@ def build_payment_request(order):
         title="運費已確認",
         rows=rows,
         note="請確認最終內容後選擇付款，或在未付款時取消訂單。安全連結有期限。",
-        buttons=(("支払う", make_payment_url(order)), ("注文をキャンセル", make_cancel_url(order))),
+        buttons=(("前往付款", make_payment_url(order)), ("取消訂單", make_cancel_url(order))),
     )
 
 
@@ -212,7 +212,7 @@ def retry_notification(notification_id):
     if notification.status != LineNotification.Status.FAILED:
         return notification
     if notification.created_at < timezone.now() - timedelta(hours=23):
-        notification.error_message = "LINE retry keyの安全な再試行期限を超えました。新規手動再送として管理者が判断してください。"
+        notification.error_message = "已超過 LINE retry key 的安全重試期限，請由管理人員判斷是否以新的手動通知重新傳送。"
         notification.save(update_fields=("error_message", "updated_at"))
         return notification
     notification.retry_count += 1

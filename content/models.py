@@ -97,7 +97,7 @@ class PolicyPage(models.Model):
     body = models.TextField("內文", blank=True)
     version = models.CharField("版本", max_length=40, blank=True)
     effective_date = models.DateField("生效日期", null=True, blank=True)
-    legal_reviewed = models.BooleanField("事業者法務確認済み", default=False)
+    legal_reviewed = models.BooleanField("業者法務已確認", default=False)
     published = models.BooleanField("公開", default=False)
     sort_order = models.PositiveIntegerField("顯示順序", default=0)
     updated_at = models.DateTimeField("更新時間", auto_now=True)

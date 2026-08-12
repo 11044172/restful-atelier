@@ -128,17 +128,17 @@ class OrderAdmin(admin.ModelAdmin):
         latest = obj.line_notifications.filter(sent_at__isnull=False).order_by("-sent_at").first()
         return latest.sent_at if latest else "—"
 
-    @admin.display(description="連絡状況")
+    @admin.display(description="聯絡狀態")
     def contact_state(self, obj):
         jobs = sorted(obj.notification_outbox.all(), key=lambda job: job.created_at, reverse=True)[:12]
         if any(job.status == NotificationOutbox.Status.SENT for job in jobs):
-            return "送達記録あり"
+            return "已有送達記錄"
         dead_channels = {job.channel for job in jobs if job.status == NotificationOutbox.Status.DEAD}
         if {NotificationOutbox.Channel.LINE, NotificationOutbox.Channel.EMAIL}.issubset(dead_channels):
-            return "要対応・連絡不能"
+            return "需要處理・無法聯絡"
         if jobs:
-            return "送信待ち／再試行"
-        return "通知未作成"
+            return "等待傳送／重試"
+        return "尚未建立通知"
 
     def get_urls(self):
         custom = [
@@ -232,14 +232,14 @@ class PaymentAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at", "confirmed_at", "cancelled_at", "refunded_at")
     actions = ("record_remaining_full_refund",)
 
-    @admin.action(description="残額を全額退款として監査付きで登記")
+    @admin.action(description="將剩餘金額登記為全額退款並保留稽核記錄")
     def record_remaining_full_refund(self, request, queryset):
         completed = 0
         for payment in queryset:
             reason = payment.refund_reason.strip()
             increment = (payment.amount or Decimal("0")) - payment.refunded_amount
             if increment <= 0 or not reason:
-                self.message_user(request, f"{payment}: 退款理由を先に入力してください。", level=messages.ERROR)
+                self.message_user(request, f"{payment}: 請先填寫退款理由。", level=messages.ERROR)
                 continue
             try:
                 record_refund(payment.pk, amount=increment, reason=reason, actor=request.user)
@@ -247,7 +247,7 @@ class PaymentAdmin(admin.ModelAdmin):
                 self.message_user(request, f"{payment}: {'; '.join(exc.messages)}", level=messages.ERROR)
             else:
                 completed += 1
-        self.message_user(request, f"退款記録 {completed} 件を処理しました。")
+        self.message_user(request, f"已處理 {completed} 筆退款記錄。")
 
 
 @admin.register(NotificationOutbox, site=backoffice_site)
@@ -258,10 +258,10 @@ class NotificationOutboxAdmin(admin.ModelAdmin):
     readonly_fields = ("order", "channel", "event_type", "dedupe_key", "payload", "attempt_count", "last_error", "response_metadata", "sent_at", "created_at", "updated_at")
     actions = ("retry_jobs",)
 
-    @admin.action(description="選択通知を安全に再送待ちへ戻す")
+    @admin.action(description="將選取的通知安全地恢復為等待重送")
     def retry_jobs(self, request, queryset):
         count = queryset.filter(status__in=(NotificationOutbox.Status.DEAD, NotificationOutbox.Status.RETRY)).update(status=NotificationOutbox.Status.PENDING, next_attempt_at=timezone.now(), last_error="")
-        self.message_user(request, f"{count} 件を再送待ちにしました。")
+        self.message_user(request, f"已將 {count} 筆通知設為等待重送。")
 
 
 @admin.register(PolicyAcceptance, site=backoffice_site)

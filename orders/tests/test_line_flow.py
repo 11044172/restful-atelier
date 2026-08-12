@@ -19,7 +19,7 @@ from catalog.models import Product, ProductCategory
 from core.models import SiteSettings
 from orders.cart import Cart
 from orders.line_login import LineLoginError, generate_oauth_values, verify_id_token
-from orders.line_messaging import LineMessagingError, schedule_order_received, send_order_notification
+from orders.line_messaging import LineMessagingError, build_payment_request, schedule_order_received, send_order_notification
 from orders.line_webhooks import process_event
 from orders.models import LineCustomer, LineNotification, LineWebhookEvent, NotificationOutbox, Order, OrderItem, Payment, PaymentMethod, PolicyAcceptance
 from orders.notifications import process_next_outbox
@@ -306,6 +306,16 @@ class NotificationPaymentShippingTests(TestCase):
         self.assertEqual(self.order.payment_link_version, 1)
         self.assertEqual(NotificationOutbox.objects.filter(event_type="payment_request").count(), 2)
 
+    def test_payment_request_line_buttons_are_traditional_chinese(self):
+        order = self._awaiting_payment()
+
+        message = build_payment_request(order)
+
+        buttons = message["contents"]["footer"]["contents"]
+        self.assertEqual([button["action"]["label"] for button in buttons], ["前往付款", "取消訂單"])
+        self.assertNotIn("支払う", json.dumps(message, ensure_ascii=False))
+        self.assertNotIn("注文をキャンセル", json.dumps(message, ensure_ascii=False))
+
     @override_settings(
         EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
         ORDER_NOTIFICATION_EMAILS=["staff-one@example.com", "staff-two@example.com"],
@@ -427,8 +437,17 @@ class NotificationPaymentShippingTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'src="/media/payments/methods/taiwan-pay.png"', html=False)
+        self.assertNotContains(response, 'name="payment_method"', html=False)
+        self.assertNotContains(response, "請選擇付款方式")
+        self.assertContains(response, "變更付款方式")
+        self.assertContains(response, "已記錄您的選擇")
         self.assertEqual(Payment.objects.filter(order=order, method=taiwan_pay, status=Payment.Status.AWAITING_CONFIRMATION).count(), 1)
         self.assertEqual(PolicyAcceptance.objects.filter(order=order, document_type="final-payment-terms").count(), 1)
+
+        change_response = self.client.get(url)
+        self.assertContains(change_response, 'name="payment_method"', count=2, html=False)
+        self.assertContains(change_response, "請選擇付款方式")
+        self.assertNotContains(change_response, "變更付款方式")
 
     def test_payment_post_passes_csrf_in_webview_without_origin(self):
         order = self._awaiting_payment()

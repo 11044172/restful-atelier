@@ -8,6 +8,6 @@
   <div class="summary-total"><span>商品小計</span><strong>{{ order.subtotal|currency }}</strong></div>
   {% if order.status == 'cancelled' %}<div class="status-note">此訂單已取消。重複操作不會造成額外變更。</div>
   {% elif cancellable %}<p>此訂單尚未付款。按下確認後會取消訂單並安全還原一般商品庫存。</p><form method="post">{% csrf_token %}<button class="form-submit" type="submit">確認取消訂單 <span>→</span></button></form>
-  {% else %}<div class="status-note">この注文はオンラインではキャンセルできません。已付款或進入出貨流程的訂單，請聯絡店家處理。</div>{% endif %}
+  {% else %}<div class="status-note">此訂單無法在線取消。已付款或進入出貨流程的訂單，請聯絡店家處理。</div>{% endif %}
 </section>
 {% endblock %}

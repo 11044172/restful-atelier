@@ -58,7 +58,7 @@ class SignedActionsAndOutboxTests(TestCase):
         Payment.objects.create(order=self.order, method=method, amount=1100, status=Payment.Status.CONFIRMED)
         self.order.refresh_from_db()
         token = make_cancel_token(self.order)
-        self.assertContains(self.client.post(reverse("orders:cancel", args=[token])), "オンラインではキャンセルできません")
+        self.assertContains(self.client.post(reverse("orders:cancel", args=[token])), "無法在線取消")
         self.order.carrier = "Carrier"; self.order.save(); mark_shipped(self.order.pk)
         with self.assertRaisesMessage(Exception, "無法在線取消"):
             cancel_order(self.order.pk)

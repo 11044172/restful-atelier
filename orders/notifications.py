@@ -61,7 +61,7 @@ def _email_body(order, event_type):
     lines.append(f"商品小計：NT${order.subtotal:,.0f}")
     subjects = {
         "order_received": "訂單已受理（運費確認中）",
-        "payment_request": "運費與最終金額が確定しました",
+        "payment_request": "運費與最終金額已確認",
         "payment_confirmed": "付款確認",
         "order_shipped": "商品已出貨",
         "order_cancelled": "訂單已取消",
@@ -93,7 +93,7 @@ def send_order_email_event(order, event_type):
             if address and address not in recipients:
                 recipients.append(address)
         admin_url = f"{settings.CANONICAL_ORIGIN}{reverse('admin:orders_order_change', args=[order.pk])}"
-        body += f"\n\n管理者注文画面：{admin_url}"
+        body += f"\n\n管理員訂單頁面：{admin_url}"
     return send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, recipients, fail_silently=False)
 
 

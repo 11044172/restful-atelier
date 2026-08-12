@@ -34,7 +34,7 @@ class SiteSettings(models.Model):
     business_legal_name = models.CharField("事業者名稱", max_length=180, blank=True)
     business_representative = models.CharField("負責人", max_length=120, blank=True)
     business_address = models.CharField("營業所地址", max_length=300, blank=True)
-    returns_contact = models.CharField("退換貨／問い合わせ窓口", max_length=300, blank=True)
+    returns_contact = models.CharField("退換貨／諮詢窗口", max_length=300, blank=True)
     business_hours = models.CharField("營業時間", max_length=200, blank=True)
     privacy_contact_email = models.EmailField("個資權利聯絡信箱", blank=True)
     customer_data_retention_days = models.PositiveIntegerField("顧客個資保存天數", default=2555)
