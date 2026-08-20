@@ -22,11 +22,11 @@ services:
           name: restfull-db
           property: connectionString
       - key: ALLOWED_HOSTS
-        value: restfull-xhex.onrender.com
+        value: localhost,127.0.0.1,restfull-xhex,restfull-xhex.onrender.com,restful-atelier.com,www.restful-atelier.com
       - key: CSRF_TRUSTED_ORIGINS
-        value: https://restfull-xhex.onrender.com
+        value: https://restfull-xhex.onrender.com,https://restful-atelier.com,https://www.restful-atelier.com
       - key: CANONICAL_ORIGIN
-        value: https://restfull-xhex.onrender.com
+        value: https://restful-atelier.com
       - key: CANONICAL_REDIRECT_HOSTS
         value: ""
       - key: SEO_INDEX_ENABLED
