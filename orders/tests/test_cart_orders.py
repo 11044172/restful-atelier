@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from catalog.models import Product, ProductCategory
+from catalog.models import Product, ProductCategory, ProductImage
 from core.models import SiteSettings
 from orders.cart import Cart
 from orders.models import LineCustomer, NotificationOutbox, Order, Payment, PaymentMethod
@@ -19,6 +19,7 @@ class OrderFlowTests(TestCase):
     def setUp(self):
         self.category = ProductCategory.objects.create(name="居家", slug="home", english_name="HOME")
         self.product = Product.objects.create(category=self.category, name="陶杯", slug="cup", sku="CUP-1", description="desc", price=Decimal("1280"), stock=3, is_published=True)
+        ProductImage.objects.create(product=self.product, image="products/cup.jpg", alt_text="陶杯")
         self.request = SimpleNamespace(session={})
         self.cart = Cart(self.request)
         self.cleaned = {"idempotency_key": "token-1", "customer_name": "王小明", "phone": "0900", "email": "buyer@example.com", "shipping_information": "台灣 任意地域", "customer_note": ""}

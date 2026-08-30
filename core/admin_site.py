@@ -74,8 +74,7 @@ class BackofficeAdminSite(AdminSite):
             )
 
         if can_view_products:
-            low_stock = Product.objects.select_related("category").filter(
-                is_published=True,
+            low_stock = Product.objects.published().select_related("category").filter(
                 is_preorder=False,
                 stock__lte=2,
             ).order_by("stock", "sort_order", "name")

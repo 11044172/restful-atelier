@@ -29,7 +29,10 @@ def create_order_from_cart(*, cart, cleaned_data, line_customer=None, policy_ver
     if not raw_items:
         raise CartValidationError("購物車目前是空的。")
     ids = [item["product"].pk for item in raw_items]
-    locked_products = {product.pk: product for product in Product.objects.select_for_update().filter(pk__in=ids, is_published=True)}
+    locked_products = {
+        product.pk: product
+        for product in Product.objects.published().select_for_update().filter(pk__in=ids)
+    }
     prepared = []
     subtotal = Decimal("0")
     for cart_item in raw_items:

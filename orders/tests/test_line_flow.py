@@ -15,7 +15,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from catalog.models import Product, ProductCategory
+from catalog.models import Product, ProductCategory, ProductImage
 from core.models import SiteSettings
 from orders.cart import Cart
 from orders.line_login import LineLoginError, generate_oauth_values, verify_id_token
@@ -46,6 +46,7 @@ class LineLoginCheckoutTests(TestCase):
         self.site = SiteSettings.objects.create(checkout_enabled=True, line_add_friend_url="https://line.me/R/ti/p/@rfull")
         category = ProductCategory.objects.create(name="器物", slug="goods")
         self.product = Product.objects.create(category=category, name="杯", slug="line-cup", sku="L1", description="d", price=1000, stock=5, is_published=True)
+        ProductImage.objects.create(product=self.product, image="products/line-cup.jpg", alt_text="杯")
 
     def test_login_redirect_has_state_nonce_pkce_and_aggressive_friend_option(self):
         response = self.client.get(reverse("line_login_start"))

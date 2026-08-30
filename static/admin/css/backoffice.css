@@ -255,6 +255,10 @@ a.metric-card:hover { background: #f0eee7; transform: translateY(-2px); }
 .login-security { display: block; color: #929792; font-size: 8px; text-align: center; letter-spacing: .05em; }
 .login-security::first-letter { color: #6d8a76; }
 
+.product-draft-guide { margin: 0 0 22px; padding: 16px 18px; display: flex; gap: 10px 18px; align-items: baseline; border-left: 3px solid #718778; background: #edf0ea; color: #465349; }
+.product-draft-guide strong { flex: 0 0 auto; font-size: 11px; }
+.product-draft-guide span { font-size: 10px; line-height: 1.7; }
+
 @media (max-width: 1100px) {
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
   .dashboard-columns { grid-template-columns: 1fr; }
@@ -265,6 +269,7 @@ a.metric-card:hover { background: #f0eee7; transform: translateY(-2px); }
 }
 
 @media (max-width: 767px) {
+  .product-draft-guide { align-items: flex-start; flex-direction: column; }
   #header { min-height: 66px; padding: 0 16px; }
   .brand-copy small, .environment-label, .user-presence, #user-tools > a { display: none; }
   .brand-copy strong { font-size: 15px; }

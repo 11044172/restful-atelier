@@ -129,11 +129,11 @@ class Command(BaseCommand):
         test_products = Product.objects.filter(name__icontains="TEST") | Product.objects.filter(sku__istartswith="TEST")
         test_count = test_products.distinct().count()
         self._check(test_count == 0, "TEST商品なし", f"TEST商品 {test_count} 件（確認環境では保持可）", fail=production)
-        placeholders = Product.objects.filter(is_published=True, images__image="").distinct().count()
+        placeholders = Product.objects.filter(is_published=True).exclude(images__image__gt="").count()
         self._check(placeholders == 0, "公開商品に正式画像あり", f"公開商品で画像未設定 {placeholders} 件", fail=production)
         invalid_products = 0
         for product in Product.objects.filter(is_published=True).prefetch_related("images"):
-            if not all((product.name.strip(), product.sku.strip(), product.description.strip())) or product.price < 0 or not any(image.image and image.alt_text.strip() for image in product.images.all()):
+            if not all(((product.name or "").strip(), (product.sku or "").strip(), (product.description or "").strip())) or product.price is None or product.price < 0 or not any(image.image and image.alt_text.strip() for image in product.images.all()):
                 invalid_products += 1
             if product.is_preorder and (not product.preorder_limit or not product.preorder_delivery_estimate.strip()):
                 invalid_products += 1

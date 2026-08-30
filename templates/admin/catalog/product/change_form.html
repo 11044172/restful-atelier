@@ -1,0 +1,9 @@
+{% extends "admin/change_form.html" %}
+
+{% block form_top %}
+  {{ block.super }}
+  <div class="product-draft-guide" role="note">
+    <strong>可先儲存為草稿</strong>
+    <span>可先上傳商品照片並儲存為草稿，商品名稱、價格、尺寸與說明可之後再補充。資料完成後，再勾選「公開」。</span>
+  </div>
+{% endblock %}

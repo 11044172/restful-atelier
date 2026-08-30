@@ -1,9 +1,11 @@
 from decimal import Decimal
+from uuid import uuid4
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.text import slugify
 
 from core.validators import make_thumbnail_content, sanitize_image_field, validate_image_upload
 
@@ -33,24 +35,38 @@ class ProductCategory(models.Model):
 class ProductQuerySet(models.QuerySet):
     def published(self):
         now = timezone.now()
-        return self.filter(is_published=True, category__is_active=True).filter(
+        product_images = ProductImage.objects.filter(product_id=OuterRef("pk")).exclude(image="")
+        return self.filter(
+            is_published=True,
+            category__is_active=True,
+            price__isnull=False,
+        ).exclude(
+            name="",
+        ).exclude(
+            sku="",
+        ).exclude(
+            sku__istartswith="DRAFT-",
+        ).exclude(
+            description="",
+        ).filter(
+            Exists(product_images),
             Q(sale_starts_at__isnull=True) | Q(sale_starts_at__lte=now),
             Q(sale_ends_at__isnull=True) | Q(sale_ends_at__gt=now),
         )
 
 
 class Product(models.Model):
-    category = models.ForeignKey(ProductCategory, verbose_name="商品分類", on_delete=models.PROTECT, related_name="products")
-    name = models.CharField("商品名稱", max_length=220)
-    slug = models.SlugField("slug", max_length=240, unique=True)
-    sku = models.CharField("SKU", max_length=80, unique=True)
+    category = models.ForeignKey(ProductCategory, verbose_name="商品分類", on_delete=models.PROTECT, related_name="products", null=True, blank=True)
+    name = models.CharField("商品名稱", max_length=220, blank=True)
+    slug = models.SlugField("slug", max_length=240, unique=True, blank=True)
+    sku = models.CharField("SKU", max_length=80, unique=True, blank=True)
     maker = models.CharField("製作者／品牌", max_length=160, blank=True)
     series = models.CharField("系列", max_length=160, blank=True)
     subcategory = models.CharField("篩選項目", max_length=120, blank=True)
     short_description = models.CharField("簡短說明", max_length=300, blank=True)
-    description = models.TextField("商品說明")
-    price = models.DecimalField("售價", max_digits=12, decimal_places=0)
-    stock = models.PositiveIntegerField("庫存", default=0)
+    description = models.TextField("商品說明", blank=True)
+    price = models.DecimalField("售價", max_digits=12, decimal_places=0, null=True, blank=True)
+    stock = models.PositiveIntegerField("庫存", default=0, blank=True)
     is_preorder = models.BooleanField("預購商品", default=False)
     preorder_note = models.TextField("預購說明", blank=True)
     preorder_limit = models.PositiveIntegerField("預購上限", null=True, blank=True)
@@ -82,7 +98,51 @@ class Product(models.Model):
         ]
 
     def __str__(self):
-        return self.name
+        return (self.name or "").strip() or f"未完成商品 #{self.pk or '新規'}"
+
+    @staticmethod
+    def new_draft_slug():
+        return f"draft-{uuid4().hex}"
+
+    @staticmethod
+    def new_draft_sku():
+        return f"DRAFT-{uuid4().hex[:12].upper()}"
+
+    def _unique_name_slug(self):
+        base = slugify(self.name)[:220] or f"product-{self.pk or uuid4().hex[:12]}"
+        candidate = base
+        suffix = 2
+        queryset = type(self).objects.exclude(pk=self.pk)
+        while queryset.filter(slug=candidate).exists():
+            candidate = f"{base[:230 - len(str(suffix))]}-{suffix}"
+            suffix += 1
+        return candidate
+
+    def ensure_identifiers(self):
+        changed = set()
+        has_name = bool((self.name or "").strip())
+        if not self.slug:
+            self.slug = self._unique_name_slug() if has_name else self.new_draft_slug()
+            changed.add("slug")
+        elif self.slug.startswith("draft-") and has_name:
+            was_already_published = bool(
+                self.pk
+                and type(self).objects.filter(pk=self.pk, is_published=True).exists()
+            )
+            if not was_already_published:
+                self.slug = self._unique_name_slug()
+                changed.add("slug")
+        if not self.sku:
+            self.sku = self.new_draft_sku()
+            changed.add("sku")
+        return changed
+
+    def save(self, *args, **kwargs):
+        changed_identifiers = self.ensure_identifiers()
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and changed_identifiers:
+            kwargs["update_fields"] = set(update_fields) | changed_identifiers
+        super().save(*args, **kwargs)
 
     def get_absolute_url(self):
         return reverse("catalog:product", args=[self.slug])
@@ -105,15 +165,29 @@ class Product(models.Model):
         errors = {}
         if self.sale_starts_at and self.sale_ends_at and self.sale_ends_at <= self.sale_starts_at:
             errors["sale_ends_at"] = "結束販售時間必須晚於開始時間。"
-        if self.is_preorder:
-            if not self.preorder_limit:
-                errors["preorder_limit"] = "預購商品必須設定大於 0 的預購上限。"
-            if not self.preorder_delivery_estimate.strip():
-                errors["preorder_delivery_estimate"] = "預購商品必須填寫預計交付時間。"
+        if self.price is not None and self.price < 0:
+            errors["price"] = "售價不可小於 0。"
         if self.is_published:
-            if not self.name.strip(): errors["name"] = "公開商品必須填寫名稱。"
-            if not self.sku.strip(): errors["sku"] = "公開商品必須填寫 SKU。"
-            if not self.description.strip(): errors["description"] = "公開商品必須填寫說明。"
+            if not (self.name or "").strip():
+                errors["name"] = "商品尚未完成，請先填寫商品名稱。"
+            if not (self.sku or "").strip() or self.sku.upper().startswith("DRAFT-"):
+                errors["sku"] = "公開商品前請填寫正式 SKU。"
+            if not (self.description or "").strip():
+                errors["description"] = "商品尚未完成，公開前請先填寫商品說明。"
+            if self.price is None:
+                errors["price"] = "公開商品前請設定價格。"
+            if self.category_id is None:
+                errors["category"] = "公開商品前請選擇商品分類。"
+            has_image = getattr(self, "_admin_has_product_image", None)
+            if has_image is None:
+                has_image = bool(self.pk and self.images.exclude(image="").exists())
+            if not has_image:
+                errors["__all__"] = "公開商品前請至少上傳一張商品照片。"
+            if self.is_preorder:
+                if not self.preorder_limit:
+                    errors["preorder_limit"] = "公開預購商品前請設定大於 0 的預購上限。"
+                if not (self.preorder_delivery_estimate or "").strip():
+                    errors["preorder_delivery_estimate"] = "公開預購商品前請填寫預計交付時間。"
         if errors:
             raise ValidationError(errors)
 
@@ -135,7 +209,7 @@ class ProductImage(models.Model):
     product = models.ForeignKey(Product, verbose_name="商品", on_delete=models.CASCADE, related_name="images")
     image = models.ImageField("圖片", upload_to="products/%Y/%m/", blank=True, validators=[validate_image_upload])
     thumbnail = models.ImageField("縮圖", upload_to="products/thumbnails/%Y/%m/", blank=True, editable=False)
-    alt_text = models.CharField("替代文字", max_length=255)
+    alt_text = models.CharField("替代文字", max_length=255, blank=True)
     sort_order = models.PositiveIntegerField("顯示順序", default=0)
     is_primary = models.BooleanField("主要圖片", default=False)
 
@@ -149,6 +223,8 @@ class ProductImage(models.Model):
         return self.alt_text or f"{self.product} 圖片"
 
     def save(self, *args, **kwargs):
+        if not (self.alt_text or "").strip():
+            self.alt_text = (self.product.name or "商品照片").strip()
         sanitize_image_field(self, "image")
         if self.image and not getattr(self.image, "_committed", True):
             self.thumbnail = make_thumbnail_content(self.image.file)

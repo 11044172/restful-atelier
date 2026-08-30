@@ -37,7 +37,7 @@ class Cart:
 
     def items(self):
         ids = [int(key) for key in self.data if key.isdigit()]
-        products = Product.objects.filter(pk__in=ids, is_published=True).select_related("category").prefetch_related("images")
+        products = Product.objects.published().filter(pk__in=ids).select_related("category").prefetch_related("images")
         by_id = {product.pk: product for product in products}
         result = []
         changed = False

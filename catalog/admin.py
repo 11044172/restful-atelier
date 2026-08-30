@@ -3,6 +3,7 @@ from django.utils.html import format_html
 
 from core.admin_site import backoffice_site
 
+from .forms import ProductAdminForm
 from .models import Product, ProductCategory, ProductImage, ProductSpecification
 
 
@@ -12,6 +13,7 @@ class ProductImageInline(admin.TabularInline):
     fields = ("preview", "image", "alt_text", "sort_order", "is_primary")
     readonly_fields = ("preview",)
     ordering = ("sort_order",)
+    verbose_name_plural = "商品照片（可一次新增多張；替代文字留空時會自動使用商品名稱）"
 
     @admin.display(description="圖片預覽")
     def preview(self, obj):
@@ -37,7 +39,9 @@ class ProductCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Product, site=backoffice_site)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ("thumbnail", "name", "sku", "category", "price", "stock", "is_preorder", "is_published", "sort_order", "updated_at")
+    form = ProductAdminForm
+    change_form_template = "admin/catalog/product/change_form.html"
+    list_display = ("thumbnail", "display_name", "sku", "category", "price", "stock", "is_preorder", "is_published", "sort_order", "updated_at")
     list_filter = ("is_published", "is_preorder", "category")
     search_fields = ("name", "sku", "description", "maker", "series")
     list_editable = ("stock", "is_published", "sort_order")
@@ -46,7 +50,7 @@ class ProductAdmin(admin.ModelAdmin):
     inlines = (ProductImageInline, ProductSpecificationInline)
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (
-        ("基本資訊", {"fields": ("category", "name", "slug", "sku", "maker", "series", "subcategory")}),
+        ("基本資訊", {"fields": ("category", "name", "slug", "sku", "maker", "series", "subcategory"), "description": "草稿可先留空；slug 與暫用 SKU 會自動建立。"}),
         ("商品內容", {"fields": ("short_description", "description", "care", "shipping_note", "maker_story")}),
         ("販售設定", {"fields": ("price", "stock", "sale_starts_at", "sale_ends_at", "is_preorder", "preorder_note", "preorder_limit", "preorder_delivery_estimate", "badge_label", "is_published", "sort_order")}),
         ("預留圖片", {"fields": ("image_label", "tone"), "description": "僅在尚未上傳正式圖片時顯示。"}),
@@ -57,9 +61,13 @@ class ProductAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("images")
 
+    @admin.display(description="商品名稱", ordering="name")
+    def display_name(self, obj):
+        return str(obj)
+
     @admin.display(description="")
     def thumbnail(self, obj):
         image = obj.primary_image
         if image and image.image:
             return format_html('<img class="admin-thumbnail" src="{}" alt="">', image.image.url)
-        return format_html('<span class="admin-thumbnail-placeholder">{}</span>', obj.name[:1])
+        return format_html('<span class="admin-thumbnail-placeholder">{}</span>', obj.name[:1] or "草")

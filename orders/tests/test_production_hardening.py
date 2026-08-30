@@ -9,7 +9,7 @@ from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from catalog.models import Product, ProductCategory
+from catalog.models import Product, ProductCategory, ProductImage
 from orders.line_messaging import LineMessagingError, PUSH_URL, push_message
 from orders.models import LineCustomer, NotificationOutbox, Order, OrderAuditLog, OrderItem, Payment, PaymentMethod
 from orders.notifications import enqueue_order_notifications, process_next_outbox
@@ -141,6 +141,7 @@ class RedirectSecurityTests(TestCase):
     def setUp(self):
         category = ProductCategory.objects.create(name="Cat", slug="cat")
         self.product = Product.objects.create(category=category, name="Item", slug="item", sku="ITEM-1", description="desc", price=10, stock=4, is_published=True)
+        ProductImage.objects.create(product=self.product, image="products/item.jpg", alt_text="Item")
 
     def test_cart_add_rejects_external_and_javascript_redirects(self):
         for target in ("https://evil.example/phish", "//evil.example/phish", "javascript:alert(1)"):

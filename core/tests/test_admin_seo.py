@@ -21,7 +21,7 @@ class SeoAndAdminTests(TestCase):
         cls.site = SiteSettings.objects.create()
         cls.category = ProductCategory.objects.create(name="居家", slug="home")
         cls.product = Product.objects.create(category=cls.category, name="商品", slug="product", sku="SKU", description="desc", price=100, stock=1, is_published=True)
-        ProductImage.objects.create(product=cls.product, alt_text="商品画像", is_primary=True)
+        ProductImage.objects.create(product=cls.product, image="products/product.jpg", alt_text="商品画像", is_primary=True)
         cls.project = InteriorProject.objects.create(title="作品", slug="project", description="desc", published=True)
         cls.publication = Publication.objects.create(issue_number="1", title="刊物", slug="publication", published=True)
         cls.inquiry_category = InquiryCategory.objects.create(display_name="購物", slug="shop", recipient_email="shop@example.com")
