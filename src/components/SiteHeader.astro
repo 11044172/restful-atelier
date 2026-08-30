@@ -5,7 +5,8 @@ const currentPath = Astro.url.pathname;
 ---
 <header class="site-header" data-header>
   <a class="brand-lockup" href={withBase('')} aria-label="靜院居家首頁">
-    <strong>靜 院 居 家</strong>
+    <span class="brand-logo-frame"><img class="brand-mark" src={withBase('images/rfull-home-logo.png')} alt="Rfull Home" width="2364" height="2363" /></span>
+    <span class="brand-name">靜 院 居 家</span>
     <span>室內・居家・生活</span>
   </a>
   <nav class="desktop-nav" aria-label="主要選單">

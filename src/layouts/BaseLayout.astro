@@ -13,7 +13,8 @@ interface Props {
 }
 const { title, description = '室內設計、生活器物與閱讀提案，整理屬於自己的生活節奏。', shop = false, bodyClass = '' } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
-const socialImage = new URL(`${import.meta.env.BASE_URL.replace(/^\//, '')}og.png`, Astro.site);
+const socialImage = new URL(`${import.meta.env.BASE_URL.replace(/^\//, '')}images/rfull-home-logo.png`, Astro.site);
+const favicon = new URL(`${import.meta.env.BASE_URL.replace(/^\//, '')}images/rfull-symbol.png`, Astro.site);
 const pageTitle = `${title}｜靜院居家 RESTFUL ATELIER`;
 ---
 <!doctype html>
@@ -24,14 +25,15 @@ const pageTitle = `${title}｜靜院居家 RESTFUL ATELIER`;
     <meta name="description" content={description} />
     <meta name="robots" content="noindex,nofollow" />
     <meta name="theme-color" content="#f3efe5" />
+    <link rel="icon" type="image/png" href={favicon} />
     <link rel="canonical" href={canonical} />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="zh_TW" />
     <meta property="og:title" content={`${title}｜靜院居家`} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={socialImage} />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
+    <meta property="og:image:width" content="2364" />
+    <meta property="og:image:height" content="2363" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={`${title}｜靜院居家`} />
     <meta name="twitter:description" content={description} />

@@ -1,7 +1,7 @@
-<div class="announcement">運費將由工作人員確認商品與配送方式後另行通知</div>
+{% load static %}<div class="announcement">運費將由工作人員確認商品與配送方式後另行通知</div>
 <header class="shop-header" data-header>
   <div class="shop-tools shop-tools-left"><a href="{% url 'catalog:search' %}">全部商品</a><button type="button" data-shop-category-toggle aria-expanded="false" aria-controls="shop-category-menu">分類</button></div>
-  <a class="shop-brand" href="{% url 'catalog:shop' %}"><strong>靜 及 第</strong><span>居家生活・器物選</span></a>
+  <a class="shop-brand" href="{% url 'catalog:shop' %}" aria-label="靜及第購物首頁"><img class="shop-brand-mark" src="{% static 'images/rfull-symbol.png' %}" alt="" width="2363" height="2363"><span>居家生活・器物選</span></a>
   <div class="shop-tools shop-tools-right"><button type="button" data-search-toggle aria-expanded="false" aria-controls="shop-search-panel">搜尋</button><a href="{% url 'catalog:favorites' %}">收藏（<span data-favorite-count>0</span>）</a><a href="{% url 'orders:cart' %}">購物車（<span data-cart-count>{{ cart_count }}</span>）</a></div>
   <button class="menu-toggle shop-menu-toggle" type="button" aria-label="開啟分類選單" aria-expanded="false" aria-controls="shop-mobile-menu"><span></span><span></span></button>
 </header>
