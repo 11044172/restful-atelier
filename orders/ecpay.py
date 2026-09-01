@@ -23,6 +23,25 @@ logger = logging.getLogger(__name__)
 STAGE_CHECKOUT_URL = "https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5"
 PRODUCTION_CHECKOUT_URL = "https://payment.ecpay.com.tw/Cashier/AioCheckOut/V5"
 PROVIDER_NAME = "ecpay"
+PAYMENT_VARIANT_STANDARD = "standard"
+PAYMENT_VARIANT_INSTALLMENT = "installment"
+PAYMENT_VARIANTS = {PAYMENT_VARIANT_STANDARD, PAYMENT_VARIANT_INSTALLMENT}
+ALLOWED_CREDIT_INSTALLMENTS = ("3", "6", "12", "18", "24")
+ALLOWED_IGNORE_PAYMENTS = ("WebATM", "ATM", "CVS", "BARCODE", "BNPL", "WeiXin")
+FORBIDDEN_IGNORE_PAYMENTS = {"Credit", "ApplePay", "TWQR", "DigitalPayment"}
+TWQR_MIN_AMOUNT = Decimal("6")
+TWQR_MAX_AMOUNT = Decimal("49999")
+
+# ECPay AIO V5 official "reply payment method" values. Apple Pay is returned
+# as Credit_CreditCard by AIO (the official table describes it as credit card
+# or Apple Mobile Pay), so no invented ApplePay callback value is accepted.
+PAYMENT_TYPE_LABELS = {
+    "Credit_CreditCard": "信用卡／Apple Pay",
+    "TWQR_OPAY": "TWQR",
+    "DigitalPayment_Jkopay": "街口支付",
+    "DigitalPayment_IPASS": "iPASS MONEY",
+}
+ALLOWED_CALLBACK_PAYMENT_TYPES = frozenset(PAYMENT_TYPE_LABELS)
 
 
 class ECPayError(Exception):
@@ -77,6 +96,76 @@ def configuration_status():
     except ECPayConfigurationError as exc:
         return False, str(exc)
     return True, ""
+
+
+def _configured_installments():
+    raw = str(settings.ECPAY_CREDIT_INSTALLMENTS).strip()
+    if not raw:
+        return ()
+    values = tuple(value.strip() for value in raw.split(",") if value.strip())
+    invalid = [value for value in values if value not in ALLOWED_CREDIT_INSTALLMENTS]
+    if invalid:
+        raise ECPayConfigurationError(
+            "ECPAY_CREDIT_INSTALLMENTS contains unsupported values: " + ", ".join(invalid)
+        )
+    return tuple(dict.fromkeys(values))
+
+
+def _configured_ignore_payment():
+    raw = str(settings.ECPAY_IGNORE_PAYMENT).strip()
+    values = tuple(value.strip() for value in raw.split("#") if value.strip())
+    forbidden = [value for value in values if value in FORBIDDEN_IGNORE_PAYMENTS]
+    invalid = [value for value in values if value not in ALLOWED_IGNORE_PAYMENTS]
+    if forbidden:
+        raise ECPayConfigurationError(
+            "ECPAY_IGNORE_PAYMENT must not hide: " + ", ".join(forbidden)
+        )
+    if invalid:
+        raise ECPayConfigurationError(
+            "ECPAY_IGNORE_PAYMENT contains unsupported values: " + ", ".join(invalid)
+        )
+    return "#".join(dict.fromkeys(values))
+
+
+def payment_variant_status(variant):
+    if variant not in PAYMENT_VARIANTS:
+        return False, "Unsupported ECPay payment variant."
+    configured, error = configuration_status()
+    if not configured:
+        return False, error
+    if variant == PAYMENT_VARIANT_STANDARD:
+        if not settings.ECPAY_STANDARD_ENABLED:
+            return False, "ECPay standard payment is disabled."
+        try:
+            _configured_ignore_payment()
+        except ECPayConfigurationError as exc:
+            return False, str(exc)
+        return True, ""
+    if not settings.ECPAY_INSTALLMENT_ENABLED:
+        return False, "ECPay installment payment is disabled."
+    try:
+        installments = _configured_installments()
+    except ECPayConfigurationError as exc:
+        return False, str(exc)
+    if not installments:
+        return False, "ECPAY_CREDIT_INSTALLMENTS is empty."
+    return True, ""
+
+
+def enabled_payment_variants():
+    return tuple(
+        variant
+        for variant in (PAYMENT_VARIANT_STANDARD, PAYMENT_VARIANT_INSTALLMENT)
+        if payment_variant_status(variant)[0]
+    )
+
+
+def configured_installments():
+    return _configured_installments()
+
+
+def twqr_amount_is_eligible(amount):
+    return amount is not None and TWQR_MIN_AMOUNT <= amount <= TWQR_MAX_AMOUNT
 
 
 def ecpay_urlencode(value):
@@ -134,7 +223,7 @@ def _assign_merchant_trade_no(payment):
 
 
 @transaction.atomic
-def get_or_create_payment_attempt(*, order_id, method):
+def get_or_create_payment_attempt(*, order_id, method, payment_variant=PAYMENT_VARIANT_STANDARD):
     order = Order.objects.select_for_update().prefetch_related("items").get(pk=order_id)
     if order.status == Order.Status.CANCELLED:
         raise ValidationError("此訂單已取消，無法付款。")
@@ -149,36 +238,57 @@ def get_or_create_payment_attempt(*, order_id, method):
         raise ValidationError("運費或最終付款金額尚未確認，暫時無法付款。")
     if method.provider != PROVIDER_NAME or method.code != method.Method.CREDIT_CARD or not method.enabled:
         raise ValidationError("此信用卡付款方式目前無法使用。")
+    available, error = payment_variant_status(payment_variant)
+    if not available:
+        raise ValidationError(error)
+    if Payment.objects.filter(
+        order=order,
+        provider=PROVIDER_NAME,
+        status=Payment.Status.AWAITING_CONFIRMATION,
+    ).exclude(provider_reference="").exists():
+        raise ValidationError("此訂單有一筆 ECPay 付款需要人工確認，暫時無法再次付款。")
 
-    payment = (
+    cancelled_at = timezone.now()
+    replaced = list(
         Payment.objects.select_for_update()
         .filter(
             order=order,
-            method=method,
             provider=PROVIDER_NAME,
-            amount=order.final_total,
-            currency="TWD",
-            status=Payment.Status.AWAITING_CONFIRMATION,
+            status__in=(Payment.Status.PENDING, Payment.Status.AWAITING_CONFIRMATION),
         )
-        .order_by("-created_at", "-pk")
-        .first()
+        .values_list("pk", flat=True)
     )
-    if payment is None:
-        payment = Payment.objects.create(
-            order=order,
-            method=method,
-            provider=PROVIDER_NAME,
-            amount=order.final_total,
-            currency="TWD",
-            status=Payment.Status.AWAITING_CONFIRMATION,
-            idempotency_key=f"ecpay:{uuid.uuid4()}",
+    if replaced:
+        Payment.objects.filter(pk__in=replaced).update(
+            status=Payment.Status.CANCELLED,
+            cancelled_at=cancelled_at,
         )
-        record_audit(
-            order,
-            "payment_created",
-            actor_label="customer",
-            changes={"payment_id": payment.pk, "method": method.code, "amount": str(order.final_total)},
-        )
+
+    metadata = {"payment_variant": payment_variant}
+    if payment_variant == PAYMENT_VARIANT_INSTALLMENT:
+        metadata["requested_installments"] = list(_configured_installments())
+    payment = Payment.objects.create(
+        order=order,
+        method=method,
+        provider=PROVIDER_NAME,
+        amount=order.final_total,
+        currency="TWD",
+        status=Payment.Status.AWAITING_CONFIRMATION,
+        idempotency_key=f"ecpay:{uuid.uuid4()}",
+        provider_metadata=metadata,
+    )
+    record_audit(
+        order,
+        "payment_created",
+        actor_label="customer",
+        changes={
+            "payment_id": payment.pk,
+            "method": method.code,
+            "payment_variant": payment_variant,
+            "amount": str(order.final_total),
+            "replaced_payment_ids": replaced,
+        },
+    )
     _assign_merchant_trade_no(payment)
     return payment
 
@@ -205,6 +315,12 @@ def build_checkout_data(payment):
     if not payment.merchant_trade_no or len(payment.merchant_trade_no) > 20:
         raise ECPayError("Invalid ECPay MerchantTradeNo.")
 
+    metadata = dict(payment.provider_metadata or {})
+    variant = metadata.get("payment_variant", PAYMENT_VARIANT_STANDARD)
+    available, error = payment_variant_status(variant)
+    if not available:
+        raise ECPayConfigurationError(error)
+
     callback_url = f"{settings.CANONICAL_ORIGIN}{reverse('ecpay_callback')}"
     fields = {
         "MerchantID": config.merchant_id,
@@ -215,11 +331,32 @@ def build_checkout_data(payment):
         "TradeDesc": "RESTFULL ATELIER order",
         "ItemName": _safe_item_name(payment),
         "ReturnURL": callback_url,
-        "ChoosePayment": "Credit",
         "EncryptType": "1",
-        "NeedExtraPaidInfo": "N",
         "ClientBackURL": make_payment_result_url(payment),
     }
+    if variant == PAYMENT_VARIANT_STANDARD:
+        fields.update({
+            "ChoosePayment": "ALL",
+            "IgnorePayment": _configured_ignore_payment(),
+            "NeedExtraPaidInfo": "N",
+        })
+    else:
+        installments = tuple(metadata.get("requested_installments") or _configured_installments())
+        if not installments or any(value not in ALLOWED_CREDIT_INSTALLMENTS for value in installments):
+            raise ECPayConfigurationError("Invalid stored ECPay installment configuration.")
+        fields.update({
+            "ChoosePayment": "Credit",
+            "CreditInstallment": ",".join(installments),
+            "NeedExtraPaidInfo": "Y",
+        })
+    metadata["payment_variant"] = variant
+    metadata["checkout"] = {
+        "choose_payment": fields["ChoosePayment"],
+        "ignore_payment": fields.get("IgnorePayment", ""),
+        "credit_installment": fields.get("CreditInstallment", ""),
+    }
+    payment.provider_metadata = metadata
+    payment.save(update_fields=("provider_metadata", "updated_at"))
     fields["CheckMacValue"] = generate_check_mac_value(
         fields, hash_key=config.hash_key, hash_iv=config.hash_iv
     )
@@ -238,6 +375,8 @@ AUDIT_CALLBACK_FIELDS = {
     "PaymentTypeChargeFee",
     "TradeDate",
     "SimulatePaid",
+    "stage",
+    "TWQRTradeNo",
 }
 
 
@@ -274,10 +413,46 @@ def _parse_payment_date(value):
     return parsed
 
 
+def _actual_installments(parameters):
+    value = str(parameters.get("stage", "")).strip()
+    if not value:
+        return None
+    if not value.isdigit():
+        raise ECPayCallbackError("Invalid ECPay installment stage.")
+    return int(value)
+
+
+def _payment_display_name(variant, payment_type, actual_installments):
+    if variant == PAYMENT_VARIANT_INSTALLMENT and actual_installments:
+        return f"信用卡分期付款（{actual_installments}期）"
+    return PAYMENT_TYPE_LABELS.get(payment_type, "待確認")
+
+
+def _mark_callback_for_review(payment, order, *, metadata, trade_no, paid_at, reason):
+    payment.provider_reference = trade_no
+    payment.provider_event_id = f"ecpay:{payment.merchant_trade_no}:{trade_no}:review"
+    payment.provider_metadata = metadata
+    payment.paid_at = paid_at
+    payment.status = Payment.Status.AWAITING_CONFIRMATION
+    try:
+        payment.save()
+    except IntegrityError as exc:
+        raise ECPayCallbackError("ECPay payment review conflict.") from exc
+    record_audit(
+        order,
+        "payment_review_required",
+        actor_label="ecpay-callback",
+        changes={"payment_id": payment.pk, "reason": reason, "trade_no": trade_no},
+    )
+    return payment, False
+
+
 @transaction.atomic
 def process_callback(parameters):
     config = get_config()
-    required = {"MerchantID", "MerchantTradeNo", "TradeAmt", "RtnCode", "CheckMacValue"}
+    required = {
+        "MerchantID", "MerchantTradeNo", "TradeAmt", "RtnCode", "PaymentType", "CheckMacValue"
+    }
     if not required.issubset(parameters):
         raise ECPayCallbackError("Missing required ECPay callback parameters.")
     if not verify_check_mac_value(parameters, hash_key=config.hash_key, hash_iv=config.hash_iv):
@@ -307,11 +482,24 @@ def process_callback(parameters):
         raise ECPayCallbackError("ECPay callback amount mismatch.")
 
     metadata = dict(payment.provider_metadata or {})
+    variant = metadata.get("payment_variant", PAYMENT_VARIANT_STANDARD)
+    if variant not in PAYMENT_VARIANTS:
+        variant = PAYMENT_VARIANT_STANDARD
+    metadata["payment_variant"] = variant
     metadata["callback"] = _sanitized_callback(parameters)
     metadata["callback_received_at"] = timezone.now().isoformat()
+    payment_type = parameters["PaymentType"].strip()
+    actual_installments = _actual_installments(parameters)
+    metadata["ecpay_payment_type"] = payment_type
+    metadata["actual_installments"] = actual_installments
+    metadata["normalized_payment_method"] = _payment_display_name(
+        variant, payment_type, actual_installments
+    )
     payment.provider_metadata = metadata
 
     if payment.status == Payment.Status.CONFIRMED:
+        if parameters.get("TradeNo", "").strip() != payment.provider_reference:
+            raise ECPayCallbackError("Confirmed ECPay payment TradeNo mismatch.")
         payment.save(update_fields=("provider_metadata", "updated_at"))
         return payment, False
 
@@ -336,9 +524,35 @@ def process_callback(parameters):
     if Payment.objects.filter(order=order, status=Payment.Status.CONFIRMED).exclude(pk=payment.pk).exists():
         raise ECPayCallbackError("Order already has a different confirmed payment.")
 
+    paid_at = _parse_payment_date(parameters.get("PaymentDate"))
+    review_reason = ""
+    if payment_type not in ALLOWED_CALLBACK_PAYMENT_TYPES:
+        review_reason = "unknown_payment_type"
+    elif payment_type == "TWQR_OPAY" and not twqr_amount_is_eligible(callback_amount):
+        review_reason = "twqr_amount_out_of_range"
+    elif variant == PAYMENT_VARIANT_INSTALLMENT:
+        requested = {int(value) for value in metadata.get("requested_installments", [])}
+        if payment_type != "Credit_CreditCard":
+            review_reason = "unexpected_installment_payment_type"
+        elif actual_installments is None or actual_installments not in requested:
+            review_reason = "installment_count_mismatch"
+    elif actual_installments not in (None, 0):
+        review_reason = "unexpected_standard_installment"
+
+    if review_reason:
+        metadata["review_required"] = review_reason
+        return _mark_callback_for_review(
+            payment,
+            order,
+            metadata=metadata,
+            trade_no=trade_no,
+            paid_at=paid_at,
+            reason=review_reason,
+        )
+
     payment.provider_reference = trade_no
     payment.provider_event_id = f"ecpay:{payment.merchant_trade_no}:{trade_no}:paid"
-    payment.paid_at = _parse_payment_date(parameters.get("PaymentDate"))
+    payment.paid_at = paid_at
     payment.confirmed_at = timezone.now()
     payment.status = Payment.Status.CONFIRMED
     payment.full_clean()
@@ -374,6 +588,10 @@ def process_callback(parameters):
         payment.save()
     except IntegrityError as exc:
         raise ECPayCallbackError("ECPay payment confirmation conflict.") from exc
+    Payment.objects.filter(
+        order=order,
+        status__in=(Payment.Status.PENDING, Payment.Status.AWAITING_CONFIRMATION),
+    ).exclude(pk=payment.pk).update(status=Payment.Status.CANCELLED, cancelled_at=timezone.now())
     return payment, True
 
 

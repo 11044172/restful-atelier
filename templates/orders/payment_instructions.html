@@ -12,66 +12,39 @@
   </dl>
   <div class="summary-total"><span>最終付款金額</span><strong>{{ order.final_total|currency }}</strong></div>
 
-  {% if methods and not selected_method %}
+  {% if standard_enabled or installment_enabled %}
   <form method="post" class="payment-confirm-form">{% csrf_token %}{{ form.non_field_errors }}
     <div class="payment-methods">
       <div class="payment-method-list-heading">
         <p class="eyebrow">PAYMENT METHOD</p>
         <h2>請選擇付款方式</h2>
-        <p>確認條款後，將顯示所選方式的付款資訊。</p>
+        <p>確認條款後，將直接前往對應的綠界 ECPay 安全付款頁面。</p>
       </div>
-      <div class="payment-method-list">
-        {% for method in methods %}
-        <label class="payment-method-option" for="payment-method-{{ method.pk }}">
-          <input id="payment-method-{{ method.pk }}" type="radio" name="{{ form.payment_method.html_name }}" value="{{ method.pk }}"{% if selected_method_id == method.pk|stringformat:'s' %} checked{% endif %} required>
-          <span class="payment-method-index">0{{ forloop.counter }}</span>
-          <span class="payment-method-name">{{ method.display_name }}</span>
-        </label>
-        {% endfor %}
+      <div class="policy-consent">{{ form.final_terms_accepted }}<label for="{{ form.final_terms_accepted.id_for_label }}">我已確認商品、數量、運費、最終合計，以及<a href="{% url 'content:policy' 'shopping-guide' %}" target="_blank">購物須知</a>與<a href="{% url 'content:policy' 'returns-policy' %}" target="_blank">退換貨政策</a>。</label>{{ form.final_terms_accepted.errors }}</div>
+      <div class="ecpay-payment-options">
+        {% if standard_enabled %}
+        <button class="ecpay-payment-option" type="submit" name="payment_variant" value="standard">
+          <strong>使用 ECPay 付款</strong>
+          <span>可於綠界付款頁面選擇{% for method_name in standard_methods %}{{ method_name }}{% if not forloop.last %}、{% endif %}{% endfor %}。</span>
+          {% if not twqr_amount_eligible %}<small>本訂單金額不在 TWQR 的 NT$6～49,999 使用範圍內；其他可用方式不受影響。</small>{% endif %}
+          <b aria-hidden="true">→</b>
+        </button>
+        {% endif %}
+        {% if installment_enabled %}
+        <button class="ecpay-payment-option" type="submit" name="payment_variant" value="installment">
+          <strong>信用卡分期付款</strong>
+          <span>可選擇已開通的信用卡分期期數（{% for installment in installments %}{{ installment }}{% if not forloop.last %}、{% endif %}{% endfor %}期）。</span>
+          <b aria-hidden="true">→</b>
+        </button>
+        {% endif %}
       </div>
-      {{ form.payment_method.errors }}
+      {{ form.payment_variant.errors }}
     </div>
-    <div class="policy-consent">{{ form.final_terms_accepted }}<label for="{{ form.final_terms_accepted.id_for_label }}">我已確認商品、數量、運費、最終合計，以及<a href="{% url 'content:policy' 'shopping-guide' %}" target="_blank">購物須知</a>與<a href="{% url 'content:policy' 'returns-policy' %}" target="_blank">退換貨政策</a>。</label>{{ form.final_terms_accepted.errors }}</div>
-    <button class="form-submit" type="submit">確認並顯示付款資訊 <span>→</span></button>
   </form>
-  {% elif selected_method %}
-  <section class="selected-payment-method" aria-labelledby="selected-payment-method-title">
-    <div class="selected-payment-method-header">
-      <div>
-        <p class="eyebrow">PAYMENT DETAILS</p>
-        <h2 id="selected-payment-method-title">{{ selected_method.display_name }}</h2>
-      </div>
-      <a class="payment-method-change" href="{{ request.path }}">變更付款方式</a>
-    </div>
-    <div class="status-note">已記錄您的選擇。請依照以下說明完成付款；在確認入帳前，訂單狀態將維持「等待付款」。</div>
-    {% if selected_method.instructions %}<p class="selected-payment-instructions">{{ selected_method.instructions|linebreaksbr }}</p>{% endif %}
-    {% if selected_method.provider == 'ecpay' %}
-    <form method="post" class="payment-confirm-form">
-      {% csrf_token %}
-      <input type="hidden" name="payment_method" value="{{ selected_method.pk }}">
-      <input type="hidden" name="final_terms_accepted" value="on">
-      <input type="hidden" name="start_provider" value="1">
-      <p class="selected-payment-instructions">點選後將在同一畫面安全前往綠界 ECPay 信用卡付款頁面。本站不會接觸或保存您的卡號與安全碼。</p>
-      <button class="form-submit" type="submit">使用 ECPay 安全付款 <span>→</span></button>
-    </form>
-    {% endif %}
-    {% if selected_method.code == 'bank_transfer' and site_settings.bank_name %}
-    <dl class="product-specs">
-      <div><dt>銀行</dt><dd>{{ site_settings.bank_name }}</dd></div>
-      {% if site_settings.bank_code %}<div><dt>銀行代碼</dt><dd>{{ site_settings.bank_code }}</dd></div>{% endif %}
-      {% if site_settings.bank_account_number %}<div><dt>帳號</dt><dd>{{ site_settings.bank_account_number }}</dd></div>{% endif %}
-      {% if site_settings.bank_account_name %}<div><dt>戶名</dt><dd>{{ site_settings.bank_account_name }}</dd></div>{% endif %}
-    </dl>
-    {% endif %}
-    {% if selected_method.qr_image %}
-    <img class="payment-qr" src="{{ selected_method.qr_image.url }}" alt="{{ selected_method.display_name }} QR" width="480" height="480" loading="lazy" decoding="async">
-    {% elif selected_method.code == 'taiwan_pay' and site_settings.taiwan_pay_qr %}
-    <img class="payment-qr" src="{{ site_settings.taiwan_pay_qr.url }}" alt="Taiwan Pay QR" width="480" height="480" loading="lazy" decoding="async">
-    {% endif %}
-  </section>
   {% else %}
   <div class="status-note">目前沒有已完成設定的付款方式，請透過官方 LINE 與我們聯絡。</div>
-  {% if provider_configuration_errors %}<div class="form-errors">信用卡付款設定尚未完成，管理員可從伺服器設定與日誌確認缺少的環境變數。</div>{% endif %}
+  {% if provider_configuration_errors %}<div class="form-errors">ECPay 付款設定尚未完成，管理員可從伺服器設定與日誌確認環境變數。</div>{% endif %}
   {% endif %}
+  <p class="selected-payment-instructions">本站不會接觸或保存卡號、安全碼或完整卡片資訊。正式付款狀態僅依綠界伺服器通知更新。</p>
 </section>
 {% endblock %}

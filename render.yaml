@@ -119,6 +119,14 @@ services:
         sync: false
       - key: ECPAY_HASH_IV
         sync: false
+      - key: ECPAY_STANDARD_ENABLED
+        value: "true"
+      - key: ECPAY_INSTALLMENT_ENABLED
+        value: "false"
+      - key: ECPAY_CREDIT_INSTALLMENTS
+        value: 3,6,12,18,24
+      - key: ECPAY_IGNORE_PAYMENT
+        value: WebATM#ATM#CVS#BARCODE#BNPL#WeiXin
 
 databases:
   - name: restfull-db

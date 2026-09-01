@@ -171,6 +171,13 @@ ECPAY_ENV = os.getenv("ECPAY_ENV", "stage").strip().lower()
 ECPAY_MERCHANT_ID = os.getenv("ECPAY_MERCHANT_ID", "").strip()
 ECPAY_HASH_KEY = os.getenv("ECPAY_HASH_KEY", "").strip()
 ECPAY_HASH_IV = os.getenv("ECPAY_HASH_IV", "").strip()
+ECPAY_STANDARD_ENABLED = env_bool("ECPAY_STANDARD_ENABLED", True)
+ECPAY_INSTALLMENT_ENABLED = env_bool("ECPAY_INSTALLMENT_ENABLED", False)
+ECPAY_CREDIT_INSTALLMENTS = os.getenv("ECPAY_CREDIT_INSTALLMENTS", "3,6,12,18,24").strip()
+ECPAY_IGNORE_PAYMENT = os.getenv(
+    "ECPAY_IGNORE_PAYMENT",
+    "WebATM#ATM#CVS#BARCODE#BNPL#WeiXin",
+).strip()
 
 
 

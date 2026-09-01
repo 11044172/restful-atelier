@@ -350,6 +350,22 @@ class Payment(models.Model):
     def __str__(self):
         return f"{self.order.public_number} / {self.get_status_display()}"
 
+    @property
+    def payment_variant(self):
+        return (self.provider_metadata or {}).get("payment_variant", "")
+
+    @property
+    def ecpay_payment_type(self):
+        return (self.provider_metadata or {}).get("ecpay_payment_type", "")
+
+    @property
+    def actual_installments(self):
+        return (self.provider_metadata or {}).get("actual_installments")
+
+    @property
+    def normalized_payment_method(self):
+        return (self.provider_metadata or {}).get("normalized_payment_method", "")
+
     def clean(self):
         if self.status == self.Status.CONFIRMED:
             if self.amount is None:

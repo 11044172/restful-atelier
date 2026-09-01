@@ -31,11 +31,15 @@ class CheckoutForm(forms.Form):
 
 
 class PaymentSelectionForm(forms.Form):
-    payment_method = forms.ModelChoiceField(label="付款方式", queryset=None, widget=forms.RadioSelect)
+    payment_variant = forms.ChoiceField(label="付款方式", choices=(), widget=forms.HiddenInput)
     final_terms_accepted = forms.BooleanField(label="我已確認最終訂單金額並同意現行購物與退換貨政策。", required=True)
 
-    def __init__(self, *args, methods=(), **kwargs):
+    def __init__(self, *args, variants=(), **kwargs):
         super().__init__(*args, **kwargs)
-        from .models import PaymentMethod
-        ids = [method.pk for method in methods]
-        self.fields["payment_method"].queryset = PaymentMethod.objects.filter(pk__in=ids, enabled=True).order_by("sort_order", "pk")
+        labels = {
+            "standard": "使用 ECPay 付款",
+            "installment": "信用卡分期付款",
+        }
+        self.fields["payment_variant"].choices = [
+            (variant, labels[variant]) for variant in variants if variant in labels
+        ]

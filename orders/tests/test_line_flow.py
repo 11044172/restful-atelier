@@ -397,7 +397,13 @@ class NotificationPaymentShippingTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Payment.objects.filter(status=Payment.Status.CONFIRMED).exists())
 
-    def test_payment_page_has_one_method_selector_and_shows_qr_after_acceptance(self):
+    @override_settings(
+        ECPAY_ENV="stage", ECPAY_MERCHANT_ID="FAKE123456",
+        ECPAY_HASH_KEY="FakeHashKey123456", ECPAY_HASH_IV="FakeHashIV123456",
+        ECPAY_STANDARD_ENABLED=True, ECPAY_INSTALLMENT_ENABLED=False,
+        ECPAY_IGNORE_PAYMENT="WebATM#ATM#CVS#BARCODE#BNPL#WeiXin",
+    )
+    def test_payment_page_hides_legacy_payment_method_radio_list(self):
         order = self._awaiting_payment()
         site = SiteSettings.load()
         site.bank_name = "測試銀行"
@@ -419,49 +425,38 @@ class NotificationPaymentShippingTests(TestCase):
             display_name="銀行轉帳",
             sort_order=2,
         )
+        PaymentMethod.objects.create(
+            code=PaymentMethod.Method.CREDIT_CARD,
+            enabled=True,
+            display_name="信用卡",
+            provider="ecpay",
+            sort_order=3,
+        )
 
         url = reverse("payment", args=[make_payment_token(order)])
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'name="payment_method"', count=2, html=False)
-        self.assertNotContains(response, '<select name="payment_method"', html=False)
-        self.assertNotContains(response, '<details class="payment-method"', html=False)
-        self.assertNotContains(response, 'src="/media/payments/methods/taiwan-pay.png"', html=False)
-        self.assertContains(response, "請選擇付款方式")
-
-        taiwan_pay = PaymentMethod.objects.get(code=PaymentMethod.Method.TAIWAN_PAY)
-        response = self.client.post(url, {
-            "payment_method": taiwan_pay.pk,
-            "final_terms_accepted": "on",
-        })
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'src="/media/payments/methods/taiwan-pay.png"', html=False)
         self.assertNotContains(response, 'name="payment_method"', html=False)
-        self.assertNotContains(response, "請選擇付款方式")
-        self.assertContains(response, "變更付款方式")
-        self.assertContains(response, "已記錄您的選擇")
-        self.assertEqual(Payment.objects.filter(order=order, method=taiwan_pay, status=Payment.Status.AWAITING_CONFIRMATION).count(), 1)
-        self.assertEqual(PolicyAcceptance.objects.filter(order=order, document_type="final-payment-terms").count(), 1)
+        self.assertNotContains(response, 'src="/media/payments/methods/taiwan-pay.png"', html=False)
+        self.assertContains(response, "使用 ECPay 付款")
+        self.assertNotContains(response, "Taiwan Pay")
+        self.assertNotContains(response, "銀行轉帳")
+        self.assertNotContains(response, "PayPal")
 
-        change_response = self.client.get(url)
-        self.assertContains(change_response, 'name="payment_method"', count=2, html=False)
-        self.assertContains(change_response, "請選擇付款方式")
-        self.assertNotContains(change_response, "變更付款方式")
-
+    @override_settings(
+        ECPAY_ENV="stage", ECPAY_MERCHANT_ID="FAKE123456",
+        ECPAY_HASH_KEY="FakeHashKey123456", ECPAY_HASH_IV="FakeHashIV123456",
+        ECPAY_STANDARD_ENABLED=True, ECPAY_INSTALLMENT_ENABLED=False,
+        ECPAY_IGNORE_PAYMENT="WebATM#ATM#CVS#BARCODE#BNPL#WeiXin",
+    )
     def test_payment_post_passes_csrf_in_webview_without_origin(self):
         order = self._awaiting_payment()
-        site = SiteSettings.load()
-        site.bank_name = "測試銀行"
-        site.bank_code = "001"
-        site.bank_account_number = "123456"
-        site.bank_account_name = "Rfull"
-        site.save()
         method = PaymentMethod.objects.create(
-            code=PaymentMethod.Method.BANK_TRANSFER,
+            code=PaymentMethod.Method.CREDIT_CARD,
             enabled=True,
-            display_name="銀行轉帳",
+            display_name="信用卡",
+            provider="ecpay",
         )
         url = reverse("payment", args=[make_payment_token(order)])
         csrf_client = Client(enforce_csrf_checks=True)
@@ -475,7 +470,7 @@ class NotificationPaymentShippingTests(TestCase):
             url,
             {
                 "csrfmiddlewaretoken": csrf_token,
-                "payment_method": method.pk,
+                "payment_variant": "standard",
                 "final_terms_accepted": "on",
             },
             secure=True,

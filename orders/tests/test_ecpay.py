@@ -7,6 +7,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from orders.ecpay import (
+    ALLOWED_CALLBACK_PAYMENT_TYPES,
     PRODUCTION_CHECKOUT_URL,
     STAGE_CHECKOUT_URL,
     ecpay_urlencode,
@@ -32,6 +33,10 @@ ECPAY_SETTINGS = {
     "ECPAY_MERCHANT_ID": "FAKE123456",
     "ECPAY_HASH_KEY": "FakeHashKey123456",
     "ECPAY_HASH_IV": "FakeHashIV123456",
+    "ECPAY_STANDARD_ENABLED": True,
+    "ECPAY_INSTALLMENT_ENABLED": False,
+    "ECPAY_CREDIT_INSTALLMENTS": "3,6,12,18,24",
+    "ECPAY_IGNORE_PAYMENT": "WebATM#ATM#CVS#BARCODE#BNPL#WeiXin",
     "CANONICAL_ORIGIN": "https://shop.example.test",
     "LINE_MESSAGING_CHANNEL_ACCESS_TOKEN": "line-test-token",
 }
@@ -77,17 +82,41 @@ class ECPayTests(TestCase):
         order = order or self.order
         return reverse("payment", args=[make_payment_token(order)])
 
-    def _start_payment(self):
+    def _start_payment(self, variant="standard", order=None):
+        order = order or self.order
         response = self.client.post(
-            self._payment_url(),
+            self._payment_url(order),
             {
-                "payment_method": self.method.pk,
+                "payment_variant": variant,
                 "final_terms_accepted": "on",
-                "start_provider": "1",
             },
         )
         self.assertEqual(response.status_code, 200)
-        return response, Payment.objects.filter(order=self.order, provider="ecpay").latest("pk")
+        return response, Payment.objects.filter(order=order, provider="ecpay").latest("pk")
+
+    def _new_order(self, suffix, amount=1100):
+        order = Order.objects.create(
+            idempotency_key=f"ecpay-order-{suffix}",
+            line_customer=self.customer,
+            customer_name="測試顧客",
+            phone="0912345678",
+            email="customer@example.test",
+            shipping_information="Taipei",
+            subtotal=Decimal(amount - 100),
+            shipping_fee=Decimal(100),
+            payment_request_total=Decimal(amount),
+            payment_link_version=1,
+            cancel_link_version=1,
+            status=Order.Status.AWAITING_PAYMENT,
+        )
+        OrderItem.objects.create(
+            order=order,
+            product_name_snapshot="測試商品",
+            unit_price_snapshot=amount - 100,
+            quantity=1,
+            line_total=amount - 100,
+        )
+        return order
 
     def _callback_fields(self, payment, **overrides):
         fields = {
@@ -158,12 +187,16 @@ class ECPayTests(TestCase):
             )
         )
 
-    def test_stage_checkout_uses_db_amount_server_signature_and_credit_only(self):
+    def test_standard_checkout_uses_all_expected_exclusions_and_server_signature(self):
         response, payment = self._start_payment()
         fields = response.context["fields"]
         self.assertEqual(response.context["action"], STAGE_CHECKOUT_URL)
         self.assertEqual(fields["TotalAmount"], "1100")
-        self.assertEqual(fields["ChoosePayment"], "Credit")
+        self.assertEqual(fields["ChoosePayment"], "ALL")
+        ignored = set(fields["IgnorePayment"].split("#"))
+        self.assertTrue({"WebATM", "ATM", "CVS", "BARCODE", "BNPL", "WeiXin"}.issubset(ignored))
+        self.assertTrue({"Credit", "ApplePay", "TWQR", "DigitalPayment"}.isdisjoint(ignored))
+        self.assertNotIn("CreditInstallment", fields)
         self.assertEqual(fields["PaymentType"], "aio")
         self.assertEqual(fields["EncryptType"], "1")
         self.assertEqual(fields["MerchantTradeNo"], payment.merchant_trade_no)
@@ -173,19 +206,97 @@ class ECPayTests(TestCase):
         self.assertNotContains(response, ECPAY_SETTINGS["ECPAY_HASH_KEY"])
         self.assertNotContains(response, ECPAY_SETTINGS["ECPAY_HASH_IV"])
         self.assertContains(response, f'action="{STAGE_CHECKOUT_URL}"', html=False)
+        unsigned = {key: value for key, value in fields.items() if key != "CheckMacValue"}
+        self.assertEqual(
+            fields["CheckMacValue"],
+            generate_check_mac_value(
+                unsigned,
+                hash_key=ECPAY_SETTINGS["ECPAY_HASH_KEY"],
+                hash_iv=ECPAY_SETTINGS["ECPAY_HASH_IV"],
+            ),
+        )
 
     @override_settings(ECPAY_ENV="production")
     def test_production_switch_changes_endpoint_without_code_change(self):
         response, _payment = self._start_payment()
         self.assertEqual(response.context["action"], PRODUCTION_CHECKOUT_URL)
 
-    def test_payment_page_selects_ecpay_before_same_window_post(self):
+    def test_payment_page_only_shows_site_level_ecpay_variants(self):
+        response = self.client.get(self._payment_url())
+        self.assertContains(response, "使用 ECPay 付款")
+        self.assertNotContains(response, "信用卡分期付款")
+        self.assertNotContains(response, 'name="payment_method"', html=False)
+        self.assertNotContains(response, "台灣 Pay")
+        self.assertNotContains(response, "銀行轉帳")
+        self.assertNotContains(response, "PayPal")
+        self.assertFalse(Payment.objects.exists())
+
+    @override_settings(ECPAY_INSTALLMENT_ENABLED=True, ECPAY_CREDIT_INSTALLMENTS="3,6,12")
+    def test_installment_checkout_uses_credit_and_configured_installments(self):
+        page = self.client.get(self._payment_url())
+        self.assertContains(page, "信用卡分期付款")
+        response, payment = self._start_payment("installment")
+        fields = response.context["fields"]
+        self.assertEqual(fields["ChoosePayment"], "Credit")
+        self.assertEqual(fields["CreditInstallment"], "3,6,12")
+        self.assertEqual(fields["NeedExtraPaidInfo"], "Y")
+        self.assertNotIn("IgnorePayment", fields)
+        self.assertEqual(payment.provider_metadata["payment_variant"], "installment")
+        self.assertEqual(payment.provider_metadata["requested_installments"], ["3", "6", "12"])
+
+    @override_settings(ECPAY_INSTALLMENT_ENABLED=True, ECPAY_CREDIT_INSTALLMENTS="")
+    def test_installment_button_is_hidden_when_installments_are_not_configured(self):
+        response = self.client.get(self._payment_url())
+        self.assertContains(response, "使用 ECPay 付款")
+        self.assertNotContains(response, "信用卡分期付款")
+
+    @override_settings(ECPAY_STANDARD_ENABLED=False)
+    def test_standard_button_is_hidden_when_disabled(self):
+        response = self.client.get(self._payment_url())
+        self.assertNotContains(response, "使用 ECPay 付款")
+
+    @override_settings(ECPAY_IGNORE_PAYMENT="WebATM#Credit")
+    def test_forbidden_ignore_payment_configuration_hides_standard_entry(self):
+        response = self.client.get(self._payment_url())
+        self.assertNotContains(response, "使用 ECPay 付款")
+        self.assertContains(response, "目前沒有已完成設定的付款方式")
+
+    @override_settings(ECPAY_INSTALLMENT_ENABLED=True, ECPAY_CREDIT_INSTALLMENTS="3,7")
+    def test_invalid_installment_configuration_is_not_customer_selectable(self):
+        response = self.client.get(self._payment_url())
+        self.assertNotContains(response, "信用卡分期付款")
+        invalid = self.client.post(
+            self._payment_url(),
+            {"payment_variant": "installment", "final_terms_accepted": "on"},
+        )
+        self.assertEqual(invalid.status_code, 200)
+        self.assertFalse(Payment.objects.exists())
+
+    def test_customer_ecpay_parameter_injection_is_ignored(self):
         response = self.client.post(
             self._payment_url(),
-            {"payment_method": self.method.pk, "final_terms_accepted": "on"},
+            {
+                "payment_variant": "standard",
+                "final_terms_accepted": "on",
+                "ChoosePayment": "ATM",
+                "IgnorePayment": "Credit",
+                "CreditInstallment": "30N",
+                "ChooseSubPayment": "anything",
+                "TotalAmount": "1",
+            },
         )
-        self.assertContains(response, "使用 ECPay 安全付款")
-        self.assertNotContains(response, 'target="_blank"')
+        fields = response.context["fields"]
+        self.assertEqual(fields["ChoosePayment"], "ALL")
+        self.assertEqual(fields["TotalAmount"], "1100")
+        self.assertNotIn("CreditInstallment", fields)
+        self.assertNotIn("ChooseSubPayment", fields)
+
+    def test_unknown_payment_variant_cannot_create_payment(self):
+        response = self.client.post(
+            self._payment_url(),
+            {"payment_variant": "credit", "final_terms_accepted": "on"},
+        )
+        self.assertEqual(response.status_code, 200)
         self.assertFalse(Payment.objects.exists())
 
     def test_unconfirmed_shipping_paid_cancelled_and_invalid_token_cannot_start(self):
@@ -219,6 +330,27 @@ class ECPayTests(TestCase):
         _response, second = self._start_payment()
         self.assertNotEqual(first.pk, second.pk)
         self.assertNotEqual(first.merchant_trade_no, second.merchant_trade_no)
+
+    def test_retry_after_ecpay_order_creation_uses_new_merchant_trade_no(self):
+        _response, first = self._start_payment()
+        _response, second = self._start_payment()
+        first.refresh_from_db()
+        self.assertEqual(first.status, Payment.Status.CANCELLED)
+        self.assertNotEqual(first.pk, second.pk)
+        self.assertNotEqual(first.merchant_trade_no, second.merchant_trade_no)
+
+    @override_settings(ECPAY_INSTALLMENT_ENABLED=True, ECPAY_CREDIT_INSTALLMENTS="3,6")
+    def test_switching_standard_and_installment_never_reuses_merchant_trade_no(self):
+        _response, standard = self._start_payment("standard")
+        _response, installment = self._start_payment("installment")
+        standard.refresh_from_db()
+        self.assertEqual(standard.status, Payment.Status.CANCELLED)
+        self.assertNotEqual(standard.merchant_trade_no, installment.merchant_trade_no)
+
+        _response, standard_again = self._start_payment("standard")
+        installment.refresh_from_db()
+        self.assertEqual(installment.status, Payment.Status.CANCELLED)
+        self.assertNotEqual(installment.merchant_trade_no, standard_again.merchant_trade_no)
 
     def test_shipping_change_cancels_old_unpaid_attempt_and_uses_new_db_total(self):
         _response, first = self._start_payment()
@@ -266,6 +398,85 @@ class ECPayTests(TestCase):
         self.assertEqual(payment.provider_metadata["callback"]["TradeAmt"], "1100")
         self.assertNotIn("CheckMacValue", payment.provider_metadata["callback"])
         self.assertEqual(NotificationOutbox.objects.filter(event_type="payment_confirmed").count(), 2)
+
+    def test_all_official_standard_callback_payment_types_are_confirmed_and_normalized(self):
+        expected = {
+            "Credit_CreditCard": "信用卡／Apple Pay",
+            "TWQR_OPAY": "TWQR",
+            "DigitalPayment_Jkopay": "街口支付",
+            "DigitalPayment_IPASS": "iPASS MONEY",
+        }
+        self.assertEqual(ALLOWED_CALLBACK_PAYMENT_TYPES, frozenset(expected))
+        for index, (payment_type, label) in enumerate(expected.items(), start=1):
+            with self.subTest(payment_type=payment_type):
+                order = self._new_order(f"payment-type-{index}")
+                _response, payment = self._start_payment(order=order)
+                callback = self._post_callback(
+                    self._callback_fields(payment, PaymentType=payment_type)
+                )
+                self.assertEqual(callback.content, b"1|OK")
+                payment.refresh_from_db()
+                order.refresh_from_db()
+                self.assertEqual(payment.status, Payment.Status.CONFIRMED)
+                self.assertEqual(payment.ecpay_payment_type, payment_type)
+                self.assertEqual(payment.normalized_payment_method, label)
+                self.assertEqual(order.status, Order.Status.PAID)
+
+    @override_settings(ECPAY_INSTALLMENT_ENABLED=True, ECPAY_CREDIT_INSTALLMENTS="3,6,12")
+    def test_installment_callback_saves_actual_installments(self):
+        _response, payment = self._start_payment("installment")
+        response = self._post_callback(self._callback_fields(payment, stage="6"))
+        self.assertEqual(response.content, b"1|OK")
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.CONFIRMED)
+        self.assertEqual(payment.actual_installments, 6)
+        self.assertEqual(payment.normalized_payment_method, "信用卡分期付款（6期）")
+
+    @override_settings(ECPAY_INSTALLMENT_ENABLED=True, ECPAY_CREDIT_INSTALLMENTS="3,6,12")
+    def test_installment_fallback_or_unconfigured_count_requires_manual_review(self):
+        _response, payment = self._start_payment("installment")
+        response = self._post_callback(self._callback_fields(payment, stage="0"))
+        self.assertEqual(response.content, b"1|OK")
+        payment.refresh_from_db()
+        self.order.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.AWAITING_CONFIRMATION)
+        self.assertEqual(payment.actual_installments, 0)
+        self.assertEqual(payment.provider_metadata["review_required"], "installment_count_mismatch")
+        self.assertNotEqual(self.order.status, Order.Status.PAID)
+
+        retry = self.client.post(
+            self._payment_url(),
+            {"payment_variant": "standard", "final_terms_accepted": "on"},
+        )
+        self.assertEqual(retry.status_code, 200)
+        self.assertEqual(Payment.objects.filter(order=self.order).count(), 1)
+
+    def test_unknown_payment_type_is_audited_without_confirming_order(self):
+        _response, payment = self._start_payment()
+        response = self._post_callback(
+            self._callback_fields(payment, PaymentType="FutureWallet_Guessed")
+        )
+        self.assertEqual(response.content, b"1|OK")
+        payment.refresh_from_db()
+        self.order.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.AWAITING_CONFIRMATION)
+        self.assertEqual(payment.provider_metadata["review_required"], "unknown_payment_type")
+        self.assertEqual(payment.ecpay_payment_type, "FutureWallet_Guessed")
+        self.assertNotEqual(self.order.status, Order.Status.PAID)
+        self.assertFalse(NotificationOutbox.objects.filter(event_type="payment_confirmed").exists())
+
+    def test_twqr_out_of_range_callback_requires_review_but_standard_entry_remains_available(self):
+        order = self._new_order("twqr-out-of-range", amount=50000)
+        page = self.client.get(self._payment_url(order))
+        self.assertContains(page, "使用 ECPay 付款")
+        self.assertContains(page, "本訂單金額不在 TWQR")
+        _response, payment = self._start_payment(order=order)
+        callback = self._post_callback(
+            self._callback_fields(payment, PaymentType="TWQR_OPAY")
+        )
+        self.assertEqual(callback.content, b"1|OK")
+        payment.refresh_from_db()
+        self.assertEqual(payment.provider_metadata["review_required"], "twqr_amount_out_of_range")
 
     def test_callback_rejects_bad_mac_merchant_trade_number_and_amount(self):
         _response, payment = self._start_payment()

@@ -27,8 +27,31 @@ class OrderItemInline(admin.TabularInline):
 class PaymentInline(admin.TabularInline):
     model = Payment
     extra = 0
-    fields = ("method", "provider", "amount", "currency", "status", "merchant_trade_no", "provider_reference", "paid_at", "note")
-    readonly_fields = ("status", "merchant_trade_no", "provider_reference", "paid_at")
+    fields = (
+        "method", "payment_variant_label", "ecpay_payment_type", "normalized_payment_method",
+        "actual_installments", "provider", "amount", "currency", "status",
+        "merchant_trade_no", "provider_reference", "paid_at", "note",
+    )
+    readonly_fields = (
+        "payment_variant_label", "ecpay_payment_type", "normalized_payment_method",
+        "actual_installments", "status", "merchant_trade_no", "provider_reference", "paid_at",
+    )
+
+    @admin.display(description="ECPay 入口")
+    def payment_variant_label(self, obj):
+        return {"standard": "通常支払い", "installment": "カード分割"}.get(obj.payment_variant, "—")
+
+    @admin.display(description="ECPay PaymentType")
+    def ecpay_payment_type(self, obj):
+        return obj.ecpay_payment_type or "—"
+
+    @admin.display(description="表示用付款方式")
+    def normalized_payment_method(self, obj):
+        return obj.normalized_payment_method or "—"
+
+    @admin.display(description="分期期數")
+    def actual_installments(self, obj):
+        return obj.actual_installments or "—"
 
 
 class LineNotificationInline(admin.TabularInline):
@@ -226,14 +249,35 @@ class PaymentMethodAdmin(admin.ModelAdmin):
 
 @admin.register(Payment, site=backoffice_site)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ("order", "method", "provider", "amount", "status", "merchant_trade_no", "provider_reference", "paid_at", "created_at")
+    list_display = (
+        "order", "payment_variant_label", "normalized_payment_method", "ecpay_payment_type",
+        "actual_installments", "amount", "status", "merchant_trade_no", "provider_reference",
+        "paid_at", "created_at",
+    )
     list_filter = ("status", "method", "created_at")
     search_fields = ("order__public_number", "merchant_trade_no", "provider_reference")
     readonly_fields = (
-        "merchant_trade_no", "provider_reference", "provider_event_id", "provider_metadata",
+        "payment_variant_label", "ecpay_payment_type", "normalized_payment_method",
+        "actual_installments", "merchant_trade_no", "provider_reference", "provider_event_id", "provider_metadata",
         "created_at", "updated_at", "confirmed_at", "cancelled_at", "refunded_at",
     )
     actions = ("record_remaining_full_refund",)
+
+    @admin.display(description="ECPay 入口")
+    def payment_variant_label(self, obj):
+        return {"standard": "通常支払い", "installment": "カード分割"}.get(obj.payment_variant, "—")
+
+    @admin.display(description="ECPay PaymentType")
+    def ecpay_payment_type(self, obj):
+        return obj.ecpay_payment_type or "—"
+
+    @admin.display(description="表示用付款方式")
+    def normalized_payment_method(self, obj):
+        return obj.normalized_payment_method or "—"
+
+    @admin.display(description="分期期數")
+    def actual_installments(self, obj):
+        return obj.actual_installments or "—"
 
     @admin.action(description="將剩餘金額登記為全額退款並保留稽核記錄")
     def record_remaining_full_refund(self, request, queryset):
