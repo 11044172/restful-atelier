@@ -45,6 +45,16 @@
     </div>
     <div class="status-note">已記錄您的選擇。請依照以下說明完成付款；在確認入帳前，訂單狀態將維持「等待付款」。</div>
     {% if selected_method.instructions %}<p class="selected-payment-instructions">{{ selected_method.instructions|linebreaksbr }}</p>{% endif %}
+    {% if selected_method.provider == 'ecpay' %}
+    <form method="post" class="payment-confirm-form">
+      {% csrf_token %}
+      <input type="hidden" name="payment_method" value="{{ selected_method.pk }}">
+      <input type="hidden" name="final_terms_accepted" value="on">
+      <input type="hidden" name="start_provider" value="1">
+      <p class="selected-payment-instructions">點選後將在同一畫面安全前往綠界 ECPay 信用卡付款頁面。本站不會接觸或保存您的卡號與安全碼。</p>
+      <button class="form-submit" type="submit">使用 ECPay 安全付款 <span>→</span></button>
+    </form>
+    {% endif %}
     {% if selected_method.code == 'bank_transfer' and site_settings.bank_name %}
     <dl class="product-specs">
       <div><dt>銀行</dt><dd>{{ site_settings.bank_name }}</dd></div>
@@ -61,6 +71,7 @@
   </section>
   {% else %}
   <div class="status-note">目前沒有已完成設定的付款方式，請透過官方 LINE 與我們聯絡。</div>
+  {% if provider_configuration_errors %}<div class="form-errors">信用卡付款設定尚未完成，管理員可從伺服器設定與日誌確認缺少的環境變數。</div>{% endif %}
   {% endif %}
 </section>
 {% endblock %}

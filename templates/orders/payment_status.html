@@ -1,0 +1,17 @@
+{% extends 'base.html' %}{% load shop_tags %}
+{% block page_title %}付款結果確認{% endblock %}
+{% block content %}
+<section class="order-complete payment-page page-shell">
+  <p class="eyebrow">PAYMENT STATUS</p>
+  <h1>付款結果確認</h1>
+  <p class="order-number">{{ order.public_number }}</p>
+  <div class="summary-total"><span>付款金額</span><strong>{{ payment.amount|currency }}</strong></div>
+  {% if payment.status == 'confirmed' %}
+    <div class="status-note">已確認收到您的付款，謝謝您的訂購。商品完成出貨後，我們會再透過 LINE 通知您。</div>
+  {% elif payment.status == 'failed' %}
+    <div class="status-note">本次付款未完成。您可以回到 LINE 的安全付款連結，再次嘗試付款；若仍有問題，請聯絡店家。</div>
+  {% else %}
+    <div class="status-note">正在確認付款結果。付款完成後，系統會依綠界 ECPay 的伺服器通知自動更新訂單狀態，請稍後再重新整理本頁。</div>
+  {% endif %}
+</section>
+{% endblock %}

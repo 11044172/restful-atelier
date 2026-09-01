@@ -4,32 +4,56 @@ import time
 
 from django.conf import settings
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.http import HttpResponseBadRequest, HttpResponse, HttpResponseForbidden, JsonResponse
+from django.http import (
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseForbidden,
+    JsonResponse,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from catalog.models import Product
-from core.models import SiteSettings
-from core.line_config import line_settings_configured
-from inquiries.antispam import rate_limit_exceeded, verify_turnstile
-from .cart import Cart
 from content.models import PolicyPage
+from core.line_config import line_settings_configured
+from core.models import SiteSettings
+from inquiries.antispam import rate_limit_exceeded, verify_turnstile
+
+from .cart import Cart
+from .ecpay import (
+    ECPayCallbackError,
+    ECPayConfigurationError,
+    ECPayError,
+    get_or_create_payment_attempt,
+)
 from .forms import CheckoutForm, PaymentSelectionForm
-from .line_login import LineLoginError, authorization_url, exchange_code, generate_oauth_values, get_friendship_status, verify_id_token
-from .notifications import enqueue_order_notifications
+from .line_login import (
+    LineLoginError,
+    authorization_url,
+    exchange_code,
+    generate_oauth_values,
+    get_friendship_status,
+    verify_id_token,
+)
 from .line_webhooks import parse_payload, process_event, valid_signature
 from .models import LineCustomer, Order, Payment, PaymentMethod, PolicyAcceptance
+from .notifications import enqueue_order_notifications
 from .operations import cancel_order, record_audit
-from .payment_links import PaymentLinkError, resolve_cancel_token, resolve_payment_token
+from .payment_links import (
+    PaymentLinkError,
+    resolve_cancel_token,
+    resolve_payment_result_token,
+    resolve_payment_token,
+)
 from .payment_providers import get_provider
 from .services import CartValidationError, create_order_from_cart
-
 
 logger = logging.getLogger(__name__)
 
@@ -300,6 +324,7 @@ def payment(request, token):
         return HttpResponseForbidden("此安全連結不屬於目前登入的LINE顧客。")
     site = SiteSettings.load()
     methods = []
+    provider_configuration_errors = []
     for method in PaymentMethod.objects.filter(enabled=True):
         if method.code == PaymentMethod.Method.BANK_TRANSFER:
             if not all((site.bank_name, site.bank_code, site.bank_account_number, site.bank_account_name)):
@@ -309,6 +334,11 @@ def payment(request, token):
                 continue
         elif not method.provider or get_provider(method.provider) is None:
             continue
+        else:
+            provider = get_provider(method.provider)
+            if hasattr(provider, "is_configured") and not provider.is_configured():
+                provider_configuration_errors.append(provider.configuration_error())
+                continue
         methods.append(method)
     form = PaymentSelectionForm(request.POST or None, methods=methods)
     selected_method = None
@@ -329,13 +359,71 @@ def payment(request, token):
                 version=policy.version,
                 defaults={"ip_address": getattr(request, "client_ip", None), "user_agent": request.headers.get("user-agent", "")[:300]},
             )
-        payment_record, created = Payment.objects.get_or_create(
-            order=order, method=selected_method, status=Payment.Status.AWAITING_CONFIRMATION,
-            defaults={"amount": order.final_total, "currency": "TWD", "idempotency_key": f"order:{order.pk}:method:{selected_method.pk}:v{order.payment_link_version}"},
-        )
-        if created:
-            record_audit(order, "payment_created", actor_label="customer", changes={"payment_id": payment_record.pk, "method": selected_method.code, "amount": str(order.final_total)})
-    return render(request, "orders/payment_instructions.html", {"order": order, "methods": methods, "form": form, "selected_method": selected_method, "selected_method_id": selected_method_id, "shop_page": True, "noindex": True})
+        if selected_method.provider:
+            provider = get_provider(selected_method.provider)
+            if request.POST.get("start_provider") == "1":
+                try:
+                    payment_record = get_or_create_payment_attempt(order_id=order.pk, method=selected_method)
+                    checkout = provider.create_payment(payment=payment_record)
+                except (ValidationError, ECPayError, ECPayConfigurationError) as exc:
+                    logger.warning("ECPay checkout could not start for order %s: %s", order.public_number, exc)
+                    messages.error(request, "信用卡付款目前無法開始，請稍後再試或聯絡店家。")
+                else:
+                    return render(
+                        request,
+                        "orders/provider_redirect.html",
+                        {"order": order, "payment": payment_record, **checkout, "shop_page": True, "noindex": True},
+                    )
+        else:
+            payment_record, created = Payment.objects.get_or_create(
+                order=order, method=selected_method, status=Payment.Status.AWAITING_CONFIRMATION,
+                defaults={"amount": order.final_total, "currency": "TWD", "idempotency_key": f"order:{order.pk}:method:{selected_method.pk}:v{order.payment_link_version}"},
+            )
+            if created:
+                record_audit(order, "payment_created", actor_label="customer", changes={"payment_id": payment_record.pk, "method": selected_method.code, "amount": str(order.final_total)})
+    return render(request, "orders/payment_instructions.html", {
+        "order": order,
+        "methods": methods,
+        "form": form,
+        "selected_method": selected_method,
+        "selected_method_id": selected_method_id,
+        "provider_configuration_errors": provider_configuration_errors,
+        "shop_page": True,
+        "noindex": True,
+    })
+
+
+@csrf_exempt
+@require_POST
+def ecpay_callback(request):
+    provider = get_provider("ecpay")
+    try:
+        provider.handle_webhook(raw_body=request.body, headers=request.headers)
+    except ECPayConfigurationError:
+        logger.error("ECPay callback received while ECPay configuration is incomplete.")
+        return HttpResponse("0|Error", status=503, content_type="text/plain")
+    except ECPayCallbackError as exc:
+        logger.warning("Rejected ECPay callback: %s", exc)
+        return HttpResponse("0|Error", status=400, content_type="text/plain")
+    except Exception:
+        logger.exception("Unexpected ECPay callback processing failure.")
+        return HttpResponse("0|Error", status=500, content_type="text/plain")
+    return HttpResponse("1|OK", content_type="text/plain")
+
+
+@never_cache
+@require_GET
+def ecpay_return(request, token):
+    try:
+        payment_record = resolve_payment_result_token(token)
+    except PaymentLinkError as exc:
+        status = 410 if str(exc) == "expired" else 404
+        return render(request, "orders/payment_link_error.html", {"reason": str(exc), "noindex": True}, status=status)
+    return render(
+        request,
+        "orders/payment_status.html",
+        {"payment": payment_record, "order": payment_record.order, "shop_page": True, "noindex": True},
+    )
 
 
 @never_cache
@@ -352,7 +440,7 @@ def cancel_order_link(request, token):
     if request.method == "POST" and cancellable:
         try:
             cancel_order(order.pk, actor_label="customer-signed-link")
-        except Exception as exc:
+        except ValidationError as exc:
             messages.error(request, str(exc))
         else:
             order.refresh_from_db()

@@ -89,7 +89,7 @@ def build_payment_confirmed(order):
         alt_text=f"訂單 {order.public_number} 已確認收到付款。",
         title="付款已確認",
         rows=[_row("訂單編號", order.public_number), _row("付款金額", money(order.final_total), emphasis=True)],
-        note="我們將開始準備出貨，預計於付款確認後 3 個工作日內寄出。出貨完成後會再次透過 LINE 通知您。",
+        note="已確認收到您的付款，謝謝您的訂購。商品完成出貨後，我們會再透過 LINE 通知您。",
     )
 
 

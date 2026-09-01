@@ -27,8 +27,8 @@ class OrderItemInline(admin.TabularInline):
 class PaymentInline(admin.TabularInline):
     model = Payment
     extra = 0
-    fields = ("method", "provider", "amount", "currency", "status", "provider_reference", "paid_at", "note")
-    readonly_fields = ("status", "paid_at")
+    fields = ("method", "provider", "amount", "currency", "status", "merchant_trade_no", "provider_reference", "paid_at", "note")
+    readonly_fields = ("status", "merchant_trade_no", "provider_reference", "paid_at")
 
 
 class LineNotificationInline(admin.TabularInline):
@@ -226,10 +226,13 @@ class PaymentMethodAdmin(admin.ModelAdmin):
 
 @admin.register(Payment, site=backoffice_site)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ("order", "method", "amount", "status", "paid_at", "created_at")
+    list_display = ("order", "method", "provider", "amount", "status", "merchant_trade_no", "provider_reference", "paid_at", "created_at")
     list_filter = ("status", "method", "created_at")
-    search_fields = ("order__public_number", "provider_reference")
-    readonly_fields = ("created_at", "updated_at", "confirmed_at", "cancelled_at", "refunded_at")
+    search_fields = ("order__public_number", "merchant_trade_no", "provider_reference")
+    readonly_fields = (
+        "merchant_trade_no", "provider_reference", "provider_event_id", "provider_metadata",
+        "created_at", "updated_at", "confirmed_at", "cancelled_at", "refunded_at",
+    )
     actions = ("record_remaining_full_refund",)
 
     @admin.action(description="將剩餘金額登記為全額退款並保留稽核記錄")

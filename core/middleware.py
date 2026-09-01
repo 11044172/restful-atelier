@@ -40,7 +40,7 @@ class SecurityHeadersMiddleware:
     def __call__(self, request):
         response = self.get_response(request)
         response.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
-        if request.path.startswith(("/pay/", "/shop/cancel/")):
+        if request.path.startswith(("/pay/", "/payments/ecpay/return/", "/shop/cancel/")):
             # Keep signed payment/cancellation URLs out of cross-origin
             # referrers, while still allowing Django's HTTPS CSRF fallback to
             # validate same-origin form submissions in WebViews that omit the
@@ -49,7 +49,8 @@ class SecurityHeadersMiddleware:
         response.setdefault(
             "Content-Security-Policy-Report-Only",
             "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
-            "form-action 'self'; script-src 'self' https://challenges.cloudflare.com; "
+            "form-action 'self' https://payment-stage.ecpay.com.tw https://payment.ecpay.com.tw; "
+            "script-src 'self' https://challenges.cloudflare.com; "
             "style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; "
             "img-src 'self' data: https:; connect-src 'self' https://challenges.cloudflare.com; "
             "frame-src https://challenges.cloudflare.com",

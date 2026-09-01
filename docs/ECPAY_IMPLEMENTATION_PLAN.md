@@ -47,15 +47,13 @@
 秘密値は Render の環境変数だけに置き、Git、HTML、ログ、`provider_metadata` へ保存しない。
 
 ```text
-ECPAY_ENABLED=False
-ECPAY_STAGE=True
+ECPAY_ENV=stage
 ECPAY_MERCHANT_ID=
 ECPAY_HASH_KEY=
 ECPAY_HASH_IV=
-ECPAY_API_TIMEOUT=8
 ```
 
-`ECPAY_STAGE=True` の送信先は `https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5`、本番は `https://payment.ecpay.com.tw/Cashier/AioCheckOut/V5`。ReturnURL は `https://restfull-xhex.onrender.com/webhooks/ecpay/payment/` とする。ECPay の通知要件に合わせ、正式ドメインの HTTPS / 443 で常時応答できるようにする。
+`ECPAY_ENV=stage` の送信先は `https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5`、`production` は `https://payment.ecpay.com.tw/Cashier/AioCheckOut/V5`。ReturnURL は `CANONICAL_ORIGIN + /payments/ecpay/callback/` とする。ECPay の通知要件に合わせ、正式ドメインの HTTPS / 443 で常時応答できるようにする。
 
 起動時チェックには以下を追加する。
 
@@ -69,10 +67,10 @@ ECPAY_API_TIMEOUT=8
 `Payment` に以下を追加する。
 
 ```python
-provider_merchant_trade_no = models.CharField(max_length=20, null=True, blank=True, unique=True)
+merchant_trade_no = models.CharField(max_length=20, null=True, blank=True, unique=True)
 ```
 
-- `provider_merchant_trade_no`: 本サイトが生成して ECPay の `MerchantTradeNo` へ送る英数字20文字以内の一意値
+- `merchant_trade_no`: 本サイトが生成して ECPay の `MerchantTradeNo` へ送る英数字20文字以内の一意値
 - `provider_reference`: ECPay が返す `TradeNo`
 - `provider_event_id`: ECPay に event ID がないため、正常通知では `ecpay:{MerchantTradeNo}:{TradeNo}:paid` の決定的キーを保存
 - `provider_metadata`: RtnCode、PaymentType、SimulatePaid、通知受信時刻など、秘密情報・カード番号を除いた監査情報
@@ -83,7 +81,7 @@ MerchantTradeNo は注文番号のハイフンを除去するだけに依存せ�
 
 1. 署名付き支払いURLを検証する。
 2. 支払い方法と最終規約同意を検証する。
-3. DB transaction 内で `Payment` を作成または lock し、`provider_merchant_trade_no` を一度だけ採番する。
+3. DB transaction 内で `Payment` を作成または lock し、`merchant_trade_no` を一度だけ採番する。
 4. 以下の AioCheckOut fields をサーバーで生成する。
 5. CheckMacValue を付けた hidden form を返し、ブラウザから ECPay へ POST する。
 
@@ -97,7 +95,7 @@ PaymentType=aio
 TotalAmount=<final_total のTWD整数>
 TradeDesc=RESTFULL ATELIER order
 ItemName=<商品名を # 区切り、400文字以内>
-ReturnURL=https://restfull-xhex.onrender.com/webhooks/ecpay/payment/
+ReturnURL=https://restful-atelier.com/payments/ecpay/callback/
 ChoosePayment=Credit
 EncryptType=1
 NeedExtraPaidInfo=N
@@ -123,7 +121,7 @@ Python 標準ライブラリだけで実装し、公式資料の既知ベクト�
 
 ## ReturnURL の処理
 
-`/webhooks/ecpay/payment/` は ECPay からの外部 POST なので Django CSRF は exempt にする代わりに、次をすべて満たすまで状態を変えない。
+`/payments/ecpay/callback/` は ECPay からの外部 POST なので Django CSRF は exempt にする代わりに、次をすべて満たすまで状態を変えない。
 
 1. form-data を受信し、必須項目を検証
 2. `MerchantID` が設定値と一致

@@ -111,6 +111,14 @@ services:
         value: "900"
       - key: PAYMENT_LINK_MAX_AGE
         value: "604800"
+      - key: ECPAY_ENV
+        value: stage
+      - key: ECPAY_MERCHANT_ID
+        sync: false
+      - key: ECPAY_HASH_KEY
+        sync: false
+      - key: ECPAY_HASH_IV
+        sync: false
 
 databases:
   - name: restfull-db

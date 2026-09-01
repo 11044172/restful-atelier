@@ -5,7 +5,6 @@ from django.utils import timezone
 from .models import Order, OrderAuditLog, Payment, PaymentMethod
 from .notifications import enqueue_order_notifications
 
-
 ALLOWED_TRANSITIONS = {
     Order.Status.RECEIVED: {Order.Status.SHIPPING_REVIEW, Order.Status.CANCELLED},
     Order.Status.SHIPPING_REVIEW: {Order.Status.AWAITING_PAYMENT, Order.Status.CANCELLED},
@@ -57,6 +56,13 @@ def confirm_shipping_and_request_payment(order_id, *, actor=None):
     if order.status == Order.Status.AWAITING_PAYMENT and order.payment_link_version > 0 and order.payment_request_total == requested_total:
         return order
     previous = order.status
+    Payment.objects.filter(
+        order=order,
+        status__in=(Payment.Status.PENDING, Payment.Status.AWAITING_CONFIRMATION),
+    ).exclude(amount=requested_total).update(
+        status=Payment.Status.CANCELLED,
+        cancelled_at=timezone.now(),
+    )
     order.payment_link_version += 1
     order.cancel_link_version += 1
     order.payment_request_total = requested_total
@@ -142,6 +148,10 @@ def cancel_order(order_id, *, actor=None, actor_label="system"):
     transition(order, Order.Status.CANCELLED, event="cancelled", actor=actor, actor_label=actor_label)
     order.cancelled_at = timezone.now()
     order.save(update_fields=("status", "cancelled_at", "updated_at"))
+    Payment.objects.filter(
+        order=order,
+        status__in=(Payment.Status.PENDING, Payment.Status.AWAITING_CONFIRMATION),
+    ).update(status=Payment.Status.CANCELLED, cancelled_at=order.cancelled_at)
     transaction.on_commit(lambda: enqueue_order_notifications(order.pk, "order_cancelled"))
     return order
 

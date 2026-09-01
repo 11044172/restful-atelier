@@ -81,6 +81,14 @@ class Order(models.Model):
     def clean(self):
         if self.shipping_fee is not None and self.shipping_fee < 0:
             raise ValidationError({"shipping_fee": "運費必須為 0 或正數。"})
+        if self.pk:
+            original = type(self).objects.filter(pk=self.pk).values("subtotal", "shipping_fee").first()
+            if (
+                original
+                and self.payments.filter(status=Payment.Status.CONFIRMED).exists()
+                and (original["subtotal"] != self.subtotal or original["shipping_fee"] != self.shipping_fee)
+            ):
+                raise ValidationError("已付款訂單的商品金額與運費不得變更，請由管理員進行退款或差額處理。")
         if self.status in {self.Status.AWAITING_PAYMENT, self.Status.PAID, self.Status.PREPARING, self.Status.SHIPPED, self.Status.COMPLETED} and self.shipping_fee is None:
             raise ValidationError({"shipping_fee": "請先確定運費，再將訂單更新為此狀態。"})
         if self.pk and self.status in {self.Status.SHIPPED, self.Status.COMPLETED} and not self.is_paid:
@@ -89,7 +97,14 @@ class Order(models.Model):
     def save(self, *args, **kwargs):
         previous_status = None
         if self.pk:
-            previous_status = type(self).objects.filter(pk=self.pk).values_list("status", flat=True).first()
+            previous = type(self).objects.filter(pk=self.pk).values("status", "subtotal", "shipping_fee").first()
+            previous_status = previous["status"] if previous else None
+            if (
+                previous
+                and self.payments.filter(status=Payment.Status.CONFIRMED).exists()
+                and (previous["subtotal"] != self.subtotal or previous["shipping_fee"] != self.shipping_fee)
+            ):
+                raise ValidationError("已付款訂單的商品金額與運費不得變更，請由管理員進行退款或差額處理。")
         self.final_total = self.subtotal + self.shipping_fee if self.shipping_fee is not None else None
         super().save(*args, **kwargs)
         if self.status == self.Status.CANCELLED and previous_status != self.Status.CANCELLED:
@@ -300,6 +315,7 @@ class Payment(models.Model):
     provider = models.CharField("金流服務商", max_length=120, blank=True)
     amount = models.DecimalField("付款金額", max_digits=12, decimal_places=0, null=True, blank=True)
     status = models.CharField("付款狀態", max_length=32, choices=Status.choices, default=Status.PENDING)
+    merchant_trade_no = models.CharField("特店交易編號", max_length=20, null=True, blank=True, unique=True, editable=False)
     provider_reference = models.CharField("金流參考編號", max_length=255, blank=True)
     provider_event_id = models.CharField("金流事件 ID", max_length=255, null=True, blank=True, unique=True)
     idempotency_key = models.CharField("付款冪等金鑰", max_length=160, null=True, blank=True, unique=True)
@@ -323,6 +339,11 @@ class Payment(models.Model):
         verbose_name_plural = "付款記錄"
         constraints = [
             models.UniqueConstraint(fields=("order",), condition=Q(status="confirmed"), name="one_confirmed_payment_per_order"),
+            models.UniqueConstraint(
+                fields=("provider_reference",),
+                condition=Q(provider="ecpay") & ~Q(provider_reference=""),
+                name="unique_ecpay_trade_no",
+            ),
             models.CheckConstraint(condition=Q(refunded_amount__gte=0), name="payment_refund_amount_nonnegative"),
         ]
 

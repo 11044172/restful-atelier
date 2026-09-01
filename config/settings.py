@@ -167,6 +167,11 @@ LINE_API_TIMEOUT = float(os.getenv("LINE_API_TIMEOUT", "5"))
 LINE_FRIENDSHIP_MAX_AGE = int(os.getenv("LINE_FRIENDSHIP_MAX_AGE", "900"))
 PAYMENT_LINK_MAX_AGE = int(os.getenv("PAYMENT_LINK_MAX_AGE", "604800"))
 
+ECPAY_ENV = os.getenv("ECPAY_ENV", "stage").strip().lower()
+ECPAY_MERCHANT_ID = os.getenv("ECPAY_MERCHANT_ID", "").strip()
+ECPAY_HASH_KEY = os.getenv("ECPAY_HASH_KEY", "").strip()
+ECPAY_HASH_IV = os.getenv("ECPAY_HASH_IV", "").strip()
+
 
 
 SESSION_COOKIE_HTTPONLY = True

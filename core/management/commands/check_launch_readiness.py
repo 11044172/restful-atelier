@@ -111,7 +111,11 @@ class Command(BaseCommand):
             elif method.code == PaymentMethod.Method.TAIWAN_PAY:
                 configured = bool(method.qr_image or site.taiwan_pay_qr)
             else:
-                configured = bool(method.provider and get_provider(method.provider))
+                provider = get_provider(method.provider) if method.provider else None
+                configured = bool(
+                    provider
+                    and (not hasattr(provider, "is_configured") or provider.is_configured())
+                )
             if configured: usable_methods.append(method.code)
             else: self._fail(f"有効な支払方法の設定不足: {method.display_name}")
         self._check(bool(usable_methods), "利用可能な支払方法あり", "利用可能な支払方法なし", fail=production)

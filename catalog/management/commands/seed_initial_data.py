@@ -73,7 +73,15 @@ class Command(BaseCommand):
             InquiryCategory.objects.get_or_create(slug=slug, defaults={"display_name": name, "recipient_email": email, "active": True, "sort_order": index})
         method_names = {"taiwan_pay": "台灣 Pay", "credit_card": "信用卡", "bank_transfer": "銀行轉帳", "paypal": "PayPal"}
         for index, (code, name) in enumerate(method_names.items(), 1):
-            PaymentMethod.objects.get_or_create(code=code, defaults={"display_name": name, "enabled": False, "sort_order": index})
+            PaymentMethod.objects.get_or_create(
+                code=code,
+                defaults={
+                    "display_name": name,
+                    "enabled": False,
+                    "provider": "ecpay" if code == "credit_card" else "",
+                    "sort_order": index,
+                },
+            )
         for index, (slug, (title, body)) in enumerate(POLICY_DRAFTS.items(), 1):
             page, created = PolicyPage.objects.get_or_create(slug=slug, defaults={"title": title, "body": body, "version": DRAFT_VERSION, "effective_date": DRAFT_EFFECTIVE_DATE, "published": True, "legal_reviewed": False, "sort_order": index})
             if not created and not page.body.strip():

@@ -128,5 +128,6 @@
     setInterval(checkFriend, 2500);
     checkFriend();
   }
+  $('[data-ecpay-redirect]')?.submit();
   updateFavorites(); window.addEventListener('storage', updateFavorites); window.addEventListener('pageshow', updateFavorites);
 })();

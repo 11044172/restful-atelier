@@ -2,9 +2,9 @@ from django.conf import settings
 from django.core import signing
 from django.urls import reverse
 
-
 SALT = "orders.payment-link.v1"
 CANCEL_SALT = "orders.cancel-link.v1"
+PAYMENT_RESULT_SALT = "orders.payment-result.v1"
 
 
 class PaymentLinkError(Exception):
@@ -27,6 +27,40 @@ def make_cancel_token(order):
 def make_cancel_url(order):
     path = reverse("orders:cancel", kwargs={"token": make_cancel_token(order)})
     return f"{settings.CANONICAL_ORIGIN}{path}"
+
+
+def make_payment_result_token(payment):
+    return signing.dumps(
+        {"payment": payment.pk, "trade": payment.merchant_trade_no},
+        salt=PAYMENT_RESULT_SALT,
+        compress=True,
+    )
+
+
+def make_payment_result_url(payment):
+    path = reverse("ecpay_return", kwargs={"token": make_payment_result_token(payment)})
+    return f"{settings.CANONICAL_ORIGIN}{path}"
+
+
+def resolve_payment_result_token(token):
+    from .models import Payment
+
+    try:
+        payload = signing.loads(token, salt=PAYMENT_RESULT_SALT, max_age=settings.PAYMENT_LINK_MAX_AGE)
+        payment_id = int(payload["payment"])
+        trade_no = str(payload["trade"])
+    except signing.SignatureExpired as exc:
+        raise PaymentLinkError("expired") from exc
+    except (signing.BadSignature, KeyError, TypeError, ValueError) as exc:
+        raise PaymentLinkError("invalid") from exc
+    payment = Payment.objects.select_related("order").filter(
+        pk=payment_id,
+        provider="ecpay",
+        merchant_trade_no=trade_no,
+    ).first()
+    if payment is None:
+        raise PaymentLinkError("invalid")
+    return payment
 
 
 def resolve_cancel_token(token):

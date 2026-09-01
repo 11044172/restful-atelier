@@ -131,6 +131,26 @@ WebhookはJSON parse前のraw bodyとMessaging API Channel Secretを使い、`x-
 
 参考: [LINE Login web integration](https://developers.line.biz/en/docs/line-login/integrate-line-login/)、[Add Friend Option](https://developers.line.biz/en/docs/line-login/link-a-bot/)、[Webhook signature](https://developers.line.biz/en/docs/messaging-api/verify-webhook-signature/)
 
+## ECPay AIO クレジットカード決済
+
+ECPayの導轉式「全方位金流 AioCheckOut V5」を使用します。LINEの付款通知にはECPay URLではなく署名付きの`/pay/<token>/`を送り、顧客が最終金額を確認してから、サーバー生成済みのPOSTフォームでECPayへ同一画面遷移します。正式な入金確定は`/payments/ecpay/callback/`へ届く署名検証済みReturnURL通知だけが行います。
+
+必要な環境変数：
+
+- `ECPAY_ENV=stage`（本番切替時は`production`）
+- `ECPAY_MERCHANT_ID`
+- `ECPAY_HASH_KEY`
+- `ECPAY_HASH_IV`
+
+秘密値は`.env`またはRender Environment Variablesにのみ設定し、Git、HTML、JavaScript、ログへ入れません。値が不足している場合、信用卡PaymentMethodは支払いページに表示されず、顧客へ500を返しません。
+
+接続先はコード変更なしで切り替わります。
+
+- stage: `https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5`
+- production: `https://payment.ecpay.com.tw/Cashier/AioCheckOut/V5`
+
+migration後、管理画面の「付款方式設定」で`信用卡`のproviderが`ecpay`であることを確認し、STAGE認証情報を設定した環境でのみ`enabled`を有効にしてください。詳しい検証・障害確認手順は[docs/ECPAY_OPERATIONS.md](docs/ECPAY_OPERATIONS.md)を参照してください。
+
 ## LINE Developers Console設定
 
 1. Rfull用LINE Providerを作成、または既存Providerを確認します。
@@ -295,6 +315,7 @@ Blueprintが自動設定する値：
 - `LINE_LOGIN_CALLBACK_URL=https://restfull-xhex.onrender.com/auth/line/callback/`
 - `LINE_API_TIMEOUT=5` / `LINE_FRIENDSHIP_MAX_AGE=900`
 - `PAYMENT_LINK_MAX_AGE=604800`
+- `ECPAY_ENV=stage`
 
 Render Dashboardで実値を入力する`sync: false`項目：
 
@@ -302,6 +323,7 @@ Render Dashboardで実値を入力する`sync: false`項目：
 - R2: `AWS_ACCESS_KEY_ID`、`AWS_SECRET_ACCESS_KEY`、`AWS_STORAGE_BUCKET_NAME`、`AWS_S3_ENDPOINT_URL`、`AWS_S3_CUSTOM_DOMAIN`
 - Turnstile: `TURNSTILE_SITE_KEY`、`TURNSTILE_SECRET_KEY`
 - LINE: `LINE_LOGIN_CHANNEL_ID`、`LINE_LOGIN_CHANNEL_SECRET`、`LINE_MESSAGING_CHANNEL_ACCESS_TOKEN`、`LINE_MESSAGING_CHANNEL_SECRET`、`LINE_OFFICIAL_ACCOUNT_BASIC_ID`
+- ECPay: `ECPAY_MERCHANT_ID`、`ECPAY_HASH_KEY`、`ECPAY_HASH_IV`
 
 取得元はEmail provider、Cloudflare R2 / Turnstile、LINE Developers Consoleです。秘密値はGitHub、`render.yaml`、HTML、JavaScriptへ記載しません。
 

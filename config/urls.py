@@ -17,6 +17,8 @@ urlpatterns = [
     path("auth/line/callback/", order_views.line_login_callback, name="line_login_callback"),
     path("webhooks/line/messaging/", order_views.line_messaging_webhook, name="line_messaging_webhook"),
     path("pay/<str:token>/", order_views.payment, name="payment"),
+    path("payments/ecpay/callback/", order_views.ecpay_callback, name="ecpay_callback"),
+    path("payments/ecpay/return/<str:token>/", order_views.ecpay_return, name="ecpay_return"),
     path("robots.txt", core_views.robots_txt, name="robots_txt"),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"),
     path("", include("core.urls")),

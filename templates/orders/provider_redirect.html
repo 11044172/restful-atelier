@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block page_title %}前往 ECPay 付款{% endblock %}
+{% block content %}
+<section class="order-complete payment-page page-shell">
+  <p class="eyebrow">SECURE PAYMENT</p>
+  <h1>正在前往 ECPay</h1>
+  <p class="order-number">{{ order.public_number }}</p>
+  <div class="status-note">將在同一畫面開啟綠界 ECPay 的信用卡付款頁面。請勿關閉此視窗。</div>
+  <form method="post" action="{{ action }}" data-ecpay-redirect autocomplete="off">
+    {% for name, value in fields.items %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+    <noscript><button class="form-submit" type="submit">繼續前往 ECPay <span>→</span></button></noscript>
+  </form>
+</section>
+{% endblock %}
