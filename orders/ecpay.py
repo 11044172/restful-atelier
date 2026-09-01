@@ -287,7 +287,7 @@ def process_callback(parameters):
 
     payment = (
         Payment.objects.select_for_update()
-        .select_related("order", "method")
+        .select_related("order")
         .filter(provider=PROVIDER_NAME, merchant_trade_no=parameters["MerchantTradeNo"])
         .first()
     )
