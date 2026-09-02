@@ -142,6 +142,9 @@ class ProductImageApiTests(TestCase):
         self.assertEqual(unsupported.status_code, 400)
         self.assertEqual(oversized.status_code, 400)
         self.assertEqual(mismatch.status_code, 400)
+        self.assertEqual(unsupported.json()["error"], "不支援此圖片格式。")
+        self.assertEqual(oversized.json()["error"], "每張圖片不得超過 20MB。")
+        self.assertEqual(mismatch.json()["error"], "圖片副檔名與格式不一致。")
         storage_client.assert_not_called()
 
     def test_presign_rejects_another_upload_session(self):

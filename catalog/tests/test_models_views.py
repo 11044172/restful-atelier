@@ -238,6 +238,11 @@ class AdminProductDraftWorkflowTests(TestCase):
         add_page = self.client.get(reverse("admin:catalog_product_add"))
         self.assertContains(add_page, "data-product-image-manager")
         self.assertContains(add_page, "multiple data-image-input")
+        self.assertContains(add_page, "新增商品圖片")
+        self.assertContains(add_page, "一次最多可選擇 10 張圖片")
+        self.assertContains(add_page, "第一張會作為主要圖片")
+        self.assertNotContains(add_page, "商品画像")
+        self.assertNotContains(add_page, "商品画像を追加")
         self.assertNotContains(add_page, 'name="images-0-image"')
         self.assertNotContains(add_page, 'enctype="multipart/form-data"')
         upload_session = add_page.context["product_image_config"]["uploadSession"]

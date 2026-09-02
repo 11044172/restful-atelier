@@ -124,35 +124,35 @@ class ProductAdmin(admin.ModelAdmin):
         registry = request.session.get(UPLOAD_SESSION_REGISTRY, {})
         record = registry.get(str(upload_session))
         if not record or record.get("user_id") != request.user.pk:
-            raise ProductImageError("アップロードセッションを確認できません。", "invalid_upload_session", 403)
+            raise ProductImageError("無法確認上傳工作階段。", "invalid_upload_session", 403)
         if record.get("created_at", 0) < timezone.now().timestamp() - 24 * 60 * 60:
-            raise ProductImageError("アップロードセッションの有効期限が切れています。", "expired_upload_session", 403)
+            raise ProductImageError("上傳工作階段已逾期。", "expired_upload_session", 403)
         recorded_product_id = record.get("product_id")
         if recorded_product_id != product_id:
-            raise ProductImageError("アップロードセッションの対象商品が一致しません。", "session_product_mismatch", 403)
+            raise ProductImageError("上傳工作階段所屬商品不一致。", "session_product_mismatch", 403)
         if product_id is None:
             if not self.has_add_permission(request):
-                raise ProductImageError("商品画像を追加する権限がありません。", "permission_denied", 403)
+                raise ProductImageError("您沒有新增商品圖片的權限。", "permission_denied", 403)
             return None
         product = Product.objects.filter(pk=product_id).first()
         if not product:
-            raise ProductImageError("商品を確認できません。", "product_not_found", 404)
+            raise ProductImageError("找不到指定商品。", "product_not_found", 404)
         if not self.has_change_permission(request, product):
-            raise ProductImageError("商品画像を変更する権限がありません。", "permission_denied", 403)
+            raise ProductImageError("您沒有修改商品圖片的權限。", "permission_denied", 403)
         return product
 
     @staticmethod
     def _json_body(request):
         if request.method != "POST":
-            raise ProductImageError("POSTリクエストが必要です。", "method_not_allowed", 405)
+            raise ProductImageError("必須使用 POST 請求。", "method_not_allowed", 405)
         if len(request.body) > 32 * 1024:
-            raise ProductImageError("リクエストが大きすぎます。", "request_too_large", 413)
+            raise ProductImageError("請求內容過大。", "request_too_large", 413)
         try:
             data = json.loads(request.body or "{}")
         except (TypeError, ValueError, UnicodeDecodeError) as exc:
-            raise ProductImageError("リクエスト形式が無効です。", "invalid_json") from exc
+            raise ProductImageError("請求格式無效。", "invalid_json") from exc
         if not isinstance(data, dict):
-            raise ProductImageError("リクエスト形式が無効です。", "invalid_json")
+            raise ProductImageError("請求格式無效。", "invalid_json")
         return data
 
     @staticmethod
@@ -163,7 +163,7 @@ class ProductAdmin(admin.ModelAdmin):
         try:
             return int(value)
         except (TypeError, ValueError) as exc:
-            raise ProductImageError("商品IDが無効です。", "invalid_product") from exc
+            raise ProductImageError("商品 ID 無效。", "invalid_product") from exc
 
     def _api(self, callback):
         try:
@@ -173,7 +173,7 @@ class ProductAdmin(admin.ModelAdmin):
         except Exception:
             logger.exception("Unexpected product image API error")
             response = JsonResponse(
-                {"error": "画像処理に失敗しました。再試行してください。", "code": "internal_error"},
+                {"error": "圖片處理失敗，請重試。", "code": "internal_error"},
                 status=500,
             )
         response["Cache-Control"] = "no-store"
@@ -227,7 +227,7 @@ class ProductAdmin(admin.ModelAdmin):
             product = self._session_context(request, upload_session, product_id)
             image = ProductImage.objects.filter(pk=image_id).first()
             if not image:
-                raise ProductImageError("画像を確認できません。", "image_not_found", 404)
+                raise ProductImageError("找不到指定圖片。", "image_not_found", 404)
             if product:
                 owned = (
                     image.product_id == product.pk
@@ -246,7 +246,7 @@ class ProductAdmin(admin.ModelAdmin):
                     in (ProductImage.UploadStatus.PENDING, ProductImage.UploadStatus.TEMPORARY)
                 )
             if not owned:
-                raise ProductImageError("この画像は削除できません。", "image_not_owned", 403)
+                raise ProductImageError("您無法刪除此圖片。", "image_not_owned", 403)
             mark_and_delete_image(image)
             return JsonResponse({"deleted": True, "image_id": image_id})
 
@@ -260,11 +260,11 @@ class ProductAdmin(admin.ModelAdmin):
             product = self._session_context(request, upload_session, product_id)
             raw_ids = data.get("images")
             if not isinstance(raw_ids, list):
-                raise ProductImageError("画像の並び順が無効です。", "invalid_image_set")
+                raise ProductImageError("圖片排序資料無效。", "invalid_image_set")
             try:
                 image_ids = [int(value) for value in raw_ids]
             except (TypeError, ValueError) as exc:
-                raise ProductImageError("画像の並び順が無効です。", "invalid_image_set") from exc
+                raise ProductImageError("圖片排序資料無效。", "invalid_image_set") from exc
             if product:
                 normalize_product_images(product, image_ids)
             else:

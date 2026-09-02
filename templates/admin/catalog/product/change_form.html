@@ -23,17 +23,17 @@
     <header class="product-image-manager__header">
       <div>
         <p class="eyebrow">PRODUCT IMAGES</p>
-        <h2 id="product-image-heading">商品画像</h2>
-        <p>最大10枚を選択できます。JPG・PNG・WebP、1枚20MBまで。画像はCloudflare R2へ直接送信されます。</p>
+        <h2 id="product-image-heading">商品圖片</h2>
+        <p>一次最多可選擇 10 張圖片。支援 JPG、PNG、WebP，每張上限 20MB。圖片會直接上傳至 Cloudflare R2。</p>
       </div>
       <label class="button product-image-picker">
-        商品画像を追加
+        新增商品圖片
         <input type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" multiple data-image-input>
       </label>
     </header>
     <div class="product-image-message" data-image-message role="alert" hidden></div>
     <div class="product-image-grid" data-image-grid aria-live="polite"></div>
-    <p class="product-image-empty" data-image-empty>画像はまだありません。</p>
-    <p class="product-image-help">ドラッグ＆ドロップで表示順を変更できます。先頭の画像がメイン画像です。商品保存POSTには画像本体を含めません。</p>
+    <p class="product-image-empty" data-image-empty>尚未有商品圖片。</p>
+    <p class="product-image-help">可拖曳圖片調整顯示順序，第一張會作為主要圖片。儲存商品時，POST 請求不會包含圖片檔案。</p>
   </section>
 {% endblock %}

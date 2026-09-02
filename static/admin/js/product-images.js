@@ -20,7 +20,7 @@
     key: `server-${image.id}`,
     serverId: image.id,
     previewUrl: image.url,
-    filename: image.filename || image.alt_text || "商品画像",
+    filename: image.filename || image.alt_text || "商品圖片",
     status: "done",
     progress: 100,
     error: "",
@@ -49,7 +49,7 @@
     });
     let payload = {};
     try { payload = await response.json(); } catch (_) { /* use generic message */ }
-    if (!response.ok) throw new Error(payload.error || "画像処理に失敗しました。再試行してください。");
+    if (!response.ok) throw new Error(payload.error || "圖片處理失敗，請重試。");
     return payload;
   };
 
@@ -77,18 +77,18 @@
       try {
         await api(config.reorderUrl, {...scopePayload(), images: ids});
       } catch (error) {
-        showMessage(error.message || "画像の並び替えに失敗しました。");
+        showMessage(error.message || "調整圖片順序失敗。");
       }
     });
     return reorderChain;
   };
 
   const stateLabel = (item) => {
-    if (item.status === "optimizing") return "最適化中";
-    if (item.status === "queued") return "アップロード待ち";
+    if (item.status === "optimizing") return "圖片最佳化中";
+    if (item.status === "queued") return "等待上傳";
     if (item.status === "uploading") return `${item.progress || 0}%`;
     if (item.status === "completing") return "確認中";
-    if (item.status === "done") return "完了";
+    if (item.status === "done") return "已完成";
     if (item.status === "failed") return "失敗";
     return "準備中";
   };
@@ -104,7 +104,7 @@
       card.innerHTML = `
         <div class="product-image-card__visual">
           <img src="" alt="">
-          <span class="product-image-main-badge" data-main-badge hidden>メイン画像</span>
+          <span class="product-image-main-badge" data-main-badge hidden>主要圖片</span>
           <span class="product-image-drag" aria-hidden="true">⋮⋮</span>
         </div>
         <div class="product-image-card__body">
@@ -113,8 +113,8 @@
           <span class="product-image-state"></span>
           <small class="product-image-error"></small>
           <div class="product-image-actions">
-            <button type="button" class="button" data-retry ${item.status === "failed" ? "" : "hidden"}>再試行</button>
-            <button type="button" class="button product-image-delete" data-delete ${["optimizing", "uploading", "completing"].includes(item.status) ? "disabled" : ""}>削除</button>
+            <button type="button" class="button" data-retry ${item.status === "failed" ? "" : "hidden"}>重試</button>
+            <button type="button" class="button product-image-delete" data-delete ${["optimizing", "uploading", "completing"].includes(item.status) ? "disabled" : ""}>刪除</button>
           </div>
         </div>`;
       const title = card.querySelector("strong");
@@ -197,9 +197,9 @@
     };
     request.onload = () => request.status >= 200 && request.status < 300
       ? resolve()
-      : reject(new Error("R2へのアップロードに失敗しました。"));
-    request.onerror = () => reject(new Error("ネットワーク接続を確認して再試行してください。"));
-    request.onabort = () => reject(new Error("アップロードが中断されました。"));
+      : reject(new Error("上傳至 R2 失敗。"));
+    request.onerror = () => reject(new Error("請確認網路連線後重試。"));
+    request.onabort = () => reject(new Error("上傳已中止。"));
     request.send(file);
   });
 
@@ -231,7 +231,7 @@
       await persistOrder();
     } catch (error) {
       item.status = "failed";
-      item.error = error.message || "アップロードに失敗しました。再試行してください。";
+      item.error = error.message || "上傳失敗，請重試。";
       render();
     } finally {
       running -= 1;
@@ -251,13 +251,13 @@
   const prepare = async (item) => {
     try {
       item.uploadFile = await optimize(item.file);
-      if (item.uploadFile.size > maxBytes) throw new Error("画像は1枚20MB以下にしてください。");
+      if (item.uploadFile.size > maxBytes) throw new Error("每張圖片不得超過 20MB。");
       item.status = "queued";
       render();
       pump();
     } catch (_) {
       item.status = "failed";
-      item.error = "画像の最適化に失敗しました。";
+      item.error = "圖片最佳化失敗。";
       render();
     }
   };
@@ -272,12 +272,12 @@
   };
 
   const removeItem = async (item) => {
-    if (!window.confirm("この画像を削除しますか？")) return;
+    if (!window.confirm("確定要刪除這張圖片嗎？")) return;
     if (item.serverId) {
       try {
         await api(config.deleteUrlTemplate.replace("__IMAGE_ID__", item.serverId), scopePayload());
       } catch (error) {
-        item.error = error.message || "画像の削除に失敗しました。";
+        item.error = error.message || "刪除圖片失敗。";
         render();
         return;
       }
@@ -294,21 +294,21 @@
     const files = Array.from(input.files || []);
     input.value = "";
     if (files.length > 10) {
-      showMessage("一度に選択できる画像は10枚までです。");
+      showMessage("一次最多只能選擇 10 張圖片。");
       return;
     }
     for (const file of files) {
       if (!allowedTypes.has(file.type)) {
-        showMessage("対応していない画像形式です。JPG・PNG・WebPを選択してください。");
+        showMessage("不支援此圖片格式，請選擇 JPG、PNG 或 WebP。");
         return;
       }
       const extension = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "";
       if (!extensionsByType[file.type].has(extension)) {
-        showMessage("画像の拡張子と形式が一致しません。");
+        showMessage("圖片副檔名與格式不一致。");
         return;
       }
       if (file.size > maxBytes) {
-        showMessage("画像は1枚20MB以下にしてください。");
+        showMessage("每張圖片不得超過 20MB。");
         return;
       }
     }

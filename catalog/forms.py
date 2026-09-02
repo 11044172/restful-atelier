@@ -29,10 +29,10 @@ class ProductAdminForm(forms.ModelForm):
         try:
             image_ids = [int(value) for value in raw_order.split(",") if value]
         except (TypeError, ValueError):
-            self.add_error("product_image_order", "商品画像の並び順が無効です。")
+            self.add_error("product_image_order", "商品圖片排序資料無效。")
             image_ids = []
         if len(image_ids) != len(set(image_ids)):
-            self.add_error("product_image_order", "商品画像が重複しています。")
+            self.add_error("product_image_order", "商品圖片重複。")
 
         request = getattr(self, "request", None)
         user = getattr(request, "user", None)
@@ -57,11 +57,11 @@ class ProductAdminForm(forms.ModelForm):
             if valid_ids != set(image_ids):
                 self.add_error(
                     "product_image_order",
-                    "商品画像の所有関係を確認できません。ページを再読み込みしてください。",
+                    "無法確認商品圖片的所屬關係，請重新載入頁面。",
                 )
                 image_ids = []
         elif image_ids:
-            self.add_error("product_image_session", "アップロードセッションが無効です。")
+            self.add_error("product_image_session", "上傳工作階段無效。")
             image_ids = []
 
         self.cleaned_product_image_ids = image_ids

@@ -43,27 +43,27 @@ def parse_upload_session(value):
     try:
         return UUID(str(value))
     except (TypeError, ValueError, AttributeError) as exc:
-        raise ProductImageError("アップロードセッションが無効です。", "invalid_upload_session") from exc
+        raise ProductImageError("上傳工作階段無效。", "invalid_upload_session") from exc
 
 
 def validate_upload_metadata(filename, content_type, size):
     safe_name = os.path.basename(str(filename or "")).strip()
     if not safe_name or safe_name != str(filename or "").strip():
-        raise ProductImageError("ファイル名が無効です。", "invalid_filename")
+        raise ProductImageError("檔案名稱無效。", "invalid_filename")
     normalized_type = str(content_type or "").lower().strip()
     if normalized_type not in ALLOWED_CONTENT_TYPES:
-        raise ProductImageError("対応していない画像形式です。", "unsupported_type")
+        raise ProductImageError("不支援此圖片格式。", "unsupported_type")
     extension = Path(safe_name).suffix.lower()
     if extension not in ALLOWED_CONTENT_TYPES[normalized_type]:
-        raise ProductImageError("画像の拡張子と形式が一致しません。", "extension_mismatch")
+        raise ProductImageError("圖片副檔名與格式不一致。", "extension_mismatch")
     try:
         normalized_size = int(size)
     except (TypeError, ValueError) as exc:
-        raise ProductImageError("画像サイズが無効です。", "invalid_size") from exc
+        raise ProductImageError("圖片檔案大小無效。", "invalid_size") from exc
     if normalized_size <= 0:
-        raise ProductImageError("空の画像はアップロードできません。", "invalid_size")
+        raise ProductImageError("無法上傳空白圖片檔案。", "invalid_size")
     if normalized_size > MAX_FILE_BYTES:
-        raise ProductImageError("画像は1枚20MB以下にしてください。", "file_too_large")
+        raise ProductImageError("每張圖片不得超過 20MB。", "file_too_large")
     return safe_name[:255], normalized_type, normalized_size, extension
 
 
@@ -83,13 +83,13 @@ def _storage_client():
         bucket_name = default_storage.bucket_name
     except AttributeError as exc:
         raise ProductImageError(
-            "R2アップロード設定を確認できませんでした。",
+            "無法確認 R2 上傳設定。",
             "storage_not_configured",
             503,
         ) from exc
     if not bucket_name:
         raise ProductImageError(
-            "R2アップロード設定を確認できませんでした。",
+            "無法確認 R2 上傳設定。",
             "storage_not_configured",
             503,
         )
@@ -129,7 +129,7 @@ def create_presigned_upload(*, user, upload_session, filename, content_type, siz
         image.delete()
         logger.exception("Presigned URL generation failed key=%s user_id=%s", object_key, user.pk)
         raise ProductImageError(
-            "アップロードの準備に失敗しました。再試行してください。",
+            "準備上傳失敗，請重試。",
             "presign_failed",
             503,
         ) from exc
@@ -159,7 +159,7 @@ def _delete_invalid_upload(image, *, reason):
 def complete_upload(*, user, upload_session, object_key, product=None):
     if not is_direct_object_key(object_key):
         logger.warning("Rejected invalid product image object key user_id=%s", user.pk)
-        raise ProductImageError("object keyが無効です。", "invalid_object_key")
+        raise ProductImageError("Object key 無效。", "invalid_object_key")
     try:
         image = ProductImage.objects.get(
             image=object_key,
@@ -170,7 +170,7 @@ def complete_upload(*, user, upload_session, object_key, product=None):
         )
     except ProductImage.DoesNotExist as exc:
         raise ProductImageError(
-            "このアップロードを確認できませんでした。",
+            "無法確認此上傳項目。",
             "upload_not_owned",
             404,
         ) from exc
@@ -179,7 +179,7 @@ def complete_upload(*, user, upload_session, object_key, product=None):
     except Exception as exc:
         logger.exception("R2 HEAD failed image_id=%s key=%s", image.pk, object_key)
         raise ProductImageError(
-            "アップロード済み画像を確認できませんでした。再試行してください。",
+            "無法確認已上傳的圖片，請重試。",
             "head_failed",
             503,
         ) from exc
@@ -197,7 +197,7 @@ def complete_upload(*, user, upload_session, object_key, product=None):
             actual_size,
         )
         _delete_invalid_upload(image, reason="size_mismatch")
-        raise ProductImageError("画像サイズを確認できませんでした。", "size_mismatch")
+        raise ProductImageError("無法確認圖片檔案大小。", "size_mismatch")
     if actual_type not in ALLOWED_CONTENT_TYPES or actual_type != image.content_type:
         logger.warning(
             "Product image MIME mismatch image_id=%s expected=%s actual=%s",
@@ -206,7 +206,7 @@ def complete_upload(*, user, upload_session, object_key, product=None):
             actual_type,
         )
         _delete_invalid_upload(image, reason="mime_mismatch")
-        raise ProductImageError("画像形式を確認できませんでした。", "mime_mismatch")
+        raise ProductImageError("無法確認圖片格式。", "mime_mismatch")
 
     image.file_size = actual_size
     image.content_type = actual_type
@@ -246,7 +246,7 @@ def normalize_product_images(product, ordered_ids=None):
         by_id = {image.pk: image for image in images}
         if len(ordered_ids) != len(set(ordered_ids)) or set(ordered_ids) != set(by_id):
             raise ProductImageError(
-                "並び替え対象の画像が商品と一致しません。",
+                "要排序的圖片與商品不一致。",
                 "invalid_image_set",
             )
         images = [by_id[image_id] for image_id in ordered_ids]
@@ -275,7 +275,7 @@ def reorder_temporary_images(*, user, upload_session, ordered_ids):
     )
     images = {image.pk: image for image in queryset}
     if len(ordered_ids) != len(set(ordered_ids)) or set(ordered_ids) != set(images):
-        raise ProductImageError("並び替え対象の画像が一致しません。", "invalid_image_set")
+        raise ProductImageError("要排序的圖片不一致。", "invalid_image_set")
     for index, image_id in enumerate(ordered_ids):
         ProductImage.objects.filter(pk=image_id).update(sort_order=index, is_primary=False)
 
@@ -290,7 +290,7 @@ def attach_temporary_images(*, product, user, upload_session, ordered_ids):
     )
     images = {image.pk: image for image in queryset}
     if len(ordered_ids) != len(set(ordered_ids)) or set(ordered_ids) != set(images):
-        raise ProductImageError("商品画像の所有関係を確認できません。", "invalid_image_set")
+        raise ProductImageError("無法確認商品圖片的所屬關係。", "invalid_image_set")
     for index, image_id in enumerate(ordered_ids):
         ProductImage.objects.filter(pk=image_id).update(
             product=product,
@@ -314,7 +314,7 @@ def mark_and_delete_image(image):
     except Exception as exc:
         logger.exception("R2 delete failed image_id=%s key=%s", image.pk, image.image.name)
         raise ProductImageError(
-            "画像の削除に失敗しました。後で自動的に再試行します。",
+            "刪除圖片失敗，系統稍後會自動重試。",
             "delete_failed",
             503,
         ) from exc
