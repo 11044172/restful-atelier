@@ -1,10 +1,13 @@
 from django import forms
 
-from .models import Product
+from .models import Product, ProductImage
 
 
 class ProductAdminForm(forms.ModelForm):
     """Allow incomplete drafts while giving Product.clean the inline image state."""
+
+    product_image_session = forms.UUIDField(required=False, widget=forms.HiddenInput)
+    product_image_order = forms.CharField(required=False, widget=forms.HiddenInput)
 
     class Meta:
         model = Product
@@ -22,28 +25,45 @@ class ProductAdminForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        total_forms = self.data.get("images-TOTAL_FORMS")
-        if total_forms is not None:
-            has_image = False
-            existing = {
-                str(image.pk): image
-                for image in self.instance.images.all()
-            } if self.instance.pk else {}
-            try:
-                form_count = int(total_forms)
-            except (TypeError, ValueError):
-                form_count = 0
-            for index in range(form_count):
-                prefix = f"images-{index}"
-                if self.data.get(f"{prefix}-DELETE"):
-                    continue
-                upload = self.files.get(f"{prefix}-image")
-                if upload:
-                    has_image = True
-                    break
-                image = existing.get(self.data.get(f"{prefix}-id", ""))
-                if image and image.image and not self.data.get(f"{prefix}-image-clear"):
-                    has_image = True
-                    break
-            self.instance._admin_has_product_image = has_image
+        raw_order = cleaned_data.get("product_image_order", "")
+        try:
+            image_ids = [int(value) for value in raw_order.split(",") if value]
+        except (TypeError, ValueError):
+            self.add_error("product_image_order", "商品画像の並び順が無効です。")
+            image_ids = []
+        if len(image_ids) != len(set(image_ids)):
+            self.add_error("product_image_order", "商品画像が重複しています。")
+
+        request = getattr(self, "request", None)
+        user = getattr(request, "user", None)
+        upload_session = cleaned_data.get("product_image_session")
+        if upload_session and user and user.is_authenticated:
+            if self.instance.pk:
+                valid_ids = set(
+                    ProductImage.objects.filter(
+                        product=self.instance,
+                        upload_status=ProductImage.UploadStatus.ATTACHED,
+                    ).values_list("pk", flat=True)
+                )
+            else:
+                valid_ids = set(
+                    ProductImage.objects.filter(
+                        product__isnull=True,
+                        uploaded_by=user,
+                        upload_session=upload_session,
+                        upload_status=ProductImage.UploadStatus.TEMPORARY,
+                    ).values_list("pk", flat=True)
+                )
+            if valid_ids != set(image_ids):
+                self.add_error(
+                    "product_image_order",
+                    "商品画像の所有関係を確認できません。ページを再読み込みしてください。",
+                )
+                image_ids = []
+        elif image_ids:
+            self.add_error("product_image_session", "アップロードセッションが無効です。")
+            image_ids = []
+
+        self.cleaned_product_image_ids = image_ids
+        self.instance._admin_has_product_image = bool(image_ids)
         return cleaned_data

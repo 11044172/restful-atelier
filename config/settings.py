@@ -206,6 +206,7 @@ LOGGING = {
     "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "structured"}},
     "loggers": {
         "restfull": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO"), "propagate": False},
+        "catalog.product_images": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO"), "propagate": False},
         "orders": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO"), "propagate": False},
         "django.request": {"handlers": ["console"], "level": "WARNING", "propagate": False},
     },

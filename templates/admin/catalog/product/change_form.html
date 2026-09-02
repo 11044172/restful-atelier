@@ -1,4 +1,10 @@
 {% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <script src="{% static 'admin/js/product-images.js' %}" defer></script>
+{% endblock %}
 
 {% block form_top %}
   {{ block.super }}
@@ -6,4 +12,28 @@
     <strong>可先儲存為草稿</strong>
     <span>可先上傳商品照片並儲存為草稿，商品名稱、價格、尺寸與說明可之後再補充。資料完成後，再勾選「公開」。</span>
   </div>
+{% endblock %}
+
+{% block after_field_sets %}
+  {{ block.super }}
+  {{ product_image_config|json_script:"product-image-config" }}
+  <input type="hidden" name="product_image_session" id="id_product_image_session" value="{{ product_image_config.uploadSession }}">
+  <input type="hidden" name="product_image_order" id="id_product_image_order" value="">
+  <section class="product-image-manager" data-product-image-manager aria-labelledby="product-image-heading">
+    <header class="product-image-manager__header">
+      <div>
+        <p class="eyebrow">PRODUCT IMAGES</p>
+        <h2 id="product-image-heading">商品画像</h2>
+        <p>最大10枚を選択できます。JPG・PNG・WebP、1枚20MBまで。画像はCloudflare R2へ直接送信されます。</p>
+      </div>
+      <label class="button product-image-picker">
+        商品画像を追加
+        <input type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" multiple data-image-input>
+      </label>
+    </header>
+    <div class="product-image-message" data-image-message role="alert" hidden></div>
+    <div class="product-image-grid" data-image-grid aria-live="polite"></div>
+    <p class="product-image-empty" data-image-empty>画像はまだありません。</p>
+    <p class="product-image-help">ドラッグ＆ドロップで表示順を変更できます。先頭の画像がメイン画像です。商品保存POSTには画像本体を含めません。</p>
+  </section>
 {% endblock %}

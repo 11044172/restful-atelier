@@ -264,6 +264,38 @@ a.metric-card:hover { background: #f0eee7; transform: translateY(-2px); }
 .product-draft-guide strong { flex: 0 0 auto; font-size: 11px; }
 .product-draft-guide span { font-size: 10px; line-height: 1.7; }
 
+.product-image-manager { margin: 24px 0; padding: 24px; border: 1px solid #d8d3c8; background: #faf8f2; }
+.product-image-manager__header { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.product-image-manager__header .eyebrow { margin: 0 0 7px; font-size: 10px; }
+.product-image-manager__header h2 { margin: 0; color: #29372e; font-size: 18px; }
+.product-image-manager__header p:last-child { margin: 8px 0 0; color: #747c76; font-size: 12px; }
+.product-image-picker { flex: 0 0 auto; min-height: 44px; display: inline-flex !important; align-items: center; padding: 10px 16px !important; border: 0 !important; background: #344c3d !important; color: #fff !important; cursor: pointer; }
+.product-image-picker input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
+.product-image-message { margin-top: 17px; padding: 12px 14px; border-left: 3px solid #9a5148; background: #f3e1de; color: #7d3933; font-size: 12px; }
+.product-image-grid { margin-top: 22px; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
+.product-image-card { min-width: 0; overflow: hidden; border: 1px solid #d8d3c8; border-radius: 3px; background: #fffefa; transition: border-color .15s, box-shadow .15s, opacity .15s; }
+.product-image-card[draggable="true"] { cursor: grab; }
+.product-image-card.is-dragging { opacity: .48; }
+.product-image-card.is-main { border: 2px solid #526c5b; box-shadow: 0 0 0 3px rgba(82,108,91,.12); }
+.product-image-card__visual { position: relative; aspect-ratio: 1 / 1; overflow: hidden; background: #ebe7dd; }
+.product-image-card__visual img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.product-image-main-badge { position: absolute; left: 8px; top: 8px; padding: 5px 8px; border-radius: 2px; background: #31483a; color: #fff; font-size: 10px; font-weight: 700; }
+.product-image-drag { position: absolute; right: 7px; top: 7px; width: 29px; height: 29px; display: grid; place-items: center; border-radius: 50%; background: rgba(30,42,34,.82); color: #fff; font-size: 15px; letter-spacing: -3px; }
+.product-image-card__body { padding: 12px; }
+.product-image-card__body strong { display: block; overflow: hidden; color: #354139; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.product-image-progress { height: 4px; margin: 10px 0 7px; overflow: hidden; border-radius: 5px; background: #e5e2da; }
+.product-image-progress i { height: 100%; display: block; background: #68806f; transition: width .15s; }
+.status-failed .product-image-progress i { background: #9a5148; }
+.product-image-state { color: #6c756e; font-size: 11px; }
+.status-failed .product-image-state { color: #8d413a; }
+.product-image-error { min-height: 0; display: block; margin-top: 5px; color: #8d413a; font-size: 10px; line-height: 1.45; }
+.product-image-error:empty { display: none; }
+.product-image-actions { margin-top: 11px; display: flex; gap: 7px; }
+.product-image-actions .button { min-height: 34px; padding: 7px 10px; font-size: 11px; }
+.product-image-delete { margin-left: auto !important; border-color: #c9aaa6 !important; background: transparent !important; color: #884b45 !important; }
+.product-image-empty { margin: 22px 0 0; padding: 35px 20px; border: 1px dashed #d2cdc2; color: #8b908b; text-align: center; }
+.product-image-help { margin: 15px 0 0; color: #7d837e; font-size: 11px; }
+
 @media (max-width: 1100px) {
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
   .dashboard-columns { grid-template-columns: 1fr; }
@@ -275,6 +307,10 @@ a.metric-card:hover { background: #f0eee7; transform: translateY(-2px); }
 
 @media (max-width: 767px) {
   .product-draft-guide { align-items: flex-start; flex-direction: column; }
+  .product-image-manager { padding: 18px; }
+  .product-image-manager__header { align-items: stretch; flex-direction: column; }
+  .product-image-picker { justify-content: center; }
+  .product-image-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #header { min-height: 66px; padding: 0 16px; }
   .brand-copy small, .environment-label, .user-presence, #user-tools > a { display: none; }
   .brand-copy strong { font-size: 15px; }

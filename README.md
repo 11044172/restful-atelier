@@ -85,6 +85,38 @@ python manage.py collectstatic --noinput
 
 R2への保存とブラウザへの公開配信は別の設定です。公開ドメインを設定しない場合は`AWS_QUERYSTRING_AUTH=True`のまま運用してください。公開カスタムドメインに切り替える場合のみ`AWS_S3_CUSTOM_DOMAIN`を設定し、公開バケットで`AWS_QUERYSTRING_AUTH=False`を使えます。R2側では必要に応じて公開配信・CORS・カスタムドメインを設定してください。資格情報やbucket名をGitへcommitしないでください。商品画像、作品画像、出版物、Taiwan Pay QRはすべて同じstorage abstractionを使います。アップロード時は容量、MIME、Pillowによる画像整合性を検証します。
 
+### 商品画像のR2直接アップロード
+
+商品管理画面だけは、既存のdefault storageが保持するR2/S3 clientから10分有効のPresigned PUT URLを発行し、画像本体をブラウザから既存bucketへ直接送ります。Djangoへ届くのはファイル名、MIME、容量、object key、upload session、画像ID、表示順だけです。完了通知時にはDjangoがR2へHEADを行い、存在、Content-Length（最大20MBかつ申告値と一致）、Content-Type、発行済みobject key、管理ユーザーとsessionの所有関係を再確認します。
+
+新規商品で未連結の画像は24時間保持されます。Render Cron Job等から次を定期実行してください。
+
+```bash
+python manage.py cleanup_orphan_product_images
+```
+
+確認だけ行う場合は`--dry-run`、保持時間を変更する場合は`--hours 48`のように指定できます。1件のR2削除に失敗しても残りを続行し、失敗レコードは次回の実行対象としてDBへ残します。
+
+ブラウザからR2へPUTするため、対象bucketのCORSに本番originが必要です。既存ルールに同等設定がない場合のみ、Cloudflare Dashboardで次を追加してください（bucket名や資格情報の変更は不要です）。
+
+```json
+[
+  {
+    "AllowedOrigins": [
+      "https://restful-atelier.com",
+      "https://www.restful-atelier.com",
+      "https://restfull-xhex.onrender.com"
+    ],
+    "AllowedMethods": ["PUT", "GET", "HEAD"],
+    "AllowedHeaders": ["Content-Type"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+ローカルブラウザから実際のR2へ直接アップロードする場合だけ、開発中のorigin（例：`http://localhost:8000`）も追加します。本番で`AllowedOrigins: ["*"]`は使用しません。この機能のための新しいRender環境変数はありません。
+
 ## Email
 
 SMTP互換設定です。特定配信会社に依存しません。

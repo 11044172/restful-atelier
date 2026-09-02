@@ -1,25 +1,32 @@
+import json
+import logging
+from uuid import uuid4
+
 from django.contrib import admin
+from django.http import JsonResponse
+from django.urls import path, reverse
+from django.utils import timezone
 from django.utils.html import format_html
 
 from core.admin_site import backoffice_site
 
 from .forms import ProductAdminForm
 from .models import Product, ProductCategory, ProductImage, ProductSpecification
+from .product_image_service import (
+    PRESIGN_EXPIRES_SECONDS,
+    ProductImageError,
+    attach_temporary_images,
+    complete_upload,
+    create_presigned_upload,
+    image_payload,
+    mark_and_delete_image,
+    normalize_product_images,
+    parse_upload_session,
+    reorder_temporary_images,
+)
 
-
-class ProductImageInline(admin.TabularInline):
-    model = ProductImage
-    extra = 1
-    fields = ("preview", "image", "alt_text", "sort_order", "is_primary")
-    readonly_fields = ("preview",)
-    ordering = ("sort_order",)
-    verbose_name_plural = "商品照片（可一次新增多張；替代文字留空時會自動使用商品名稱）"
-
-    @admin.display(description="圖片預覽")
-    def preview(self, obj):
-        if obj.pk and obj.image:
-            return format_html('<img src="{}" style="width:72px;height:72px;object-fit:cover" alt="">', obj.image.url)
-        return "—"
+logger = logging.getLogger("catalog.product_images")
+UPLOAD_SESSION_REGISTRY = "catalog_product_image_upload_sessions"
 
 
 class ProductSpecificationInline(admin.TabularInline):
@@ -47,7 +54,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_editable = ("stock",)
     list_select_related = ("category",)
     prepopulated_fields = {"slug": ("name",)}
-    inlines = (ProductImageInline, ProductSpecificationInline)
+    inlines = (ProductSpecificationInline,)
     readonly_fields = ("preview_link", "created_at", "updated_at")
     fieldsets = (
         ("基本資訊", {"fields": ("category", "name", "slug", "sku", "maker", "series", "subcategory"), "description": "草稿可先留空；slug 與暫用 SKU 會自動建立。"}),
@@ -58,6 +65,270 @@ class ProductAdmin(admin.ModelAdmin):
         ("管理資訊", {"classes": ("collapse",), "fields": ("sort_order", "created_at", "updated_at")}),
     )
     list_per_page = 25
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "product-images/presign/",
+                self.admin_site.admin_view(self.product_image_presign),
+                name="catalog_product_image_presign",
+            ),
+            path(
+                "product-images/complete/",
+                self.admin_site.admin_view(self.product_image_complete),
+                name="catalog_product_image_complete",
+            ),
+            path(
+                "product-images/<int:image_id>/delete/",
+                self.admin_site.admin_view(self.product_image_delete),
+                name="catalog_product_image_delete",
+            ),
+            path(
+                "product-images/reorder/",
+                self.admin_site.admin_view(self.product_image_reorder),
+                name="catalog_product_image_reorder",
+            ),
+        ]
+        return custom_urls + urls
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        form_class = super().get_form(request, obj, change=change, **kwargs)
+
+        class RequestBoundProductForm(form_class):
+            def __init__(inner_self, *args, **form_kwargs):
+                inner_self.request = request
+                super().__init__(*args, **form_kwargs)
+
+        return RequestBoundProductForm
+
+    def _new_upload_session(self, request, product_id):
+        registry = request.session.get(UPLOAD_SESSION_REGISTRY, {})
+        cutoff = timezone.now().timestamp() - 24 * 60 * 60
+        registry = {
+            key: value
+            for key, value in registry.items()
+            if value.get("created_at", 0) >= cutoff and value.get("user_id") == request.user.pk
+        }
+        upload_session = uuid4()
+        registry[str(upload_session)] = {
+            "user_id": request.user.pk,
+            "product_id": product_id,
+            "created_at": timezone.now().timestamp(),
+        }
+        request.session[UPLOAD_SESSION_REGISTRY] = registry
+        request.session.modified = True
+        return upload_session
+
+    def _session_context(self, request, upload_session, product_id):
+        registry = request.session.get(UPLOAD_SESSION_REGISTRY, {})
+        record = registry.get(str(upload_session))
+        if not record or record.get("user_id") != request.user.pk:
+            raise ProductImageError("アップロードセッションを確認できません。", "invalid_upload_session", 403)
+        if record.get("created_at", 0) < timezone.now().timestamp() - 24 * 60 * 60:
+            raise ProductImageError("アップロードセッションの有効期限が切れています。", "expired_upload_session", 403)
+        recorded_product_id = record.get("product_id")
+        if recorded_product_id != product_id:
+            raise ProductImageError("アップロードセッションの対象商品が一致しません。", "session_product_mismatch", 403)
+        if product_id is None:
+            if not self.has_add_permission(request):
+                raise ProductImageError("商品画像を追加する権限がありません。", "permission_denied", 403)
+            return None
+        product = Product.objects.filter(pk=product_id).first()
+        if not product:
+            raise ProductImageError("商品を確認できません。", "product_not_found", 404)
+        if not self.has_change_permission(request, product):
+            raise ProductImageError("商品画像を変更する権限がありません。", "permission_denied", 403)
+        return product
+
+    @staticmethod
+    def _json_body(request):
+        if request.method != "POST":
+            raise ProductImageError("POSTリクエストが必要です。", "method_not_allowed", 405)
+        if len(request.body) > 32 * 1024:
+            raise ProductImageError("リクエストが大きすぎます。", "request_too_large", 413)
+        try:
+            data = json.loads(request.body or "{}")
+        except (TypeError, ValueError, UnicodeDecodeError) as exc:
+            raise ProductImageError("リクエスト形式が無効です。", "invalid_json") from exc
+        if not isinstance(data, dict):
+            raise ProductImageError("リクエスト形式が無効です。", "invalid_json")
+        return data
+
+    @staticmethod
+    def _product_id(data):
+        value = data.get("product_id")
+        if value in (None, ""):
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError) as exc:
+            raise ProductImageError("商品IDが無効です。", "invalid_product") from exc
+
+    def _api(self, callback):
+        try:
+            response = callback()
+        except ProductImageError as exc:
+            response = JsonResponse({"error": exc.message, "code": exc.code}, status=exc.status)
+        except Exception:
+            logger.exception("Unexpected product image API error")
+            response = JsonResponse(
+                {"error": "画像処理に失敗しました。再試行してください。", "code": "internal_error"},
+                status=500,
+            )
+        response["Cache-Control"] = "no-store"
+        return response
+
+    def product_image_presign(self, request):
+        def action():
+            data = self._json_body(request)
+            upload_session = parse_upload_session(data.get("upload_session"))
+            product_id = self._product_id(data)
+            self._session_context(request, upload_session, product_id)
+            image, upload_url = create_presigned_upload(
+                user=request.user,
+                upload_session=upload_session,
+                filename=data.get("filename"),
+                content_type=data.get("content_type"),
+                size=data.get("size"),
+            )
+            return JsonResponse(
+                {
+                    "upload_url": upload_url,
+                    "object_key": image.image.name,
+                    "pending_image_id": image.pk,
+                    "expires_in": PRESIGN_EXPIRES_SECONDS,
+                }
+            )
+
+        return self._api(action)
+
+    def product_image_complete(self, request):
+        def action():
+            data = self._json_body(request)
+            upload_session = parse_upload_session(data.get("upload_session"))
+            product_id = self._product_id(data)
+            product = self._session_context(request, upload_session, product_id)
+            image = complete_upload(
+                user=request.user,
+                upload_session=upload_session,
+                object_key=data.get("object_key"),
+                product=product,
+            )
+            return JsonResponse({"image": image_payload(image)})
+
+        return self._api(action)
+
+    def product_image_delete(self, request, image_id):
+        def action():
+            data = self._json_body(request)
+            upload_session = parse_upload_session(data.get("upload_session"))
+            product_id = self._product_id(data)
+            product = self._session_context(request, upload_session, product_id)
+            image = ProductImage.objects.filter(pk=image_id).first()
+            if not image:
+                raise ProductImageError("画像を確認できません。", "image_not_found", 404)
+            if product:
+                owned = (
+                    image.product_id == product.pk
+                    and image.upload_status
+                    in (
+                        ProductImage.UploadStatus.ATTACHED,
+                        ProductImage.UploadStatus.DELETION_PENDING,
+                    )
+                )
+            else:
+                owned = (
+                    image.product_id is None
+                    and image.uploaded_by_id == request.user.pk
+                    and image.upload_session == upload_session
+                    and image.upload_status
+                    in (ProductImage.UploadStatus.PENDING, ProductImage.UploadStatus.TEMPORARY)
+                )
+            if not owned:
+                raise ProductImageError("この画像は削除できません。", "image_not_owned", 403)
+            mark_and_delete_image(image)
+            return JsonResponse({"deleted": True, "image_id": image_id})
+
+        return self._api(action)
+
+    def product_image_reorder(self, request):
+        def action():
+            data = self._json_body(request)
+            upload_session = parse_upload_session(data.get("upload_session"))
+            product_id = self._product_id(data)
+            product = self._session_context(request, upload_session, product_id)
+            raw_ids = data.get("images")
+            if not isinstance(raw_ids, list):
+                raise ProductImageError("画像の並び順が無効です。", "invalid_image_set")
+            try:
+                image_ids = [int(value) for value in raw_ids]
+            except (TypeError, ValueError) as exc:
+                raise ProductImageError("画像の並び順が無効です。", "invalid_image_set") from exc
+            if product:
+                normalize_product_images(product, image_ids)
+            else:
+                reorder_temporary_images(
+                    user=request.user,
+                    upload_session=upload_session,
+                    ordered_ids=image_ids,
+                )
+            return JsonResponse({"images": image_ids})
+
+        return self._api(action)
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        product_id = int(object_id) if object_id else None
+        if request.method == "POST" and request.POST.get("product_image_session"):
+            try:
+                upload_session = parse_upload_session(request.POST["product_image_session"])
+            except ProductImageError:
+                upload_session = self._new_upload_session(request, product_id)
+        else:
+            upload_session = self._new_upload_session(request, product_id)
+
+        product = self.get_object(request, object_id) if object_id else None
+        if product:
+            images = [image_payload(image) for image in product.ordered_images]
+        else:
+            images = [
+                image_payload(image)
+                for image in ProductImage.objects.filter(
+                    product__isnull=True,
+                    uploaded_by=request.user,
+                    upload_session=upload_session,
+                    upload_status=ProductImage.UploadStatus.TEMPORARY,
+                ).order_by("sort_order", "pk")
+            ]
+        context = {
+            "product_image_config": {
+                "uploadSession": str(upload_session),
+                "productId": product_id,
+                "images": images,
+                "presignUrl": reverse("admin:catalog_product_image_presign"),
+                "completeUrl": reverse("admin:catalog_product_image_complete"),
+                "reorderUrl": reverse("admin:catalog_product_image_reorder"),
+                "deleteUrlTemplate": reverse(
+                    "admin:catalog_product_image_delete", args=[999999999]
+                ).replace("999999999", "__IMAGE_ID__"),
+            }
+        }
+        if extra_context:
+            context.update(extra_context)
+        return super().changeform_view(request, object_id, form_url, context)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if not change:
+            image_ids = getattr(form, "cleaned_product_image_ids", [])
+            upload_session = form.cleaned_data.get("product_image_session")
+            if upload_session and image_ids:
+                attach_temporary_images(
+                    product=obj,
+                    user=request.user,
+                    upload_session=upload_session,
+                    ordered_ids=image_ids,
+                )
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("images")

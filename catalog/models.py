@@ -1,6 +1,7 @@
 from decimal import Decimal
 from uuid import uuid4
 
+from django.conf import settings
 from django.db import models
 from django.db.models import Exists, OuterRef, Q
 from django.urls import reverse
@@ -35,7 +36,10 @@ class ProductCategory(models.Model):
 class ProductQuerySet(models.QuerySet):
     def published(self):
         now = timezone.now()
-        product_images = ProductImage.objects.filter(product_id=OuterRef("pk")).exclude(image="")
+        product_images = ProductImage.objects.filter(
+            product_id=OuterRef("pk"),
+            upload_status=ProductImage.UploadStatus.ATTACHED,
+        ).exclude(image="")
         return self.filter(
             is_published=True,
             category__is_active=True,
@@ -148,9 +152,27 @@ class Product(models.Model):
         return reverse("catalog:product", args=[self.slug])
 
     @property
+    def ordered_images(self):
+        """Return displayable images with a legacy primary image kept first.
+
+        New management operations keep ``sort_order`` and ``is_primary`` in sync.
+        Moving a legacy primary to the front here preserves its established main
+        image until an administrator explicitly reorders that product.
+        """
+        images = [
+            image
+            for image in self.images.all()
+            if image.upload_status == ProductImage.UploadStatus.ATTACHED and image.image
+        ]
+        primary_index = next((index for index, image in enumerate(images) if image.is_primary), None)
+        if primary_index not in (None, 0):
+            images.insert(0, images.pop(primary_index))
+        return images
+
+    @property
     def primary_image(self):
-        images = list(self.images.all())
-        return next((image for image in images if image.is_primary), images[0] if images else None)
+        images = self.ordered_images
+        return images[0] if images else None
 
     @property
     def available_for_order(self):
@@ -180,7 +202,12 @@ class Product(models.Model):
                 errors["category"] = "公開商品前請選擇商品分類。"
             has_image = getattr(self, "_admin_has_product_image", None)
             if has_image is None:
-                has_image = bool(self.pk and self.images.exclude(image="").exists())
+                has_image = bool(
+                    self.pk
+                    and self.images.filter(
+                        upload_status=ProductImage.UploadStatus.ATTACHED
+                    ).exclude(image="").exists()
+                )
             if not has_image:
                 errors["__all__"] = "公開商品前請至少上傳一張商品照片。"
             if self.is_preorder:
@@ -206,25 +233,71 @@ class Product(models.Model):
 
 
 class ProductImage(models.Model):
-    product = models.ForeignKey(Product, verbose_name="商品", on_delete=models.CASCADE, related_name="images")
+    class UploadStatus(models.TextChoices):
+        PENDING = "pending", "上傳待確認"
+        TEMPORARY = "temporary", "暫存"
+        ATTACHED = "attached", "已連結商品"
+        DELETION_PENDING = "deletion_pending", "等待刪除"
+
+    product = models.ForeignKey(
+        Product,
+        verbose_name="商品",
+        on_delete=models.CASCADE,
+        related_name="images",
+        null=True,
+        blank=True,
+    )
     image = models.ImageField("圖片", upload_to="products/%Y/%m/", blank=True, validators=[validate_image_upload])
     thumbnail = models.ImageField("縮圖", upload_to="products/thumbnails/%Y/%m/", blank=True, editable=False)
     alt_text = models.CharField("替代文字", max_length=255, blank=True)
     sort_order = models.PositiveIntegerField("顯示順序", default=0)
     is_primary = models.BooleanField("主要圖片", default=False)
+    upload_status = models.CharField(
+        "上傳狀態",
+        max_length=24,
+        choices=UploadStatus.choices,
+        default=UploadStatus.ATTACHED,
+    )
+    upload_session = models.UUIDField("上傳工作階段", null=True, blank=True, db_index=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="上傳者",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uploaded_product_images",
+    )
+    original_filename = models.CharField("原始檔名", max_length=255, blank=True)
+    content_type = models.CharField("Content-Type", max_length=64, blank=True)
+    file_size = models.PositiveBigIntegerField("檔案大小", null=True, blank=True)
+    created_at = models.DateTimeField("建立時間", auto_now_add=True)
 
     class Meta:
         ordering = ("sort_order", "pk")
         verbose_name = "商品圖片"
         verbose_name_plural = "商品圖片"
-        constraints = [models.UniqueConstraint(fields=("product",), condition=Q(is_primary=True), name="one_primary_image_per_product")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("product",),
+                condition=Q(is_primary=True, upload_status="attached"),
+                name="one_primary_image_per_product",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=("product", "upload_status", "sort_order"),
+                name="catalog_pi_product_5f29_idx",
+            )
+        ]
 
     def __str__(self):
-        return self.alt_text or f"{self.product} 圖片"
+        return self.alt_text or (f"{self.product} 圖片" if self.product_id else "暫存商品圖片")
 
     def save(self, *args, **kwargs):
         if not (self.alt_text or "").strip():
-            self.alt_text = (self.product.name or "商品照片").strip()
+            self.alt_text = (
+                (self.product.name if self.product_id else "") or "商品照片"
+            ).strip()
         sanitize_image_field(self, "image")
         if self.image and not getattr(self.image, "_committed", True):
             self.thumbnail = make_thumbnail_content(self.image.file)

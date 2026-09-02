@@ -235,10 +235,30 @@ class AdminProductDraftWorkflowTests(TestCase):
         }
 
     def test_admin_can_upload_photos_first_then_complete_and_publish(self):
+        add_page = self.client.get(reverse("admin:catalog_product_add"))
+        self.assertContains(add_page, "data-product-image-manager")
+        self.assertContains(add_page, "multiple data-image-input")
+        self.assertNotContains(add_page, 'name="images-0-image"')
+        self.assertNotContains(add_page, 'enctype="multipart/form-data"')
+        upload_session = add_page.context["product_image_config"]["uploadSession"]
+        first = ProductImage.objects.create(
+            image="products/2026/09/11111111111111111111111111111111.jpg",
+            upload_status=ProductImage.UploadStatus.TEMPORARY,
+            upload_session=upload_session,
+            uploaded_by=self.user,
+            sort_order=0,
+        )
+        second = ProductImage.objects.create(
+            image="products/2026/09/22222222222222222222222222222222.jpg",
+            upload_status=ProductImage.UploadStatus.TEMPORARY,
+            upload_session=upload_session,
+            uploaded_by=self.user,
+            sort_order=1,
+        )
         payload = self.base_payload()
         payload.update({
-            "images-0-image": self.image_upload("front.jpg", "red"),
-            "images-1-image": self.image_upload("side.jpg", "blue"),
+            "product_image_session": upload_session,
+            "product_image_order": f"{first.pk},{second.pk}",
         })
 
         response = self.client.post(reverse("admin:catalog_product_add"), payload)
@@ -255,6 +275,8 @@ class AdminProductDraftWorkflowTests(TestCase):
         )
 
         payload = self.base_payload()
+        change_page = self.client.get(reverse("admin:catalog_product_change", args=[product.pk]))
+        change_session = change_page.context["product_image_config"]["uploadSession"]
         payload.update({
             "category": str(self.category.pk),
             "name": "明式大頭佛",
@@ -264,10 +286,8 @@ class AdminProductDraftWorkflowTests(TestCase):
             "price": "3300",
             "stock": "1",
             "is_published": "on",
-            "images-TOTAL_FORMS": "2",
-            "images-INITIAL_FORMS": "2",
-            "images-0-id": str(original_image_ids[0]),
-            "images-1-id": str(original_image_ids[1]),
+            "product_image_session": change_session,
+            "product_image_order": ",".join(str(value) for value in original_image_ids),
         })
 
         response = self.client.post(
