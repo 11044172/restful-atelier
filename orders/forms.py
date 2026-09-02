@@ -1,5 +1,42 @@
 from django import forms
 
+from .models import Payment, PaymentMethod
+
+
+class ShippingConfirmationForm(forms.Form):
+    shipping_fee = forms.DecimalField(
+        label="運費",
+        min_value=0,
+        max_digits=12,
+        decimal_places=0,
+        widget=forms.NumberInput(attrs={"min": "0", "step": "1", "inputmode": "numeric"}),
+    )
+
+
+class ShippingRevisionForm(ShippingConfirmationForm):
+    acknowledge_reissue = forms.BooleanField(
+        label="我已確認舊的未付款交易與付款連結將失效，並以新金額重新通知顧客。",
+        required=True,
+    )
+
+
+class ShippingDispatchForm(forms.Form):
+    carrier = forms.CharField(label="物流公司", max_length=120)
+    tracking_number = forms.CharField(label="追蹤號碼", max_length=160, required=False)
+    tracking_url = forms.URLField(label="追蹤網址", required=False)
+
+
+class ManualPaymentConfirmationForm(forms.Form):
+    payment = forms.ModelChoiceField(label="手動付款記錄", queryset=Payment.objects.none())
+
+    def __init__(self, *args, order, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["payment"].queryset = Payment.objects.filter(
+            order=order,
+            method__code__in=(PaymentMethod.Method.TAIWAN_PAY, PaymentMethod.Method.BANK_TRANSFER),
+            amount=order.final_total,
+        ).exclude(status=Payment.Status.CONFIRMED).select_related("method")
+
 
 class CheckoutForm(forms.Form):
     customer_name = forms.CharField(label="姓名", max_length=160, widget=forms.TextInput(attrs={"autocomplete": "name"}))

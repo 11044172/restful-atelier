@@ -54,6 +54,54 @@ def enqueue_order_notifications(order_id, event_type, *, version=None, channels=
     return created
 
 
+@transaction.atomic
+def retry_or_enqueue_order_notifications(order_id, event_type, *, version=None, channels=("line", "email")):
+    """Retry durable jobs without creating duplicate deliveries on repeated clicks."""
+    order = Order.objects.select_for_update().get(pk=order_id)
+    created_or_retried = []
+    base = _event_dedupe(order, event_type, version)
+    now = timezone.now()
+    for channel in channels:
+        jobs = NotificationOutbox.objects.select_for_update().filter(
+            order=order,
+            channel=channel,
+            event_type=event_type,
+        ).order_by("-created_at", "-pk")
+        active = jobs.filter(status__in=(
+            NotificationOutbox.Status.PENDING,
+            NotificationOutbox.Status.PROCESSING,
+            NotificationOutbox.Status.RETRY,
+        )).first()
+        if active:
+            if active.status == NotificationOutbox.Status.RETRY:
+                active.status = NotificationOutbox.Status.PENDING
+                active.next_attempt_at = now
+                active.last_error = ""
+                active.save(update_fields=("status", "next_attempt_at", "last_error", "updated_at"))
+            created_or_retried.append(active)
+            continue
+        latest = jobs.first()
+        marker = (latest.sent_at or latest.updated_at) if latest else now
+        key = f"{base}:manual:{marker:%Y%m%d%H%M%S%f}"
+        job, created = NotificationOutbox.objects.get_or_create(
+            channel=channel,
+            event_type=event_type,
+            dedupe_key=key,
+            defaults={"order": order, "payload": {"version": version, "force": True}},
+        )
+        created_or_retried.append(job)
+        if created:
+            OrderAuditLog.objects.create(
+                order=order,
+                event="notification_requeued",
+                actor_label="system",
+                from_status=order.status,
+                to_status=order.status,
+                metadata={"outbox_id": job.pk, "channel": channel, "notification_event": event_type},
+            )
+    return created_or_retried
+
+
 def _email_body(order, event_type):
     lines = ["靜院居家 / Rfull", "", f"訂單編號：{order.public_number}"]
     for item in order.items.all():

@@ -20,22 +20,23 @@
 
   <section class="metric-grid" aria-label="營運摘要">
     {% if can_view_orders %}
-    <a class="metric-card metric-emphasis" href="{% url 'admin:orders_order_changelist' %}">
-      <span class="metric-kicker">待處理訂單</span>
+    <a class="metric-card metric-emphasis" href="{% url 'admin:orders_order_changelist' %}?work_queue=store">
+      <span class="metric-kicker">店家需要處理</span>
       <strong>{{ orders_need_action }}</strong>
-      <p>筆訂單等待確認</p>
+      <p>需要優先確認的訂單</p>
       <i>查看訂單 ↗</i>
     </a>
-    <a class="metric-card" href="{% url 'admin:orders_order_changelist' %}">
-      <span class="metric-kicker">今日訂單</span>
-      <strong>{{ orders_today }}</strong>
-      <p>今日新成立的訂單</p>
+    <a class="metric-card" href="{% url 'admin:orders_order_changelist' %}?work_queue=customer">
+      <span class="metric-kicker">等待顧客付款</span>
+      <strong>{{ customer_waiting }}</strong>
+      <p>付款通知已登錄</p>
     </a>
-    {% if can_view_payments %}<div class="metric-card">
-      <span class="metric-kicker">近 30 日付款</span>
-      <strong class="metric-money">NT$ {{ sales_30_days|floatformat:0|intcomma }}</strong>
-      <p>已確認付款金額合計</p>
-    </div>{% endif %}
+    <a class="metric-card" href="{% url 'admin:orders_order_changelist' %}?work_queue=delivery">
+      <span class="metric-kicker">已出貨・等待完成確認</span>
+      <strong>{{ shipped_waiting }}</strong>
+      <p>需要確認配送完成的訂單</p>
+    </a>
+    {% if can_view_notifications %}<a class="metric-card" href="{% url 'admin:orders_notificationoutbox_changelist' %}?health=attention"><span class="metric-kicker">通知異常</span><strong>{{ failed_notifications }}</strong><p>LINE／Email 重試與人工處理</p></a>{% endif %}
     {% endif %}
     {% if can_view_inquiries %}
     <a class="metric-card" href="{% url 'admin:inquiries_inquiry_changelist' %}?status__exact=new">
@@ -44,6 +45,7 @@
       <p>尚未處理的留言</p>
     </a>
     {% endif %}
+    {% if can_view_products %}<a class="metric-card" href="{% url 'admin:catalog_product_changelist' %}"><span class="metric-kicker">低庫存</span><strong>{{ low_stock_count }}</strong><p>需確認補貨的公開商品</p></a>{% endif %}
   </section>
 
   {% if failed_notifications or low_stock_count %}
@@ -51,7 +53,7 @@
     <div><span class="attention-dot"></span><strong>需要確認的項目</strong></div>
     <div class="attention-links">
       {% if low_stock_count and can_view_products %}<a href="{% url 'admin:catalog_product_changelist' %}">低庫存 {{ low_stock_count }} 項 <b>→</b></a>{% endif %}
-      {% if failed_notifications and can_view_notifications %}<a href="{% url 'admin:orders_linenotification_changelist' %}?status__exact=failed">LINE 通知失敗 {{ failed_notifications }} 筆 <b>→</b></a>{% endif %}
+      {% if failed_notifications and can_view_notifications %}<a href="{% url 'admin:orders_notificationoutbox_changelist' %}?health=attention">LINE／Email 通知異常 {{ failed_notifications }} 筆 <b>→</b></a>{% endif %}
     </div>
   </section>
   {% endif %}
@@ -68,7 +70,7 @@
         <a class="operations-row" href="{% url 'admin:orders_order_change' order.pk %}" role="row">
           <div><small>訂單編號</small><strong>{{ order.public_number }}</strong></div>
           <div><small>顧客</small><span>{{ order.customer_name }}</span></div>
-          <div><small>金額</small><span>{% if order.final_total is not None %}NT$ {{ order.final_total|floatformat:0|intcomma }}{% else %}運費尚未確定{% endif %}</span></div>
+          <div><small>目前需要處理</small><span>{% if order.has_notification_error %}確認通知異常{% elif order.status == 'received' %}開始確認運費{% elif order.status == 'shipping_review' %}確認運費{% elif order.status == 'awaiting_payment' %}等待顧客付款{% elif order.status == 'paid' %}開始出貨準備{% elif order.status == 'preparing' %}輸入追蹤資訊並出貨{% elif order.status == 'shipped' %}確認配送完成{% elif order.status == 'refund_pending' %}確認退款處理{% endif %}</span></div>
           <div><small>狀態</small><span class="status-pill status-{{ order.status }}">{{ order.get_status_display }}</span></div>
           <b aria-hidden="true">→</b>
         </a>

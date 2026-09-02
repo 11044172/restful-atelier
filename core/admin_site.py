@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.admin import AdminSite
-from django.db.models import Sum
+from django.db.models import Case, Exists, IntegerField, OuterRef, Q, Sum, Value, When
 from django.utils import timezone
 
 
@@ -18,13 +18,13 @@ class BackofficeAdminSite(AdminSite):
     def index(self, request, extra_context=None):
         from catalog.models import Product
         from inquiries.models import Inquiry
-        from orders.models import LineNotification, Order, Payment
+        from orders.models import NotificationOutbox, Order, Payment
 
         can_view_orders = request.user.has_perm("orders.view_order")
         can_view_inquiries = request.user.has_perm("inquiries.view_inquiry")
         can_view_products = request.user.has_perm("catalog.view_product")
         can_view_payments = request.user.has_perm("orders.view_payment")
-        can_view_notifications = request.user.has_perm("orders.view_linenotification")
+        can_view_notifications = request.user.has_perm("orders.view_notificationoutbox")
         now = timezone.now()
 
         context = {
@@ -35,6 +35,8 @@ class BackofficeAdminSite(AdminSite):
             "can_view_notifications": can_view_notifications,
             "orders_today": 0,
             "orders_need_action": 0,
+            "customer_waiting": 0,
+            "shipped_waiting": 0,
             "sales_30_days": 0,
             "new_inquiries": 0,
             "low_stock_count": 0,
@@ -45,19 +47,29 @@ class BackofficeAdminSite(AdminSite):
         }
 
         if can_view_orders:
-            orders = Order.objects.select_related("line_customer")
+            notification_error = NotificationOutbox.objects.filter(
+                order_id=OuterRef("pk"),
+                status__in=(NotificationOutbox.Status.RETRY, NotificationOutbox.Status.DEAD),
+            )
+            orders = Order.objects.select_related("line_customer").annotate(
+                has_notification_error=Exists(notification_error),
+                dashboard_priority=Case(
+                    When(has_notification_error=True, then=Value(0)),
+                    When(status__in=(Order.Status.RECEIVED, Order.Status.SHIPPING_REVIEW, Order.Status.PAID, Order.Status.PREPARING, Order.Status.REFUND_PENDING), then=Value(1)),
+                    When(status=Order.Status.SHIPPED, then=Value(2)),
+                    When(status=Order.Status.AWAITING_PAYMENT, then=Value(3)),
+                    default=Value(4), output_field=IntegerField(),
+                ),
+            )
+            store_statuses = (Order.Status.RECEIVED, Order.Status.SHIPPING_REVIEW, Order.Status.PAID, Order.Status.PREPARING, Order.Status.REFUND_PENDING)
             context.update(
                 orders_today=orders.filter(created_at__date=timezone.localdate()).count(),
                 orders_need_action=orders.filter(
-                    status__in=(
-                        Order.Status.RECEIVED,
-                        Order.Status.SHIPPING_REVIEW,
-                        Order.Status.AWAITING_PAYMENT,
-                        Order.Status.PAID,
-                        Order.Status.PREPARING,
-                    )
-                ).count(),
-                recent_orders=orders.exclude(status__in=(Order.Status.COMPLETED, Order.Status.CANCELLED))[:6],
+                    Q(status__in=store_statuses) | Q(has_notification_error=True)
+                ).distinct().count(),
+                customer_waiting=orders.filter(status=Order.Status.AWAITING_PAYMENT).count(),
+                shipped_waiting=orders.filter(status=Order.Status.SHIPPED).count(),
+                recent_orders=orders.exclude(status__in=(Order.Status.COMPLETED, Order.Status.CANCELLED, Order.Status.REFUNDED)).order_by("dashboard_priority", "created_at")[:8],
             )
 
         if can_view_payments:
@@ -81,8 +93,8 @@ class BackofficeAdminSite(AdminSite):
             context.update(low_stock_count=low_stock.count(), low_stock_products=low_stock[:5])
 
         if can_view_notifications:
-            context["failed_notifications"] = LineNotification.objects.filter(
-                status=LineNotification.Status.FAILED
+            context["failed_notifications"] = NotificationOutbox.objects.filter(
+                status__in=(NotificationOutbox.Status.RETRY, NotificationOutbox.Status.DEAD)
             ).count()
 
         if extra_context:

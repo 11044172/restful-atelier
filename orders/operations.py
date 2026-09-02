@@ -44,12 +44,23 @@ def transition(order, target, *, event, actor=None, actor_label="system", change
 
 
 @transaction.atomic
-def confirm_shipping_and_request_payment(order_id, *, actor=None):
+def start_shipping_review(order_id, *, actor=None):
+    order = Order.objects.select_for_update().get(pk=order_id)
+    transition(order, Order.Status.SHIPPING_REVIEW, event="shipping_review_started", actor=actor)
+    order.full_clean()
+    order.save(update_fields=("status", "updated_at"))
+    return order
+
+
+@transaction.atomic
+def confirm_shipping_and_request_payment(order_id, *, shipping_fee=None, actor=None):
     order = Order.objects.select_related("line_customer").select_for_update(of=("self",)).get(pk=order_id)
+    if order.status not in (Order.Status.SHIPPING_REVIEW, Order.Status.AWAITING_PAYMENT):
+        raise ValidationError("只有「運費確認中」的訂單可以確定運費。")
+    if shipping_fee is not None:
+        order.shipping_fee = shipping_fee
     if order.shipping_fee is None:
-        raise ValidationError("請先填寫運費並儲存，再執行此操作。")
-    if order.status == Order.Status.CANCELLED:
-        raise ValidationError("已取消的訂單無法執行此操作。")
+        raise ValidationError("請填寫運費。")
     if order.is_paid:
         raise ValidationError("已付款的訂單無法執行此操作。")
     requested_total = order.subtotal + order.shipping_fee
@@ -71,7 +82,39 @@ def confirm_shipping_and_request_payment(order_id, *, actor=None):
     order.save(update_fields=("shipping_fee", "final_total", "payment_link_version", "cancel_link_version", "payment_request_total", "status", "updated_at"))
     if previous == Order.Status.AWAITING_PAYMENT:
         record_audit(order, "payment_link_reissued", actor=actor, from_status=previous, changes={"version": order.payment_link_version})
-    transaction.on_commit(lambda: enqueue_order_notifications(order.pk, "payment_request", version=order.payment_link_version))
+    enqueue_order_notifications(order.pk, "payment_request", version=order.payment_link_version)
+    return order
+
+
+@transaction.atomic
+def revise_shipping_and_reissue_payment(order_id, *, shipping_fee, actor=None):
+    order = Order.objects.select_related("line_customer").select_for_update(of=("self",)).get(pk=order_id)
+    if order.status != Order.Status.AWAITING_PAYMENT or order.is_paid:
+        raise ValidationError("只有尚未付款的「等待付款」訂單可以修改運費。")
+    previous_fee = order.shipping_fee
+    order.shipping_fee = shipping_fee
+    order.full_clean()
+    requested_total = order.subtotal + shipping_fee
+    Payment.objects.filter(
+        order=order,
+        status__in=(Payment.Status.PENDING, Payment.Status.AWAITING_CONFIRMATION),
+    ).update(status=Payment.Status.CANCELLED, cancelled_at=timezone.now())
+    order.payment_link_version += 1
+    order.cancel_link_version += 1
+    order.payment_request_total = requested_total
+    order.save(update_fields=("shipping_fee", "final_total", "payment_link_version", "cancel_link_version", "payment_request_total", "updated_at"))
+    record_audit(
+        order,
+        "payment_link_reissued",
+        actor=actor,
+        from_status=order.status,
+        changes={
+            "shipping_fee": {"from": str(previous_fee), "to": str(shipping_fee)},
+            "final_total": str(requested_total),
+            "version": order.payment_link_version,
+        },
+    )
+    enqueue_order_notifications(order.pk, "payment_request", version=order.payment_link_version)
     return order
 
 
@@ -102,19 +145,25 @@ def confirm_manual_payment(order_id, payment_id, *, actor=None):
 
 
 @transaction.atomic
-def mark_shipped(order_id, *, actor=None):
+def mark_shipped(order_id, *, carrier=None, tracking_number=None, tracking_url=None, actor=None):
     order = Order.objects.select_for_update().get(pk=order_id)
     if not order.is_paid:
         raise ValidationError("尚未確認付款的訂單不能出貨。")
+    if order.status not in (Order.Status.PAID, Order.Status.PREPARING):
+        if order.status == Order.Status.SHIPPED:
+            return order
+        raise ValidationError("只有已付款或出貨準備中的訂單可以標記為已出貨。")
+    if carrier is not None:
+        order.carrier = carrier
+        order.tracking_number = tracking_number or ""
+        order.tracking_url = tracking_url or ""
     if not order.carrier.strip():
-        raise ValidationError("請先填寫物流公司並儲存，再執行此操作。")
-    if order.status == Order.Status.SHIPPED:
-        return order
+        raise ValidationError("請填寫物流公司。")
     transition(order, Order.Status.SHIPPED, event="order_shipped", actor=actor, changes={"carrier": order.carrier, "tracking_number": order.tracking_number})
     order.shipped_at = timezone.now()
     order.full_clean()
-    order.save(update_fields=("status", "shipped_at", "updated_at"))
-    transaction.on_commit(lambda: enqueue_order_notifications(order.pk, "order_shipped"))
+    order.save(update_fields=("carrier", "tracking_number", "tracking_url", "status", "shipped_at", "updated_at"))
+    enqueue_order_notifications(order.pk, "order_shipped")
     return order
 
 

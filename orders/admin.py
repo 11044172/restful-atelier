@@ -1,9 +1,8 @@
-from decimal import Decimal, InvalidOperation
-
 from django.contrib import admin
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db.models import Exists, OuterRef, Subquery
+from django.db import transaction
+from django.db.models import Case, Exists, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import path, reverse
 from django.utils import timezone
@@ -12,8 +11,9 @@ from django.utils.html import format_html
 from core.admin_site import backoffice_site
 
 from .models import LineCustomer, LineNotification, LineWebhookEvent, NotificationOutbox, Order, OrderAuditLog, OrderItem, Payment, PaymentMethod, PolicyAcceptance
-from .notifications import enqueue_order_notifications
-from .operations import cancel_order, complete_order, confirm_manual_payment, confirm_shipping_and_request_payment, mark_preparing, mark_shipped, record_refund
+from .forms import ManualPaymentConfirmationForm, ShippingConfirmationForm, ShippingDispatchForm, ShippingRevisionForm
+from .notifications import enqueue_order_notifications, retry_or_enqueue_order_notifications
+from .operations import cancel_order, complete_order, confirm_manual_payment, confirm_shipping_and_request_payment, mark_preparing, mark_shipped, record_refund, revise_shipping_and_reissue_payment, start_shipping_review
 
 
 class OrderItemInline(admin.TabularInline):
@@ -32,14 +32,15 @@ class PaymentInline(admin.TabularInline):
         "actual_installments", "provider", "amount", "currency", "status",
         "merchant_trade_no", "provider_reference", "paid_at", "note",
     )
-    readonly_fields = (
-        "payment_variant_label", "ecpay_payment_type", "normalized_payment_method",
-        "actual_installments", "status", "merchant_trade_no", "provider_reference", "paid_at",
-    )
+    readonly_fields = fields
+    can_delete = False
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
     @admin.display(description="ECPay 入口")
     def payment_variant_label(self, obj):
-        return {"standard": "通常支払い", "installment": "カード分割"}.get(obj.payment_variant, "—")
+        return {"standard": "一般付款", "installment": "信用卡分期"}.get(obj.payment_variant, "—")
 
     @admin.display(description="ECPay PaymentType")
     def ecpay_payment_type(self, obj):
@@ -61,6 +62,9 @@ class LineNotificationInline(admin.TabularInline):
     fields = ("notification_type", "status", "sent_at", "failed_at", "retry_count", "http_status", "error_message")
     readonly_fields = fields
 
+    def has_add_permission(self, request, obj=None):
+        return False
+
 
 class OrderAuditInline(admin.TabularInline):
     model = OrderAuditLog
@@ -68,40 +72,136 @@ class OrderAuditInline(admin.TabularInline):
     can_delete = False
     fields = ("created_at", "event", "actor", "actor_label", "from_status", "to_status", "changes")
     readonly_fields = fields
+    classes = ("collapse",)
+    verbose_name_plural = "訂單稽核記錄"
 
     def has_add_permission(self, request, obj=None):
         return False
 
 
+class OrderWorkFilter(admin.SimpleListFilter):
+    title = "作業分類"
+    parameter_name = "work_queue"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("store", "店家需要處理"),
+            ("customer", "等待顧客付款"),
+            ("delivery", "已出貨・等待完成確認"),
+            ("notification", "通知異常"),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == "store":
+            return queryset.filter(status__in=(Order.Status.RECEIVED, Order.Status.SHIPPING_REVIEW, Order.Status.PAID, Order.Status.PREPARING, Order.Status.REFUND_PENDING))
+        if self.value() == "customer":
+            return queryset.filter(status=Order.Status.AWAITING_PAYMENT)
+        if self.value() == "delivery":
+            return queryset.filter(status=Order.Status.SHIPPED)
+        if self.value() == "notification":
+            return queryset.filter(notification_outbox__status__in=(NotificationOutbox.Status.RETRY, NotificationOutbox.Status.DEAD)).distinct()
+        return queryset
+
+
+class OutboxHealthFilter(admin.SimpleListFilter):
+    title = "運作狀態"
+    parameter_name = "health"
+
+    def lookups(self, request, model_admin):
+        return (("attention", "重試／人工處理"), ("queued", "尚未送出"), ("sent", "傳送成功"))
+
+    def queryset(self, request, queryset):
+        if self.value() == "attention":
+            return queryset.filter(status__in=(NotificationOutbox.Status.RETRY, NotificationOutbox.Status.DEAD))
+        if self.value() == "queued":
+            return queryset.filter(status__in=(NotificationOutbox.Status.PENDING, NotificationOutbox.Status.PROCESSING))
+        if self.value() == "sent":
+            return queryset.filter(status=NotificationOutbox.Status.SENT)
+        return queryset
+
+
 @admin.register(Order, site=backoffice_site)
 class OrderAdmin(admin.ModelAdmin):
     change_form_template = "admin/orders/order/change_form.html"
-    list_display = ("public_number", "customer_name", "created_at", "status_badge", "contact_state", "subtotal", "shipping_fee", "final_total", "payment_state", "shipment_state", "last_line_notification")
-    list_filter = ("status", "created_at", "paid_at", "shipped_at")
+    list_display = ("public_number", "customer_name", "next_action_label", "status_badge", "elapsed_time", "final_total_display", "contact_state")
+    list_filter = (OrderWorkFilter, "status", "created_at")
     list_select_related = ("line_customer",)
     search_fields = ("public_number", "customer_name", "phone", "email", "tracking_number")
     date_hierarchy = "created_at"
     readonly_fields = ("public_number", "status", "line_customer", "line_display_name", "line_friendship", "notification_summary", "idempotency_key", "subtotal", "final_total", "payment_link_version", "payment_request_total", "created_at", "updated_at", "inventory_reserved", "inventory_released")
-    inlines = (OrderItemInline, PaymentInline, LineNotificationInline, OrderAuditInline)
+    inlines = (PaymentInline, LineNotificationInline, OrderAuditInline)
     fieldsets = (
-        ("訂單資訊", {"fields": ("public_number", "status", "created_at", "updated_at")}),
-        ("LINE", {"fields": ("line_customer", "line_display_name", "line_friendship", "notification_summary")}),
-        ("顧客與配送", {"fields": ("customer_name", "phone", "email", "recipient_name", "postal_code", "city", "district", "street_address", "delivery_note", "shipping_information", "customer_note")}),
-        ("金額", {"fields": ("subtotal", "shipping_fee", "final_total")}),
-        ("付款與出貨", {"fields": ("paid_at", "shipped_at", "carrier", "tracking_number", "tracking_url")}),
-        ("管理資訊", {"fields": ("admin_note", "idempotency_key", "payment_link_version", "payment_request_total", "inventory_reserved", "inventory_released")}),
+        ("購買者與配送資訊", {"fields": ("customer_name", "phone", "email", "recipient_name", "postal_code", "city", "district", "street_address", "delivery_note", "shipping_information", "customer_note")}),
+        ("金額與付款", {"fields": ("subtotal", "shipping_fee", "final_total", "paid_at")}),
+        ("LINE／Email 通知", {"fields": ("line_customer", "line_display_name", "line_friendship", "notification_summary")}),
+        ("管理備註", {"fields": ("admin_note",)}),
+        ("系統資訊", {"classes": ("collapse",), "fields": ("public_number", "status", "created_at", "updated_at", "shipped_at", "carrier", "tracking_number", "tracking_url", "idempotency_key", "payment_link_version", "payment_request_total", "inventory_reserved", "inventory_released")}),
     )
     list_per_page = 25
 
     def get_queryset(self, request):
         confirmed = Payment.objects.filter(order_id=OuterRef("pk"), status=Payment.Status.CONFIRMED)
+        notification_errors = NotificationOutbox.objects.filter(
+            order_id=OuterRef("pk"),
+            status__in=(NotificationOutbox.Status.RETRY, NotificationOutbox.Status.DEAD),
+        )
         last_sent = LineNotification.objects.filter(
             order_id=OuterRef("pk"), sent_at__isnull=False
         ).order_by("-sent_at").values("sent_at")[:1]
         return super().get_queryset(request).prefetch_related("notification_outbox").annotate(
             has_confirmed_payment=Exists(confirmed),
+            has_notification_error=Exists(notification_errors),
             last_notification_at=Subquery(last_sent),
+            _attention_priority=Case(
+                When(has_notification_error=True, then=Value(0)),
+                When(status__in=(Order.Status.RECEIVED, Order.Status.SHIPPING_REVIEW, Order.Status.PAID, Order.Status.PREPARING, Order.Status.REFUND_PENDING), then=Value(1)),
+                When(status=Order.Status.SHIPPED, then=Value(2)),
+                When(status=Order.Status.AWAITING_PAYMENT, then=Value(3)),
+                default=Value(4), output_field=IntegerField(),
+            ),
+        ).order_by("_attention_priority", "created_at")
+
+    def get_ordering(self, request):
+        notification_errors = NotificationOutbox.objects.filter(
+            order_id=OuterRef("pk"),
+            status__in=(NotificationOutbox.Status.RETRY, NotificationOutbox.Status.DEAD),
         )
+        return (
+            Case(
+                When(Exists(notification_errors), then=Value(0)),
+                When(status__in=(Order.Status.RECEIVED, Order.Status.SHIPPING_REVIEW, Order.Status.PAID, Order.Status.PREPARING, Order.Status.REFUND_PENDING), then=Value(1)),
+                When(status=Order.Status.SHIPPED, then=Value(2)),
+                When(status=Order.Status.AWAITING_PAYMENT, then=Value(3)),
+                default=Value(4), output_field=IntegerField(),
+            ),
+            "created_at",
+        )
+
+    @admin.display(description="目前需要處理")
+    def next_action_label(self, obj):
+        if any(job.status in (NotificationOutbox.Status.DEAD, NotificationOutbox.Status.RETRY) for job in obj.notification_outbox.all()):
+            return "確認通知異常"
+        return {
+            Order.Status.RECEIVED: "開始確認運費",
+            Order.Status.SHIPPING_REVIEW: "確認運費",
+            Order.Status.AWAITING_PAYMENT: "等待顧客付款",
+            Order.Status.PAID: "開始出貨準備",
+            Order.Status.PREPARING: "輸入追蹤資訊並出貨",
+            Order.Status.SHIPPED: "確認配送完成",
+            Order.Status.REFUND_PENDING: "確認退款處理",
+        }.get(obj.status, "處理完成")
+
+    @admin.display(description="經過時間", ordering="created_at")
+    def elapsed_time(self, obj):
+        delta = timezone.now() - obj.created_at
+        if delta.days:
+            return f"{delta.days} 天"
+        hours = max(0, int(delta.total_seconds() // 3600))
+        return f"{hours} 小時" if hours else "未滿 1 小時"
+
+    @admin.display(description="最終合計", ordering="final_total")
+    def final_total_display(self, obj):
+        return f"NT$ {obj.final_total:,.0f}" if obj.final_total is not None else "運費未確定"
 
     @admin.display(description="訂單狀態", ordering="status")
     def status_badge(self, obj):
@@ -163,9 +263,53 @@ class OrderAdmin(admin.ModelAdmin):
             return "等待傳送／重試"
         return "尚未建立通知"
 
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        order = self.get_object(request, object_id)
+        context = dict(extra_context or {})
+        if order:
+            order = Order.objects.select_related("line_customer").prefetch_related(
+                "items", "payments__method", "notification_outbox", "audit_logs"
+            ).get(pk=order.pk)
+            eligible_payments = order.payments.filter(
+                method__code__in=(PaymentMethod.Method.TAIWAN_PAY, PaymentMethod.Method.BANK_TRANSFER),
+                amount=order.final_total,
+            ).exclude(status=Payment.Status.CONFIRMED)
+            confirmed_payment = order.payments.filter(status=Payment.Status.CONFIRMED).first()
+            action_reason = {
+                Order.Status.RECEIVED: "訂單已成立，請先開始確認運費。",
+                Order.Status.SHIPPING_REVIEW: "店家需要確認運費，並向顧客傳送付款通知。",
+                Order.Status.AWAITING_PAYMENT: "付款通知已登錄，目前等待顧客完成付款。",
+                Order.Status.PAID: "款項已確認，請開始出貨準備。",
+                Order.Status.PREPARING: "請輸入追蹤資訊，並傳送出貨通知。",
+                Order.Status.SHIPPED: "商品已出貨，請確認配送是否完成。",
+                Order.Status.COMPLETED: "所有訂單處理均已完成。",
+                Order.Status.CANCELLED: "訂單已在未付款狀態下取消。",
+                Order.Status.REFUND_PENDING: "需要確認退款處理是否完成。",
+                Order.Status.REFUNDED: "退款處理已完成。",
+            }.get(order.status, "請確認目前狀態。")
+            context.update(
+                operation_order=order,
+                action_reason=action_reason,
+                line_reachable=bool(order.line_customer_id and order.line_customer.is_friend and not order.line_customer.is_blocked),
+                shipping_form=ShippingConfirmationForm(initial={"shipping_fee": order.shipping_fee}),
+                shipping_revision_form=ShippingRevisionForm(initial={"shipping_fee": order.shipping_fee}),
+                dispatch_form=ShippingDispatchForm(initial={"carrier": order.carrier, "tracking_number": order.tracking_number, "tracking_url": order.tracking_url}),
+                manual_payment_form=ManualPaymentConfirmationForm(order=order),
+                eligible_manual_payments=eligible_payments,
+                confirmed_payment=confirmed_payment,
+                notification_jobs=order.notification_outbox.all().order_by("-created_at", "-pk")[:20],
+                payment_notification_jobs=order.notification_outbox.filter(event_type="payment_request").order_by("-created_at", "-pk")[:10],
+                shipping_notification_jobs=order.notification_outbox.filter(event_type="order_shipped").order_by("-created_at", "-pk")[:10],
+                latest_payment_request=order.notification_outbox.filter(event_type="payment_request").order_by("-created_at", "-pk").first(),
+                latest_shipping_notice=order.notification_outbox.filter(event_type="order_shipped").order_by("-created_at", "-pk").first(),
+            )
+        return super().change_view(request, object_id, form_url, extra_context=context)
+
     def get_urls(self):
         custom = [
+            path("<path:object_id>/start-shipping-review/", self.admin_site.admin_view(self.start_review), name="orders_order_start_shipping_review"),
             path("<path:object_id>/confirm-shipping/", self.admin_site.admin_view(self.confirm_shipping), name="orders_order_confirm_shipping"),
+            path("<path:object_id>/revise-shipping/", self.admin_site.admin_view(self.revise_shipping), name="orders_order_revise_shipping"),
             path("<path:object_id>/resend-payment/", self.admin_site.admin_view(self.resend_payment), name="orders_order_resend_payment"),
             path("<path:object_id>/confirm-payment/", self.admin_site.admin_view(self.confirm_payment), name="orders_order_confirm_payment"),
             path("<path:object_id>/mark-shipped/", self.admin_site.admin_view(self.ship_order), name="orders_order_mark_shipped"),
@@ -196,36 +340,64 @@ class OrderAdmin(admin.ModelAdmin):
             raise PermissionDenied
         if request.method != "POST":
             return redirect(reverse("admin:orders_order_change", args=[object_id]))
-        raw_shipping_fee = request.POST.get("shipping_fee", "").strip().replace(",", "")
-        try:
-            shipping_fee = Decimal(raw_shipping_fee)
-        except (InvalidOperation, ValueError):
-            self.message_user(request, "請輸入 0 或正整數的運費。", level=messages.ERROR)
+        form = ShippingConfirmationForm(request.POST)
+        if not form.is_valid():
+            self.message_user(request, "; ".join(error for errors in form.errors.values() for error in errors), level=messages.ERROR)
             return redirect(reverse("admin:orders_order_change", args=[object_id]))
-        order.shipping_fee = shipping_fee
-        try:
-            order.full_clean()
-        except ValidationError as exc:
-            self.message_user(request, "; ".join(exc.messages), level=messages.ERROR)
+        return self._run(request, object_id, lambda pk, actor=None: confirm_shipping_and_request_payment(pk, shipping_fee=form.cleaned_data["shipping_fee"], actor=actor), "已確定運費並排入 LINE／Email 付款通知。")
+
+    def start_review(self, request, object_id):
+        return self._run(request, object_id, start_shipping_review, "已開始確認運費。")
+
+    def revise_shipping(self, request, object_id):
+        order = get_object_or_404(Order, pk=object_id)
+        if request.method != "POST":
             return redirect(reverse("admin:orders_order_change", args=[object_id]))
-        order.save(update_fields=("shipping_fee", "final_total", "updated_at"))
-        return self._run(request, object_id, confirm_shipping_and_request_payment, "已確定運費並排入 LINE／Email 付款通知。")
+        form = ShippingRevisionForm(request.POST)
+        if not form.is_valid():
+            self.message_user(request, "; ".join(error for errors in form.errors.values() for error in errors), level=messages.ERROR)
+            return redirect(reverse("admin:orders_order_change", args=[object_id]))
+        return self._run(request, object_id, lambda pk, actor=None: revise_shipping_and_reissue_payment(pk, shipping_fee=form.cleaned_data["shipping_fee"], actor=actor), "已失效舊付款流程，並以新金額重新排入通知。")
 
     def resend_payment(self, request, object_id):
         order = get_object_or_404(Order, pk=object_id)
-        return self._run(request, object_id, lambda pk, actor=None: enqueue_order_notifications(pk, "payment_request", force=True), "已重新排入 LINE／Email 付款通知。")
+        def operation(pk, actor=None):
+            if order.status != Order.Status.AWAITING_PAYMENT or order.is_paid:
+                raise ValidationError("只有等待付款中的未付款訂單可以重送付款通知。")
+            return retry_or_enqueue_order_notifications(pk, "payment_request", version=order.payment_link_version)
+        return self._run(request, object_id, operation, "已安全地重新排入 LINE／Email 付款通知。")
 
     def confirm_payment(self, request, object_id):
         order = get_object_or_404(Order, pk=object_id)
-        payment = order.payments.exclude(status=Payment.Status.CONFIRMED).order_by("-created_at").first()
-        operation = (lambda pk, actor=None: confirm_manual_payment(pk, payment.pk, actor=actor)) if payment else (lambda pk, actor=None: (_ for _ in ()).throw(ValidationError("請先在付款記錄中新增一筆手動付款資料。")))
-        return self._run(request, object_id, operation, "已確認付款。")
+        if request.method != "POST":
+            return redirect(reverse("admin:orders_order_change", args=[object_id]))
+        form = ManualPaymentConfirmationForm(request.POST, order=order)
+        if not form.is_valid():
+            self.message_user(request, "請選擇金額一致的台灣 Pay 或銀行轉帳記錄。", level=messages.ERROR)
+            return redirect(reverse("admin:orders_order_change", args=[object_id]))
+        payment = form.cleaned_data["payment"]
+        return self._run(request, object_id, lambda pk, actor=None: confirm_manual_payment(pk, payment.pk, actor=actor), "已確認付款。")
 
     def ship_order(self, request, object_id):
-        return self._run(request, object_id, mark_shipped, "已更新為已出貨並執行 LINE 通知。")
+        order = get_object_or_404(Order, pk=object_id)
+        if request.method != "POST":
+            return redirect(reverse("admin:orders_order_change", args=[object_id]))
+        form = ShippingDispatchForm(request.POST)
+        if not form.is_valid():
+            self.message_user(request, "; ".join(error for errors in form.errors.values() for error in errors), level=messages.ERROR)
+            return redirect(reverse("admin:orders_order_change", args=[object_id]))
+        if order.status != Order.Status.PREPARING:
+            self.message_user(request, "只有出貨準備中的訂單可以從管理畫面執行出貨。", level=messages.ERROR)
+            return redirect(reverse("admin:orders_order_change", args=[object_id]))
+        return self._run(request, object_id, lambda pk, actor=None: mark_shipped(pk, actor=actor, **form.cleaned_data), "已更新為已出貨並排入 LINE／Email 通知。")
 
     def resend_shipping(self, request, object_id):
-        return self._run(request, object_id, lambda pk, actor=None: enqueue_order_notifications(pk, "order_shipped", force=True), "已重新排入 LINE／Email 出貨通知。")
+        order = get_object_or_404(Order, pk=object_id)
+        def operation(pk, actor=None):
+            if order.status != Order.Status.SHIPPED:
+                raise ValidationError("只有已出貨訂單可以重送出貨通知。")
+            return retry_or_enqueue_order_notifications(pk, "order_shipped")
+        return self._run(request, object_id, operation, "已安全地重新排入 LINE／Email 出貨通知。")
 
     def prepare_order(self, request, object_id):
         return self._run(request, object_id, mark_preparing, "已更新為出貨準備中。")
@@ -257,15 +429,29 @@ class PaymentAdmin(admin.ModelAdmin):
     list_filter = ("status", "method", "created_at")
     search_fields = ("order__public_number", "merchant_trade_no", "provider_reference")
     readonly_fields = (
+        "order", "method", "provider", "amount", "currency", "status", "paid_at", "note",
+        "refunded_amount", "refund_status", "refunded_at", "refund_operator",
         "payment_variant_label", "ecpay_payment_type", "normalized_payment_method",
         "actual_installments", "merchant_trade_no", "provider_reference", "provider_event_id", "provider_metadata",
         "created_at", "updated_at", "confirmed_at", "cancelled_at", "refunded_at",
     )
     actions = ("record_remaining_full_refund",)
+    fieldsets = (
+        ("付款資訊", {"fields": ("order", "method", "provider", "amount", "currency", "status", "paid_at", "note")}),
+        ("退款資訊", {"fields": ("refunded_amount", "refund_status", "refund_reason", "refunded_at", "refund_operator")}),
+        ("交易識別資訊", {"classes": ("collapse",), "fields": ("payment_variant_label", "ecpay_payment_type", "normalized_payment_method", "actual_installments", "merchant_trade_no", "provider_reference", "provider_event_id")}),
+        ("供應商回應與系統資訊", {"classes": ("collapse",), "fields": ("provider_metadata", "created_at", "updated_at", "confirmed_at", "cancelled_at")}),
+    )
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request):
+        return False
 
     @admin.display(description="ECPay 入口")
     def payment_variant_label(self, obj):
-        return {"standard": "通常支払い", "installment": "カード分割"}.get(obj.payment_variant, "—")
+        return {"standard": "一般付款", "installment": "信用卡分期"}.get(obj.payment_variant, "—")
 
     @admin.display(description="ECPay PaymentType")
     def ecpay_payment_type(self, obj):
@@ -299,16 +485,52 @@ class PaymentAdmin(admin.ModelAdmin):
 
 @admin.register(NotificationOutbox, site=backoffice_site)
 class NotificationOutboxAdmin(admin.ModelAdmin):
-    list_display = ("order", "channel", "event_type", "status", "attempt_count", "next_attempt_at", "sent_at")
-    list_filter = ("channel", "event_type", "status")
+    list_display = ("order", "event_type", "channel", "status_badge", "attempt_count", "next_attempt_at", "last_error_short", "sent_at")
+    list_filter = (OutboxHealthFilter, "channel", "event_type", "status")
     search_fields = ("order__public_number", "dedupe_key", "last_error")
-    readonly_fields = ("order", "channel", "event_type", "dedupe_key", "payload", "attempt_count", "last_error", "response_metadata", "sent_at", "created_at", "updated_at")
+    readonly_fields = ("order", "channel", "event_type", "dedupe_key", "payload", "status", "attempt_count", "max_attempts", "next_attempt_at", "locked_at", "last_error", "response_metadata", "sent_at", "created_at", "updated_at")
     actions = ("retry_jobs",)
+    fieldsets = (
+        ("通知工作", {"fields": ("order", "event_type", "channel", "status", "attempt_count", "max_attempts", "next_attempt_at", "sent_at")}),
+        ("錯誤資訊", {"fields": ("last_error", "locked_at")}),
+        ("冪等與原始回應", {"classes": ("collapse",), "fields": ("dedupe_key", "payload", "response_metadata", "created_at", "updated_at")}),
+    )
 
     @admin.action(description="將選取的通知安全地恢復為等待重送")
     def retry_jobs(self, request, queryset):
-        count = queryset.filter(status__in=(NotificationOutbox.Status.DEAD, NotificationOutbox.Status.RETRY)).update(status=NotificationOutbox.Status.PENDING, next_attempt_at=timezone.now(), last_error="")
+        count = 0
+        with transaction.atomic():
+            for job in queryset.select_for_update().filter(status__in=(NotificationOutbox.Status.DEAD, NotificationOutbox.Status.RETRY)):
+                job.status = NotificationOutbox.Status.PENDING
+                job.next_attempt_at = timezone.now()
+                job.locked_at = None
+                job.last_error = ""
+                job.save(update_fields=("status", "next_attempt_at", "locked_at", "last_error", "updated_at"))
+                OrderAuditLog.objects.create(
+                    order=job.order,
+                    event="notification_requeued",
+                    actor=request.user,
+                    actor_label=request.user.get_username(),
+                    from_status=job.order.status,
+                    to_status=job.order.status,
+                    metadata={"outbox_id": job.pk, "channel": job.channel, "notification_event": job.event_type},
+                )
+                count += 1
         self.message_user(request, f"已將 {count} 筆通知設為等待重送。")
+
+    @admin.display(description="狀態", ordering="status")
+    def status_badge(self, obj):
+        return format_html('<span class="status-pill status-{}">{}</span>', obj.status, obj.get_status_display())
+
+    @admin.display(description="最後錯誤")
+    def last_error_short(self, obj):
+        return obj.last_error[:100] if obj.last_error else "—"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(PolicyAcceptance, site=backoffice_site)
@@ -330,6 +552,9 @@ class OrderAuditLogAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request): return False
     def has_delete_permission(self, request, obj=None): return False
+
+    def has_change_permission(self, request, obj=None):
+        return self.has_view_permission(request, obj)
 
 
 @admin.register(LineCustomer, site=backoffice_site)
@@ -359,15 +584,20 @@ class LineNotificationAdmin(admin.ModelAdmin):
     readonly_fields = ("order", "line_customer", "notification_type", "status", "dedupe_key", "api_retry_key", "sent_at", "failed_at", "retry_count", "http_status", "error_message", "created_at", "updated_at")
     actions = ("retry_failed",)
 
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
     @admin.action(description="安全重試傳送失敗的 LINE 通知")
     def retry_failed(self, request, queryset):
         count = 0
         for notification in queryset.filter(status=LineNotification.Status.FAILED):
-            jobs = enqueue_order_notifications(
+            jobs = retry_or_enqueue_order_notifications(
                 notification.order_id,
                 notification.notification_type,
                 channels=("line",),
-                force=True,
             )
             count += len(jobs)
         self.message_user(request, f"已將 {count} 筆通知安全排入 Outbox。")

@@ -1,32 +1,106 @@
 {% extends "admin/change_form.html" %}
-{% block object-tools-items %}
-  {{ block.super }}
-{% endblock %}
-{% block submit_buttons_bottom %}
-  {{ block.super }}
-  {% if original %}
-    <div class="order-operation-panel">
-      <div class="operation-heading">
-        <span>NEXT ACTION</span>
-        <div><h2>訂單進度操作</h2><p>根據訂單目前的狀態，僅顯示下一步需要的操作。</p></div>
-      </div>
-      <div class="operation-actions">
-        {% if original.status == 'received' or original.status == 'shipping_review' %}
-          <button class="operation-primary" type="submit" formaction="{% url 'admin:orders_order_confirm_shipping' original.pk %}" data-confirm="確定目前填寫的運費，並透過 LINE 寄送付款通知給顧客。確定執行嗎？">確定運費並寄送付款通知 <span>→</span></button>
-        {% elif original.status == 'awaiting_payment' %}
-          <button class="operation-primary" type="submit" formaction="{% url 'admin:orders_order_confirm_payment' original.pk %}" data-confirm="要將已登錄的付款記錄標記為已確認嗎？">確認收款 <span>→</span></button>
-        {% elif original.status == 'paid' %}
-          <button class="operation-primary" type="submit" formaction="{% url 'admin:orders_order_mark_preparing' original.pk %}">標記為出貨準備中 <span>→</span></button>
-        {% elif original.status == 'preparing' %}
-          <button class="operation-primary" type="submit" formaction="{% url 'admin:orders_order_mark_shipped' original.pk %}" data-confirm="將訂單更新為已出貨，並傳送 LINE 通知給顧客。是否已確認追蹤資訊無誤？">標記已出貨並傳送通知 <span>→</span></button>
-        {% elif original.status == 'shipped' %}
-          <button class="operation-primary" type="submit" formaction="{% url 'admin:orders_order_complete' original.pk %}">完成訂單 <span>→</span></button>
-        {% endif %}
+{% load humanize %}
 
-        {% if original.status == 'awaiting_payment' %}<button type="submit" formaction="{% url 'admin:orders_order_resend_payment' original.pk %}" data-confirm="確定重新傳送付款通知嗎？">重新傳送付款通知</button>{% endif %}
-        {% if original.status == 'shipped' %}<button type="submit" formaction="{% url 'admin:orders_order_resend_shipping' original.pk %}" data-confirm="確定重新傳送出貨通知嗎？">重新傳送出貨通知</button>{% endif %}
-        {% if original.status != 'completed' and original.status != 'cancelled' %}<button class="operation-danger" type="submit" formaction="{% url 'admin:orders_order_cancel' original.pk %}" data-confirm="將取消此訂單，已保留的一般庫存會自動還原。確定執行嗎？">取消訂單</button>{% endif %}
+{% block content %}
+  {% if operation_order %}
+    <section class="order-summary" aria-labelledby="order-summary-title">
+      <div class="order-summary-title">
+        <div>
+          <span class="eyebrow">ORDER OVERVIEW</span>
+          <h1 id="order-summary-title">{{ operation_order.public_number }}</h1>
+        </div>
+        <span class="status-pill status-{{ operation_order.status }}">{{ operation_order.get_status_display }}</span>
       </div>
-    </div>
+      <dl class="order-summary-grid">
+        <div><dt>訂單時間／經過</dt><dd>{{ operation_order.created_at|date:"Y/m/d H:i" }}<small>{{ operation_order.created_at|timesince }}前</small></dd></div>
+        <div><dt>購買者</dt><dd>{{ operation_order.customer_name }}<small>LINE：{% if operation_order.line_customer_id %}{{ operation_order.line_customer.display_name }}{% else %}未連結{% endif %}</small></dd></div>
+        <div><dt>LINE 通知</dt><dd>{% if line_reachable %}可傳送{% else %}無法傳送{% endif %}<small>Email：{{ operation_order.email }}</small></dd></div>
+        <div><dt>商品小計</dt><dd>NT$ {{ operation_order.subtotal|floatformat:0|intcomma }}<small>運費：{% if operation_order.shipping_fee is not None %}NT$ {{ operation_order.shipping_fee|floatformat:0|intcomma }}{% else %}未確定{% endif %}</small></dd></div>
+        <div class="summary-total"><dt>最終合計</dt><dd>{% if operation_order.final_total is not None %}NT$ {{ operation_order.final_total|floatformat:0|intcomma }}{% else %}未確定{% endif %}<small>通知金額：{% if operation_order.payment_request_total %}NT$ {{ operation_order.payment_request_total|floatformat:0|intcomma }}{% else %}—{% endif %}</small></dd></div>
+        <div><dt>付款／出貨</dt><dd>{% if operation_order.is_paid %}已付款{% else %}未付款{% endif %}<small>{% if operation_order.shipped_at %}已出貨 {{ operation_order.shipped_at|date:"m/d H:i" }}{% else %}尚未出貨{% endif %}</small></dd></div>
+      </dl>
+      <p class="action-reason"><strong>目前需要處理的原因</strong>{{ action_reason }}</p>
+    </section>
+
+    <section class="order-next-action" aria-labelledby="next-action-title">
+      <header class="operation-heading">
+        <span>NEXT ACTION</span>
+        <div><h2 id="next-action-title">下一步操作</h2><p>僅顯示目前狀態下可安全執行的操作。</p></div>
+      </header>
+
+      {% if operation_order.status == 'received' %}
+        <div class="operation-message"><strong>訂單已成立。</strong><p>目前不能直接確定運費，請先進入運費確認流程。</p></div>
+        <form method="post" action="{% url 'admin:orders_order_start_shipping_review' operation_order.pk %}" class="operation-actions">{% csrf_token %}
+          <button class="operation-primary" type="submit">開始確認運費 <span>→</span></button>
+        </form>
+      {% elif operation_order.status == 'shipping_review' %}
+        <form method="post" action="{% url 'admin:orders_order_confirm_shipping' operation_order.pk %}" class="operation-form" data-total-preview data-subtotal="{{ operation_order.subtotal }}">{% csrf_token %}
+          <div class="operation-facts"><span>商品小計<strong>NT$ {{ operation_order.subtotal|floatformat:0|intcomma }}</strong></span><span>LINE<strong>{% if line_reachable %}可傳送{% else %}無法傳送{% endif %}</strong></span><span>Email 收件人<strong>{{ operation_order.email }}</strong></span></div>
+          <div class="operation-fields"><label>{{ shipping_form.shipping_fee.label }}{{ shipping_form.shipping_fee }}</label><div class="total-preview"><small>輸入運費後的最終合計</small><strong data-preview-value>—</strong></div></div>
+          <div class="operation-actions"><button class="operation-primary" type="submit" data-confirm="將確定運費、更新付款連結，並把 LINE／Email 通知登錄至 Outbox。確定執行嗎？">確定運費並傳送付款通知 <span>→</span></button></div>
+        </form>
+      {% elif operation_order.status == 'awaiting_payment' %}
+        <div class="operation-message customer-wait"><strong>目前等待顧客付款。</strong><p>通知金額：NT$ {{ operation_order.payment_request_total|floatformat:0|intcomma }} ／ 登錄時間：{% if latest_payment_request %}{{ latest_payment_request.created_at|date:"Y/m/d H:i" }}{% else %}—{% endif %}</p></div>
+        <div class="delivery-status-grid">
+          {% for job in payment_notification_jobs %}
+            <div><span>{{ job.get_channel_display }}</span><strong class="status-pill status-{{ job.status }}">{{ job.get_status_display }}</strong><small>{% if job.sent_at %}傳送成功 {{ job.sent_at|date:"m/d H:i" }}{% elif job.last_error %}{{ job.last_error|truncatechars:90 }}{% else %}{% if job.status == 'retry' %}重試時間 {{ job.next_attempt_at|date:"m/d H:i" }}{% else %}已登錄 Outbox（尚未送出）{% endif %}{% endif %}</small></div>
+          {% empty %}<div><span>LINE</span><strong>未登錄</strong><small>Outbox 尚無付款通知工作</small></div><div><span>Email</span><strong>未登錄</strong><small>Outbox 尚無付款通知工作</small></div>{% endfor %}
+        </div>
+        <form method="post" action="{% url 'admin:orders_order_resend_payment' operation_order.pk %}" class="operation-actions">{% csrf_token %}<button type="submit" data-confirm="若相同通知仍在處理中，將不重複登錄並安全重試。確定執行嗎？">重新傳送付款通知</button></form>
+        {% if eligible_manual_payments %}
+          <form method="post" action="{% url 'admin:orders_order_confirm_payment' operation_order.pk %}" class="operation-form manual-payment-form">{% csrf_token %}
+            <p class="operation-warning">ECPay 不可手動確認；僅能確認金額一致的台灣 Pay／銀行轉帳記錄。</p>
+            <label>{{ manual_payment_form.payment.label }}{{ manual_payment_form.payment }}</label>
+            <button class="operation-primary" type="submit" data-confirm="要將選取的手動付款記錄確認為已付款嗎？">確認手動入金</button>
+          </form>
+        {% endif %}
+        <details class="danger-details"><summary>修改運費並重新發行付款通知</summary>
+          <form method="post" action="{% url 'admin:orders_order_revise_shipping' operation_order.pk %}" class="operation-form" data-total-preview data-subtotal="{{ operation_order.subtotal }}">{% csrf_token %}
+            <p class="operation-warning">將使舊的未付款交易失效，並更新簽署付款連結的 version。</p>
+            <div class="operation-fields"><label>{{ shipping_revision_form.shipping_fee.label }}{{ shipping_revision_form.shipping_fee }}</label><div class="total-preview"><small>新的最終合計</small><strong data-preview-value>—</strong></div></div>
+            <label class="checkbox-label">{{ shipping_revision_form.acknowledge_reissue }} {{ shipping_revision_form.acknowledge_reissue.label }}</label>
+            <button type="submit" data-confirm="將使舊的未付款交易與付款連結失效，並以新金額通知。確定執行嗎？">修改運費並重新發行</button>
+          </form>
+        </details>
+      {% elif operation_order.status == 'paid' %}
+        <div class="operation-facts">
+          <span>付款方式<strong>{% if confirmed_payment.method %}{{ confirmed_payment.method.display_name }}{% else %}{{ confirmed_payment.provider|default:"—" }}{% endif %}</strong></span>
+          <span>付款金額<strong>NT$ {{ confirmed_payment.amount|floatformat:0|intcomma }}</strong></span>
+          <span>付款時間<strong>{{ confirmed_payment.paid_at|date:"Y/m/d H:i"|default:"—" }}</strong></span>
+          <span>交易資訊<strong>{% if confirmed_payment %}{% firstof confirmed_payment.provider_reference confirmed_payment.note "—" %}{% else %}—{% endif %}</strong></span>
+        </div>
+        <form method="post" action="{% url 'admin:orders_order_mark_preparing' operation_order.pk %}" class="operation-actions">{% csrf_token %}<button class="operation-primary" type="submit">開始出貨準備 <span>→</span></button></form>
+      {% elif operation_order.status == 'preparing' %}
+        <form method="post" action="{% url 'admin:orders_order_mark_shipped' operation_order.pk %}" class="operation-form">{% csrf_token %}
+          <div class="operation-fields shipping-fields"><label>{{ dispatch_form.carrier.label }}{{ dispatch_form.carrier }}</label><label>{{ dispatch_form.tracking_number.label }}{{ dispatch_form.tracking_number }}</label><label>{{ dispatch_form.tracking_url.label }}{{ dispatch_form.tracking_url }}</label></div>
+          <div class="operation-actions"><button class="operation-primary" type="submit" data-confirm="將儲存追蹤資訊、更新為已出貨，並登錄 LINE／Email 通知。確定執行嗎？">更新為已出貨並通知 <span>→</span></button></div>
+        </form>
+      {% elif operation_order.status == 'shipped' %}
+        <div class="operation-facts"><span>物流公司<strong>{{ operation_order.carrier }}</strong></span><span>追蹤號碼<strong>{{ operation_order.tracking_number|default:"—" }}</strong></span><span>出貨時間<strong>{{ operation_order.shipped_at|date:"Y/m/d H:i" }}</strong></span><span>出貨通知<strong>{% if latest_shipping_notice %}{{ latest_shipping_notice.get_status_display }}{% else %}未登錄{% endif %}</strong></span></div>
+        <div class="delivery-status-grid">{% for job in shipping_notification_jobs %}<div><span>{{ job.get_channel_display }}</span><strong class="status-pill status-{{ job.status }}">{{ job.get_status_display }}</strong><small>{% if job.sent_at %}傳送成功 {{ job.sent_at|date:"m/d H:i" }}{% elif job.last_error %}{{ job.last_error|truncatechars:90 }}{% else %}已登錄 Outbox（尚未送出）{% endif %}</small></div>{% empty %}<div><span>LINE</span><strong>未登錄</strong><small>Outbox 尚無出貨通知工作</small></div><div><span>Email</span><strong>未登錄</strong><small>Outbox 尚無出貨通知工作</small></div>{% endfor %}</div>
+        {% if operation_order.tracking_url %}<p><a href="{{ operation_order.tracking_url }}" target="_blank" rel="noopener">開啟追蹤頁面 ↗</a></p>{% endif %}
+        <div class="operation-actions split-actions">
+          <form method="post" action="{% url 'admin:orders_order_resend_shipping' operation_order.pk %}">{% csrf_token %}<button type="submit">重新傳送出貨通知</button></form>
+          <form method="post" action="{% url 'admin:orders_order_complete' operation_order.pk %}">{% csrf_token %}<button class="operation-primary" type="submit">完成訂單 <span>→</span></button></form>
+        </div>
+      {% else %}
+        <div class="operation-message terminal-state"><strong>{{ operation_order.get_status_display }}</strong><p>此狀態沒有可執行的 NEXT ACTION。可在下方確認付款記錄與稽核記錄。</p></div>
+      {% endif %}
+
+      {% if not operation_order.is_paid and operation_order.status == 'received' or not operation_order.is_paid and operation_order.status == 'shipping_review' or not operation_order.is_paid and operation_order.status == 'awaiting_payment' %}
+        <form method="post" action="{% url 'admin:orders_order_cancel' operation_order.pk %}" class="cancel-order-form">{% csrf_token %}<button class="operation-danger" type="submit" data-confirm="將取消未付款訂單並還原保留庫存。確定執行嗎？">取消訂單</button></form>
+      {% endif %}
+    </section>
+
+    <section class="order-items-section" aria-labelledby="order-items-title">
+      <header><span>ORDER ITEMS</span><h2 id="order-items-title">商品資訊</h2></header>
+      <div class="order-items-table">
+        <div class="order-item order-item-head"><span>商品名稱</span><span>SKU</span><span>單價</span><span>數量</span><span>小計</span></div>
+        {% for item in operation_order.items.all %}<div class="order-item"><strong>{{ item.product_name_snapshot }}</strong><span>{{ item.sku_snapshot|default:"—" }}</span><span>NT$ {{ item.unit_price_snapshot|floatformat:0|intcomma }}</span><span>{{ item.quantity }}</span><strong>NT$ {{ item.line_total|floatformat:0|intcomma }}</strong></div>{% endfor %}
+      </div>
+    </section>
   {% endif %}
+  {{ block.super }}
 {% endblock %}
+
+{% block submit_buttons_bottom %}{{ block.super }}{% endblock %}

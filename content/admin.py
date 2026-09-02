@@ -27,12 +27,24 @@ class InteriorProjectAdmin(admin.ModelAdmin):
     search_fields = ("title", "english_title", "location", "description", "style")
     prepopulated_fields = {"slug": ("english_title",)}
     inlines = (InteriorProjectImageInline,)
+    readonly_fields = ("preview_link", "created_at", "updated_at")
+    fieldsets = (
+        ("基本資訊", {"fields": ("title", "slug", "english_title", "project_type", "location", "year", "area", "style")}),
+        ("本文與內容", {"fields": ("description", "concept_title", "design_notes", "materials")}),
+        ("圖片", {"fields": ("featured_image", "image_label", "tone")}),
+        ("公開設定", {"fields": ("published", "preview_link")}),
+        ("管理資訊", {"classes": ("collapse",), "fields": ("sort_order", "created_at", "updated_at")}),
+    )
 
     @admin.display(description="")
     def thumbnail(self, obj):
         if obj.featured_image:
             return format_html('<img class="admin-thumbnail" src="{}" alt="">', obj.featured_image.url)
         return format_html('<span class="admin-thumbnail-placeholder">{}</span>', obj.title[:1])
+
+    @admin.display(description="公開頁面")
+    def preview_link(self, obj):
+        return format_html('<a href="{}" target="_blank" rel="noopener">預覽 ↗</a>', obj.get_absolute_url()) if obj and obj.pk and obj.published else "公開後顯示"
 
 
 @admin.register(Publication, site=backoffice_site)
@@ -42,12 +54,24 @@ class PublicationAdmin(admin.ModelAdmin):
     list_editable = ("featured", "published", "sort_order")
     search_fields = ("issue_number", "title", "subtitle", "description")
     prepopulated_fields = {"slug": ("title",)}
+    readonly_fields = ("preview_link", "created_at", "updated_at")
+    fieldsets = (
+        ("基本資訊", {"fields": ("issue_number", "title", "slug", "subtitle", "page_count", "published_date")}),
+        ("本文與內容", {"fields": ("description",)}),
+        ("圖片", {"fields": ("cover_image", "tone")}),
+        ("公開設定", {"fields": ("featured", "published", "preview_link")}),
+        ("管理資訊", {"classes": ("collapse",), "fields": ("sort_order", "created_at", "updated_at")}),
+    )
 
     @admin.display(description="")
     def thumbnail(self, obj):
         if obj.cover_image:
             return format_html('<img class="admin-thumbnail admin-thumbnail-cover" src="{}" alt="">', obj.cover_image.url)
         return format_html('<span class="admin-thumbnail-placeholder">{}</span>', obj.issue_number[:1])
+
+    @admin.display(description="公開頁面")
+    def preview_link(self, obj):
+        return format_html('<a href="{}" target="_blank" rel="noopener">預覽 ↗</a>', obj.get_absolute_url()) if obj and obj.pk and obj.published else "公開後顯示"
 
 
 @admin.register(PolicyPage, site=backoffice_site)
@@ -57,3 +81,14 @@ class PolicyPageAdmin(admin.ModelAdmin):
     list_editable = ("published", "sort_order")
     search_fields = ("title", "body")
     prepopulated_fields = {"slug": ("title",)}
+    readonly_fields = ("preview_link", "updated_at")
+    fieldsets = (
+        ("基本資訊", {"fields": ("title", "slug")}),
+        ("本文與內容", {"fields": ("body",)}),
+        ("公開設定", {"fields": ("version", "effective_date", "legal_reviewed", "published", "preview_link")}),
+        ("管理資訊", {"classes": ("collapse",), "fields": ("sort_order", "updated_at")}),
+    )
+
+    @admin.display(description="公開頁面")
+    def preview_link(self, obj):
+        return format_html('<a href="{}" target="_blank" rel="noopener">預覽 ↗</a>', obj.get_absolute_url()) if obj and obj.pk and obj.published else "公開後顯示"
