@@ -22,7 +22,7 @@ class OrderFlowTests(TestCase):
         ProductImage.objects.create(product=self.product, image="products/cup.jpg", alt_text="陶杯")
         self.request = SimpleNamespace(session={})
         self.cart = Cart(self.request)
-        self.cleaned = {"idempotency_key": "token-1", "customer_name": "王小明", "phone": "0900", "email": "buyer@example.com", "shipping_information": "台灣 任意地域", "customer_note": ""}
+        self.cleaned = {"idempotency_key": "token-1", "customer_name": "王小明", "phone": "0900", "email": "buyer@example.com", "shipping_information": "台灣任一地區", "customer_note": ""}
 
     def create_order(self, quantity=2):
         self.cart.add(self.product, quantity)

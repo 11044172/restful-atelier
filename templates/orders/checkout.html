@@ -39,7 +39,7 @@
     <div class="field"><label for="{{ form.customer_note.id_for_label }}">備註</label>{{ form.customer_note }}{{ form.customer_note.errors }}</div>
     <p class="manual-shipping-note">運費將由工作人員確認商品與配送方式後另行通知。送出後尚未完成付款，也不需要立即付款。</p>
     <div class="policy-consent">{{ form.policies_accepted }}<label for="{{ form.policies_accepted.id_for_label }}">送出訂單代表訂單受理與運費確認請求，尚未付款。我已閱讀並同意 <a href="{% url 'content:policy' 'shopping-guide' %}" target="_blank">購物須知</a>、<a href="{% url 'content:policy' 'payment-methods' %}" target="_blank">付款說明</a>、<a href="{% url 'content:policy' 'shipping-policy' %}" target="_blank">配送說明</a>、<a href="{% url 'content:policy' 'preorder-information' %}" target="_blank">預購說明</a>、<a href="{% url 'content:policy' 'returns-policy' %}" target="_blank">退換貨政策</a>與<a href="{% url 'content:policy' 'privacy-policy' %}" target="_blank">隱私權政策</a>。</label>{{ form.policies_accepted.errors }}</div>
-    {% if turnstile_site_key %}<div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>{% endif %}
+    {% if turnstile_site_key %}<div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-size="flexible" data-language="zh-TW"></div>{% endif %}
     <button class="form-submit" type="submit" {% if not checkout_enabled %}disabled{% endif %}>送出訂單 <span>→</span></button>
   </form>
   {% endif %}

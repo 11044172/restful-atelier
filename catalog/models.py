@@ -102,7 +102,7 @@ class Product(models.Model):
         ]
 
     def __str__(self):
-        return (self.name or "").strip() or f"未完成商品 #{self.pk or '新規'}"
+        return (self.name or "").strip() or f"未完成商品 #{self.pk or '新增'}"
 
     @staticmethod
     def new_draft_slug():

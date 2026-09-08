@@ -56,7 +56,7 @@ class CheckoutForm(forms.Form):
 
     def clean_website(self):
         if self.cleaned_data.get("website"):
-            raise forms.ValidationError("Invalid submission.")
+            raise forms.ValidationError("送出內容無效，請重新操作。")
         return ""
 
     def clean(self):

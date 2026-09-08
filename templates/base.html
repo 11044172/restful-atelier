@@ -19,8 +19,8 @@
   <meta property="og:image:height" content="2363">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:image" content="{{ canonical_origin }}{% static 'images/rfull-home-logo.png' %}">
-  <link rel="stylesheet" href="{% static 'global.css' %}">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'global.css' %}?v=20260908.2">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260908.2">
   <title>{% block page_title %}靜院居家{% endblock %}｜靜院居家 RESTFULL ATELIER</title>
   <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"{{ canonical_origin }}/#organization","name":"{{ site_settings.brand_name|escapejs }}","alternateName":"{{ site_settings.public_name|escapejs }}","url":"{{ canonical_origin }}","email":"{{ site_settings.general_email|escapejs }}","telephone":"{{ site_settings.phone_primary|escapejs }}"},{"@type":"WebSite","@id":"{{ canonical_origin }}/#website","name":"{{ site_settings.public_name|escapejs }}","url":"{{ canonical_origin }}","publisher":{"@id":"{{ canonical_origin }}/#organization"}}]}</script>
   {% block structured_data %}{% endblock %}

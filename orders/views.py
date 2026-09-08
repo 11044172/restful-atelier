@@ -75,7 +75,7 @@ def cart_add(request, slug):
     try:
         quantity = max(1, min(99, int(request.POST.get("quantity", "1"))))
     except ValueError:
-        return HttpResponseBadRequest("Invalid quantity")
+        return HttpResponseBadRequest("數量格式無效。")
     if not product.is_preorder and product.stock < quantity:
         messages.error(request, f"目前庫存為 {product.stock} 件。")
     else:
@@ -99,7 +99,7 @@ def cart_update(request, product_id):
         try:
             quantity = max(1, min(99, int(request.POST.get("quantity", "1"))))
         except ValueError:
-            return HttpResponseBadRequest("Invalid quantity")
+            return HttpResponseBadRequest("數量格式無效。")
         if not product.is_preorder and quantity > product.stock:
             messages.error(request, f"「{product.name}」目前庫存為 {product.stock} 件。")
         else:
@@ -453,11 +453,11 @@ def cancel_order_link(request, token):
 def line_messaging_webhook(request):
     raw_body = request.body
     if not valid_signature(raw_body, request.headers.get("x-line-signature")):
-        return HttpResponseForbidden("Invalid signature")
+        return HttpResponseForbidden("簽章無效。")
     try:
         payload = parse_payload(raw_body)
     except ValueError:
-        return HttpResponseBadRequest("Invalid payload")
+        return HttpResponseBadRequest("資料格式無效。")
     for event in payload.get("events", []):
         process_event(event)
     return HttpResponse(status=200)

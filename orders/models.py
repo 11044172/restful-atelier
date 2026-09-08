@@ -307,7 +307,7 @@ class Payment(models.Model):
         CANCELLED = "cancelled", "已取消"
         PARTIALLY_REFUNDED = "partially_refunded", "部分退款"
         REFUNDED = "refunded", "全額退款"
-        OVERPAID = "overpaid", "過入金"
+        OVERPAID = "overpaid", "溢付"
         CHARGEBACK = "chargeback", "爭議款／拒付"
 
     order = models.ForeignKey(Order, verbose_name="訂單", on_delete=models.PROTECT, related_name="payments")
@@ -436,6 +436,6 @@ class OrderAuditLog(models.Model):
 
     class Meta:
         ordering = ("-created_at", "-pk")
-        verbose_name = "訂單監査記錄"
-        verbose_name_plural = "訂單監査記錄"
+        verbose_name = "訂單稽核紀錄"
+        verbose_name_plural = "訂單稽核紀錄"
         indexes = [models.Index(fields=("order", "created_at")), models.Index(fields=("event", "created_at"))]

@@ -19,7 +19,7 @@ class InquiryForm(forms.ModelForm):
             "expected_timing": "預計施作時間",
             "message": "訊息內容",
             "privacy_agreed": "我已閱讀並同意個人資料處理聲明",
-            "newsletter_opt_in": "希望收到電子報（任意）",
+            "newsletter_opt_in": "希望收到電子報（選填）",
         }
         widgets = {"message": forms.Textarea(attrs={"rows": 7})}
 
@@ -34,7 +34,7 @@ class InquiryForm(forms.ModelForm):
 
     def clean_website(self):
         if self.cleaned_data.get("website"):
-            raise forms.ValidationError("Invalid submission.")
+            raise forms.ValidationError("送出內容無效，請重新操作。")
         return ""
 
     def clean_privacy_agreed(self):

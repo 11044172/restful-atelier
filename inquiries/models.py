@@ -29,7 +29,7 @@ class Inquiry(models.Model):
     phone = models.CharField("電話", max_length=60)
     email = models.EmailField("Email")
     budget_range = models.CharField("預算範圍", max_length=160, blank=True)
-    project_location = models.CharField("案件地点", max_length=240, blank=True)
+    project_location = models.CharField("案件地點", max_length=240, blank=True)
     expected_timing = models.CharField("預計時程", max_length=200, blank=True)
     message = models.TextField("留言內容")
     privacy_agreed = models.BooleanField("同意個人資料處理")
