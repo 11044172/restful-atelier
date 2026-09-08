@@ -124,7 +124,7 @@
     <div class="quick-grid">
       {% if perms.catalog.view_product %}<a href="{% url 'admin:catalog_product_changelist' %}"><span>PRODUCT</span><strong>管理商品</strong><p>庫存、售價、圖片與公開狀態</p><i>↗</i></a>{% endif %}
       {% if perms.content.view_interiorproject %}<a href="{% url 'admin:content_interiorproject_changelist' %}"><span>PROJECT</span><strong>編輯室內設計</strong><p>作品圖片、設計概念與公開狀態</p><i>↗</i></a>{% endif %}
-      {% if perms.core.view_sitesettings %}<a href="{% url 'admin:core_sitesettings_changelist' %}"><span>WEBSITE</span><strong>網站設定</strong><p>聯絡方式、SNS、LINE 與結帳功能</p><i>↗</i></a>{% endif %}
+      {% if perms.core.view_sitesettings %}<a href="{% url 'admin:core_sitesettings_changelist' %}"><span>WEBSITE</span><strong>網站設定</strong><p>首頁圖片、頁面文案、聯絡方式與 SNS</p><i>↗</i></a>{% endif %}
       {% if perms.orders.view_paymentmethod %}<a href="{% url 'admin:orders_paymentmethod_changelist' %}"><span>PAYMENT</span><strong>付款方式設定</strong><p>啟用狀態、QR 圖片與顧客說明</p><i>↗</i></a>{% endif %}
     </div>
   </section>

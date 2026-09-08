@@ -262,7 +262,7 @@ Admin 可依新留言、處理中、已完成或垃圾訊息篩選，並留下�
 
 ### 網站設定
 
-可編輯品牌名稱、公開顯示名稱、電話、各用途 Email、Facebook / Instagram / LINE 網址、LINE 客服時間、銀行資訊、Taiwan Pay QR、訂單通知 Email 與結帳功能。SNS 或 LINE 網址為空時，前台不會顯示對應連結。
+可編輯品牌名稱、公開顯示名稱、網站／購物標誌、首頁／購物首頁／關於頁圖片與主要文案、室內設計與出版品頁介紹、頁尾文案、預設 OGP 圖片、電話、各用途 Email、Facebook / Instagram / LINE 網址、LINE 客服時間、銀行資訊、Taiwan Pay QR、訂單通知 Email 與結帳功能。SNS 或 LINE 網址為空時，前台不會顯示對應連結；新增圖片未設定時會沿用既有 static 圖片或裝飾預留畫面。詳細項目與監査方針請參閱 `docs/SITE_CONTENT_ADMIN.md`。
 
 ### 室內設計、出版刊物與政策頁面
 
