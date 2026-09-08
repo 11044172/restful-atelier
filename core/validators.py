@@ -7,7 +7,6 @@ from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-
 ALLOWED_FORMATS = {"JPEG": (".jpg", ".jpeg"), "PNG": (".png",), "WEBP": (".webp",)}
 FORMAT_CONTENT_TYPES = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp"}
 
@@ -57,6 +56,13 @@ def _decode_image(upload):
 
 
 def validate_image_upload(upload):
+    # Model validation also runs validators for images that are already stored.
+    # Re-opening those files makes every unrelated admin edit depend on a
+    # successful remote HEAD/download and turns a stale R2 key into a 500.
+    # Newly submitted files are uncommitted (or plain UploadedFile instances),
+    # so they still receive the complete decode and safety checks below.
+    if getattr(upload, "_committed", False):
+        return
     _decode_image(upload)
 
 

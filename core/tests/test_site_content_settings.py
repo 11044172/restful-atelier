@@ -1,6 +1,13 @@
+import tempfile
+from io import BytesIO
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.forms.models import model_to_dict
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from PIL import Image
 
 from catalog.models import Product, ProductCategory, ProductImage
 from content.models import InteriorProject, Publication
@@ -133,6 +140,81 @@ class SiteContentSettingsTests(TestCase):
         self.assertEqual(self.site.home_hero_title, "靜處安身")
         self.assertEqual(self.site.about_image.name, "")
         self.assertEqual(self.site.shop_hero_position, "center")
+
+    def test_missing_existing_r2_image_does_not_block_settings_update(self):
+        self.site.brand_logo = "site/branding/missing-logo.jpg"
+        self.site.home_hero_title = "既存画像に影響されない更新"
+
+        with patch.object(
+            self.site.brand_logo.storage,
+            "size",
+            side_effect=AssertionError("stored image must not be re-opened"),
+        ) as storage_size:
+            self.site.full_clean()
+
+        storage_size.assert_not_called()
+
+    def test_new_site_image_upload_is_still_validated_and_saved(self):
+        image_data = BytesIO()
+        Image.new("RGB", (48, 32), "white").save(image_data, format="JPEG")
+        self.site.home_hero_image = SimpleUploadedFile(
+            "admin-hero.jpg",
+            image_data.getvalue(),
+            content_type="image/jpeg",
+        )
+
+        self.site.full_clean()
+
+        self.assertFalse(self.site.home_hero_image._committed)
+
+    def test_admin_can_save_new_image_with_missing_existing_storage_key(self):
+        user = get_user_model().objects.create_superuser(
+            "image-admin",
+            "image-admin@example.com",
+            "strong-test-password",
+        )
+        self.client.force_login(user)
+        self.site.brand_logo = "site/branding/missing-logo.jpg"
+        self.site.save(update_fields=["brand_logo"])
+
+        image_data = BytesIO()
+        Image.new("RGB", (48, 32), "white").save(image_data, format="JPEG")
+        post_data = model_to_dict(
+            self.site,
+            exclude={
+                "brand_logo",
+                "shop_logo",
+                "taiwan_pay_qr",
+                "default_og_image",
+                "home_hero_image",
+                "shop_hero_image",
+                "shop_story_image",
+                "about_image",
+                "checkout_enabled",
+            },
+        )
+        post_data["home_hero_image"] = SimpleUploadedFile(
+            "admin-hero.jpg",
+            image_data.getvalue(),
+            content_type="image/jpeg",
+        )
+
+        with tempfile.TemporaryDirectory() as media_root, override_settings(
+            MEDIA_ROOT=media_root
+        ), patch.object(
+            self.site.brand_logo.storage,
+            "size",
+            side_effect=AssertionError("stored image must not be re-opened"),
+        ) as storage_size:
+            response = self.client.post(
+                reverse("admin:core_sitesettings_change", args=[self.site.pk]),
+                post_data,
+            )
+
+        self.assertEqual(response.status_code, 302)
+        storage_size.assert_not_called()
+        self.site.refresh_from_db()
+        self.assertTrue(self.site.home_hero_image.name.startswith("site/home/admin-hero"))
 
     def test_site_settings_admin_exposes_grouped_content_fields(self):
         user = get_user_model().objects.create_superuser(
