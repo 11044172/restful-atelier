@@ -17,7 +17,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         cutoff = timezone.now() - timedelta(hours=max(1, options["older_than_hours"]))
         queryset = DirectImageUpload.objects.filter(
-            status__in=(DirectImageUpload.Status.PENDING, DirectImageUpload.Status.READY),
+            status__in=(DirectImageUpload.Status.PENDING, DirectImageUpload.Status.READY, DirectImageUpload.Status.DELETION_PENDING),
             created_at__lt=cutoff,
         ).order_by("pk")
         count = queryset.count()

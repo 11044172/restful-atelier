@@ -13,6 +13,9 @@ from core.admin_forms import (
 from core.direct_image_uploads import TOKEN_SALT
 from core.models import DirectImageUpload, SiteSettings
 from django.core import signing
+from django.core.management import call_command
+from django.utils import timezone
+from datetime import timedelta
 from orders.models import PaymentMethod
 from core.logging_filters import redact_signed_paths
 
@@ -132,3 +135,16 @@ class DirectImageUploadTests(TestCase):
     def test_signed_payment_paths_are_redacted_from_logs(self):
         self.assertEqual(redact_signed_paths("Not Found: /pay/secret-token/"), "Not Found: /pay/<redacted>/")
         self.assertEqual(redact_signed_paths("/shop/cancel/secret-token/"), "/shop/cancel/<redacted>/")
+
+    @patch("core.management.commands.cleanup_direct_image_uploads.default_storage.delete")
+    def test_orphan_cleanup_is_dry_run_by_default_and_retries_failures(self, delete):
+        upload, _token = self.ready_upload("project.featured_image", "projects/2026/09/orphan.jpg")
+        DirectImageUpload.objects.filter(pk=upload.pk).update(created_at=timezone.now()-timedelta(hours=25))
+        call_command("cleanup_direct_image_uploads")
+        delete.assert_not_called()
+        delete.side_effect = RuntimeError("R2 unavailable")
+        call_command("cleanup_direct_image_uploads", delete=True)
+        upload.refresh_from_db(); self.assertEqual(upload.status, DirectImageUpload.Status.DELETION_PENDING)
+        delete.side_effect = None
+        call_command("cleanup_direct_image_uploads", delete=True)
+        self.assertFalse(DirectImageUpload.objects.filter(pk=upload.pk).exists())
