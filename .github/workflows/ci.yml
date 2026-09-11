@@ -30,8 +30,8 @@ jobs:
       ALLOWED_HOSTS: localhost,127.0.0.1,testserver,restfull-xhex.onrender.com
       CSRF_TRUSTED_ORIGINS: https://restfull-xhex.onrender.com
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -57,11 +57,11 @@ jobs:
     env:
       ASTRO_TELEMETRY_DISABLED: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           version: 11.16.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: pnpm
@@ -72,14 +72,14 @@ jobs:
   dependency-security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install pip-audit
       - run: pip-audit -r requirements.lock --no-deps --disable-pip
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
