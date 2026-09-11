@@ -212,7 +212,8 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {"structured": {"format": "time=%(asctime)s level=%(levelname)s logger=%(name)s message=%(message)s"}},
-    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "structured"}},
+    "filters": {"sensitive_paths": {"()": "core.logging_filters.SensitivePathFilter"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "structured", "filters": ["sensitive_paths"]}},
     "loggers": {
         "restfull": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO"), "propagate": False},
         "catalog.product_images": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO"), "propagate": False},

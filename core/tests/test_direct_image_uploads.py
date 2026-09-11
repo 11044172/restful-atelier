@@ -14,6 +14,7 @@ from core.direct_image_uploads import TOKEN_SALT
 from core.models import DirectImageUpload, SiteSettings
 from django.core import signing
 from orders.models import PaymentMethod
+from core.logging_filters import redact_signed_paths
 
 
 @override_settings(
@@ -127,3 +128,7 @@ class DirectImageUploadTests(TestCase):
         project = InteriorProject.objects.create(title="Notes", slug="notes", description="D", design_notes=None, materials=None)
         self.assertEqual(project.design_notes, [])
         self.assertEqual(project.materials, [])
+
+    def test_signed_payment_paths_are_redacted_from_logs(self):
+        self.assertEqual(redact_signed_paths("Not Found: /pay/secret-token/"), "Not Found: /pay/<redacted>/")
+        self.assertEqual(redact_signed_paths("/shop/cancel/secret-token/"), "/shop/cancel/<redacted>/")

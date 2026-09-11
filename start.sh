@@ -30,7 +30,7 @@ gunicorn config.wsgi:application \
   --max-requests "${GUNICORN_MAX_REQUESTS:-500}" \
   --max-requests-jitter "${GUNICORN_MAX_REQUESTS_JITTER:-50}" \
   --access-logfile - \
-  --access-logformat '%({x-forwarded-for}i)s %({x-request-id}i)s pid=%(p)s %(m)s %(U)s %(s)s %(L)s' &
+  --access-logformat '%({x-forwarded-for}i)s %({x-request-id}i)s pid=%(p)s method=%(m)s status=%(s)s duration=%(L)s' &
 web_pid=$!
 
 set +o errexit
