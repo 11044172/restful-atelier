@@ -1,0 +1,19 @@
+{% load static %}
+<div class="direct-image" data-direct-image data-category="{{ widget.category }}" data-profile="{{ widget.profile }}"
+ data-presign-url="{{ widget.presign_url }}" data-complete-url="{{ widget.complete_url }}"
+ data-max-input-bytes="{{ widget.max_input_bytes }}" data-max-output-bytes="{{ widget.max_output_bytes }}"
+ data-max-input-pixels="{{ widget.max_input_pixels }}" data-max-input-dimension="{{ widget.max_input_dimension }}"
+ data-photo-long-edge="{{ widget.photo_long_edge }}" data-artwork-long-edge="{{ widget.artwork_long_edge }}">
+  <input type="hidden" name="{{ widget.name }}" value="{{ widget.value|default_if_none:'' }}"{% include "django/forms/widgets/attrs.html" %}>
+  <div class="direct-image__preview" data-preview{% if not widget.has_current %} hidden{% endif %}>
+    <img src="{{ widget.current_url }}" alt="目前圖片" data-preview-image>
+  </div>
+  <div class="direct-image__actions">
+    <label class="button">選擇圖片<input type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" data-file-input></label>
+    <button type="button" class="button" data-remove{% if not widget.has_current %} hidden{% endif %}>移除圖片</button>
+    <button type="button" class="button" data-retry hidden>重試上傳</button>
+  </div>
+  <div class="direct-image__progress" data-progress hidden><i></i><span></span></div>
+  <p class="direct-image__message" data-message aria-live="polite"></p>
+  <p class="help">支援 JPG、PNG、WebP。圖片會先在瀏覽器檢查及視需要縮小，再直接上傳。</p>
+</div>

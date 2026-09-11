@@ -270,6 +270,8 @@ class ProductImage(models.Model):
     original_filename = models.CharField("原始檔名", max_length=255, blank=True)
     content_type = models.CharField("Content-Type", max_length=64, blank=True)
     file_size = models.PositiveBigIntegerField("檔案大小", null=True, blank=True)
+    width = models.PositiveIntegerField("寬度", null=True, blank=True)
+    height = models.PositiveIntegerField("高度", null=True, blank=True)
     created_at = models.DateTimeField("建立時間", auto_now_add=True)
 
     class Meta:

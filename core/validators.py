@@ -27,23 +27,25 @@ def _decode_image(upload):
         with warnings.catch_warnings():
             warnings.simplefilter("error", Image.DecompressionBombWarning)
             source = Image.open(BytesIO(raw))
-            source.load()  # Force a full decode; verify() alone does not decode pixels.
-        if source.format not in ALLOWED_FORMATS:
-            raise ValidationError("僅接受 JPEG、PNG 或 WebP 圖片。SVG、GIF 與其他格式不開放上傳。")
-        width, height = source.size
-        max_width = settings.MAX_IMAGE_WIDTH
-        max_height = settings.MAX_IMAGE_HEIGHT
-        if width <= 0 or height <= 0 or width > max_width or height > max_height or width * height > settings.MAX_IMAGE_PIXELS:
-            raise ValidationError(f"圖片尺寸不可超過 {max_width}×{max_height}，且像素總數不得超過 {settings.MAX_IMAGE_PIXELS:,}。")
-        if getattr(source, "is_animated", False) or getattr(source, "n_frames", 1) != 1:
-            raise ValidationError("不接受動畫圖片。")
-        extension = os.path.splitext(getattr(upload, "name", ""))[1].lower()
-        if extension not in ALLOWED_FORMATS[source.format]:
-            raise ValidationError("圖片副檔名與實際格式不一致。")
-        supplied_type = getattr(upload, "content_type", "")
-        if supplied_type and supplied_type != FORMAT_CONTENT_TYPES[source.format]:
-            raise ValidationError("圖片 Content-Type 與實際格式不一致。")
-        return source.copy(), source.format
+            if source.format not in ALLOWED_FORMATS:
+                raise ValidationError("僅接受 JPEG、PNG 或 WebP 圖片。SVG、GIF 與其他格式不開放上傳。")
+            width, height = source.size
+            max_width = settings.MAX_IMAGE_WIDTH
+            max_height = settings.MAX_IMAGE_HEIGHT
+            # Header dimensions are available before pixel allocation. Reject
+            # unsafe images before source.load() can consume worker memory.
+            if width <= 0 or height <= 0 or width > max_width or height > max_height or width * height > settings.MAX_IMAGE_PIXELS:
+                raise ValidationError(f"圖片尺寸不可超過 {max_width}×{max_height}，且像素總數不得超過 {settings.MAX_IMAGE_PIXELS:,}。")
+            if getattr(source, "is_animated", False) or getattr(source, "n_frames", 1) != 1:
+                raise ValidationError("不接受動畫圖片。")
+            extension = os.path.splitext(getattr(upload, "name", ""))[1].lower()
+            if extension not in ALLOWED_FORMATS[source.format]:
+                raise ValidationError("圖片副檔名與實際格式不一致。")
+            supplied_type = getattr(upload, "content_type", "")
+            if supplied_type and supplied_type != FORMAT_CONTENT_TYPES[source.format]:
+                raise ValidationError("圖片 Content-Type 與實際格式不一致。")
+            source.load()
+            return source.copy(), source.format
     except ValidationError:
         raise
     except (Image.DecompressionBombError, Image.DecompressionBombWarning, UnidentifiedImageError, OSError, ValueError) as exc:

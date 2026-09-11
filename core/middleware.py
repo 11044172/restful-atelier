@@ -1,11 +1,30 @@
 import ipaddress
 import logging
 import time
+import os
 
 from django.conf import settings
 from django.http import HttpResponsePermanentRedirect, JsonResponse
 
 logger = logging.getLogger("restfull.requests")
+
+
+def cgroup_memory_current():
+    for path in ("/sys/fs/cgroup/memory.current", "/sys/fs/cgroup/memory/memory.usage_in_bytes"):
+        try:
+            with open(path, encoding="ascii") as handle:
+                return int(handle.read().strip())
+        except (FileNotFoundError, PermissionError, OSError, ValueError):
+            continue
+    return None
+
+
+def safe_request_path(path):
+    if path.startswith("/pay/"):
+        return "/pay/<redacted>/"
+    if path.startswith("/shop/cancel/"):
+        return "/shop/cancel/<redacted>/"
+    return path
 
 
 class ClientIPMiddleware:
@@ -76,12 +95,22 @@ class RequestObservabilityMiddleware:
 
     def __call__(self, request):
         started = time.monotonic()
+        content_length = request.META.get("CONTENT_LENGTH") or "0"
+        memory = cgroup_memory_current()
+        logged_path = safe_request_path(request.path)
+        logger.info(
+            "http_request_start pid=%s method=%s path=%s content_length=%s cgroup_memory_current=%s",
+            os.getpid(), request.method, logged_path, content_length,
+            memory if memory is not None else "unavailable",
+        )
         response = self.get_response(request)
         duration_ms = round((time.monotonic() - started) * 1000, 1)
         if response.status_code >= 500 or duration_ms >= settings.SLOW_REQUEST_MS:
+            current_memory = cgroup_memory_current()
             logger.warning(
-                "http_request",
-                extra={"method": request.method, "path": request.path, "status": response.status_code, "duration_ms": duration_ms},
+                "http_request_end pid=%s method=%s path=%s status=%s duration_ms=%s cgroup_memory_current=%s",
+                os.getpid(), request.method, logged_path, response.status_code, duration_ms,
+                current_memory if current_memory is not None else "unavailable",
             )
         return response
 

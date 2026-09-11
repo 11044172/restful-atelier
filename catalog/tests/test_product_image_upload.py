@@ -56,6 +56,8 @@ class ProductImageApiTests(TestCase):
             "filename": "example.jpg",
             "content_type": "image/jpeg",
             "size": 5_340_000,
+            "width": 2400,
+            "height": 1600,
             "upload_session": str(self.session_id),
             "product_id": None,
         }

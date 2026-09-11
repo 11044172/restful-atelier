@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 
 from core.admin_site import backoffice_site
+from core.admin_forms import PaymentMethodAdminForm, request_bound_form
 
 from .models import LineCustomer, LineNotification, LineWebhookEvent, NotificationOutbox, Order, OrderAuditLog, OrderItem, Payment, PaymentMethod, PolicyAcceptance
 from .forms import ManualPaymentConfirmationForm, ShippingConfirmationForm, ShippingDispatchForm, ShippingRevisionForm
@@ -416,9 +417,17 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(PaymentMethod, site=backoffice_site)
 class PaymentMethodAdmin(admin.ModelAdmin):
+    form = PaymentMethodAdminForm
     list_display = ("display_name", "code", "enabled", "provider", "sort_order")
     list_editable = ("enabled", "sort_order")
     list_filter = ("enabled", "code")
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        return request_bound_form(super().get_form(request, obj, change=change, **kwargs), request)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        form.mark_direct_uploads_attached()
 
 
 @admin.register(Payment, site=backoffice_site)

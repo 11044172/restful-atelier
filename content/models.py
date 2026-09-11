@@ -37,6 +37,8 @@ class InteriorProject(models.Model):
         return reverse("content:project_detail", args=[self.slug])
 
     def save(self, *args, **kwargs):
+        self.design_notes = self.design_notes or []
+        self.materials = self.materials or []
         sanitize_image_field(self, "featured_image")
         super().save(*args, **kwargs)
 

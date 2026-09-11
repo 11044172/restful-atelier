@@ -1,6 +1,10 @@
 from datetime import timedelta
 
 from django.contrib.admin import AdminSite
+from django.http import JsonResponse
+from django.urls import path
+import json
+import logging
 from django.db.models import Case, Exists, IntegerField, OuterRef, Q, Sum, Value, When
 from django.utils import timezone
 
@@ -14,6 +18,57 @@ class BackofficeAdminSite(AdminSite):
     index_template = "admin/index.html"
     login_template = "admin/login.html"
     enable_nav_sidebar = True
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path("image-uploads/presign/", self.admin_view(self.direct_image_presign), name="direct_image_presign"),
+            path("image-uploads/complete/", self.admin_view(self.direct_image_complete), name="direct_image_complete"),
+        ]
+        return custom + urls
+
+    @staticmethod
+    def _image_json(request):
+        from core.direct_image_uploads import DirectImageError
+        if request.method != "POST":
+            raise DirectImageError("必須使用 POST 請求。", "method_not_allowed", 405)
+        if len(request.body) > 32 * 1024:
+            raise DirectImageError("請求內容過大。", "request_too_large", 413)
+        try:
+            value = json.loads(request.body or "{}")
+        except (TypeError, ValueError, UnicodeDecodeError) as exc:
+            raise DirectImageError("請求格式無效。", "invalid_json") from exc
+        if not isinstance(value, dict):
+            raise DirectImageError("請求格式無效。", "invalid_json")
+        return value
+
+    def _image_api(self, callback):
+        from core.direct_image_uploads import DirectImageError
+        try:
+            response = callback()
+        except DirectImageError as exc:
+            response = JsonResponse({"error": exc.message, "code": exc.code}, status=exc.status)
+        except Exception:
+            logging.getLogger("restfull.image_uploads").exception("unexpected_image_api_error")
+            response = JsonResponse({"error": "圖片處理失敗，請重試。", "code": "internal_error"}, status=500)
+        response["Cache-Control"] = "no-store"
+        return response
+
+    def direct_image_presign(self, request):
+        from core.direct_image_uploads import create_upload
+        def action():
+            data = self._image_json(request)
+            upload, url = create_upload(user=request.user, category=data.get("category"), filename=data.get("filename"), content_type=data.get("content_type"), size=data.get("size"), width=data.get("width"), height=data.get("height"))
+            return JsonResponse({"upload_url": url, "object_key": upload.object_key, "upload_id": upload.pk})
+        return self._image_api(action)
+
+    def direct_image_complete(self, request):
+        from core.direct_image_uploads import complete_upload
+        def action():
+            data = self._image_json(request)
+            upload, token = complete_upload(user=request.user, category=data.get("category"), upload_id=data.get("upload_id"), object_key=data.get("object_key"))
+            return JsonResponse({"token": token, "width": upload.width, "height": upload.height, "bytes": upload.file_size})
+        return self._image_api(action)
 
     def index(self, request, extra_context=None):
         from catalog.models import Product

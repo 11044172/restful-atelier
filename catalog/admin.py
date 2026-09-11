@@ -1,5 +1,6 @@
 import json
 import logging
+from django.conf import settings
 from uuid import uuid4
 
 from django.contrib import admin
@@ -191,6 +192,8 @@ class ProductAdmin(admin.ModelAdmin):
                 filename=data.get("filename"),
                 content_type=data.get("content_type"),
                 size=data.get("size"),
+                width=data.get("width"),
+                height=data.get("height"),
             )
             return JsonResponse(
                 {
@@ -311,6 +314,13 @@ class ProductAdmin(admin.ModelAdmin):
                 "deleteUrlTemplate": reverse(
                     "admin:catalog_product_image_delete", args=[999999999]
                 ).replace("999999999", "__IMAGE_ID__"),
+                "limits": {
+                    "maxInputBytes": settings.ADMIN_IMAGE_MAX_INPUT_BYTES,
+                    "maxOutputBytes": settings.PRODUCT_IMAGE_MAX_BYTES,
+                    "maxInputPixels": settings.ADMIN_IMAGE_MAX_INPUT_PIXELS,
+                    "maxInputDimension": settings.ADMIN_IMAGE_MAX_INPUT_DIMENSION,
+                    "longEdge": settings.ADMIN_IMAGE_PHOTO_LONG_EDGE,
+                },
             }
         }
         if extra_context:

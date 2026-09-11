@@ -154,7 +154,16 @@ SLOW_REQUEST_MS = int(os.getenv("SLOW_REQUEST_MS", "1500"))
 MAX_IMAGE_UPLOAD_MB = int(os.getenv("MAX_IMAGE_UPLOAD_MB", "10"))
 MAX_IMAGE_WIDTH = int(os.getenv("MAX_IMAGE_WIDTH", "8000"))
 MAX_IMAGE_HEIGHT = int(os.getenv("MAX_IMAGE_HEIGHT", "8000"))
-MAX_IMAGE_PIXELS = int(os.getenv("MAX_IMAGE_PIXELS", "40000000"))
+MAX_IMAGE_PIXELS = int(os.getenv("MAX_IMAGE_PIXELS", "16000000"))
+ADMIN_IMAGE_MAX_INPUT_BYTES = int(os.getenv("ADMIN_IMAGE_MAX_INPUT_BYTES", str(30 * 1024 * 1024)))
+ADMIN_IMAGE_MAX_OUTPUT_BYTES = int(os.getenv("ADMIN_IMAGE_MAX_OUTPUT_BYTES", str(10 * 1024 * 1024)))
+ADMIN_IMAGE_MAX_INPUT_PIXELS = int(os.getenv("ADMIN_IMAGE_MAX_INPUT_PIXELS", "32000000"))
+ADMIN_IMAGE_MAX_OUTPUT_PIXELS = int(os.getenv("ADMIN_IMAGE_MAX_OUTPUT_PIXELS", "16000000"))
+ADMIN_IMAGE_MAX_INPUT_DIMENSION = int(os.getenv("ADMIN_IMAGE_MAX_INPUT_DIMENSION", "12000"))
+ADMIN_IMAGE_MAX_DIMENSION = int(os.getenv("ADMIN_IMAGE_MAX_DIMENSION", "8000"))
+ADMIN_IMAGE_PHOTO_LONG_EDGE = int(os.getenv("ADMIN_IMAGE_PHOTO_LONG_EDGE", "2800"))
+ADMIN_IMAGE_ARTWORK_LONG_EDGE = int(os.getenv("ADMIN_IMAGE_ARTWORK_LONG_EDGE", "2000"))
+PRODUCT_IMAGE_MAX_BYTES = int(os.getenv("PRODUCT_IMAGE_MAX_BYTES", str(20 * 1024 * 1024)))
 TRUSTED_PROXY_IPS = {value.strip() for value in os.getenv("TRUSTED_PROXY_IPS", "").split(",") if value.strip()}
 
 LINE_LOGIN_CHANNEL_ID = os.getenv("LINE_LOGIN_CHANNEL_ID", "")
@@ -207,6 +216,7 @@ LOGGING = {
     "loggers": {
         "restfull": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO"), "propagate": False},
         "catalog.product_images": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO"), "propagate": False},
+        "restfull.image_uploads": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO"), "propagate": False},
         "orders": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO"), "propagate": False},
         "django.request": {"handlers": ["console"], "level": "WARNING", "propagate": False},
     },

@@ -9,7 +9,8 @@
   const empty = root.querySelector("[data-image-empty]");
   const message = root.querySelector("[data-image-message]");
   const orderInput = document.getElementById("id_product_image_order");
-  const maxBytes = 20 * 1024 * 1024;
+  const maxBytes = config.limits.maxOutputBytes;
+  const maxInputBytes = config.limits.maxInputBytes;
   const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
   const extensionsByType = {
     "image/jpeg": new Set(["jpg", "jpeg"]),
@@ -164,14 +165,18 @@
     const source = await decodeImage(file);
     const width = source.width || source.naturalWidth;
     const height = source.height || source.naturalHeight;
+    if (!width || !height || width > config.limits.maxInputDimension || height > config.limits.maxInputDimension || width * height > config.limits.maxInputPixels) {
+      if (source.close) source.close();
+      throw new Error("圖片尺寸超過安全上限，請先縮小圖片。");
+    }
     const longEdge = Math.max(width, height);
-    const shouldResize = longEdge > 2800;
+    const shouldResize = longEdge > config.limits.longEdge;
     const shouldReencode = shouldResize || (file.type !== "image/png" && file.size > 8 * 1024 * 1024);
     if (!shouldReencode) {
       if (source.close) source.close();
-      return file;
+      return {file, width, height};
     }
-    const scale = shouldResize ? 2800 / longEdge : 1;
+    const scale = shouldResize ? config.limits.longEdge / longEdge : 1;
     const canvas = document.createElement("canvas");
     canvas.width = Math.max(1, Math.round(width * scale));
     canvas.height = Math.max(1, Math.round(height * scale));
@@ -183,12 +188,13 @@
     const blob = await new Promise((resolve, reject) => {
       canvas.toBlob((result) => result ? resolve(result) : reject(new Error("encode failed")), file.type, 0.90);
     });
-    return new File([blob], file.name, {type: file.type, lastModified: file.lastModified});
+    return {file: new File([blob], file.name, {type: file.type, lastModified: file.lastModified}), width: canvas.width, height: canvas.height};
   };
 
   const putToR2 = (item, uploadUrl, file) => new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
     request.open("PUT", uploadUrl, true);
+    request.timeout = 60000;
     request.setRequestHeader("Content-Type", file.type);
     request.upload.onprogress = (event) => {
       if (!event.lengthComputable) return;
@@ -200,6 +206,7 @@
       : reject(new Error("上傳至 R2 失敗。"));
     request.onerror = () => reject(new Error("請確認網路連線後重試。"));
     request.onabort = () => reject(new Error("上傳已中止。"));
+    request.ontimeout = () => reject(new Error("圖片上傳逾時，請重試。"));
     request.send(file);
   });
 
@@ -214,6 +221,8 @@
         filename: item.uploadFile.name,
         content_type: item.uploadFile.type,
         size: item.uploadFile.size,
+        width: item.width,
+        height: item.height,
       });
       item.pendingId = prepared.pending_image_id;
       await putToR2(item, prepared.upload_url, item.uploadFile);
@@ -250,14 +259,17 @@
 
   const prepare = async (item) => {
     try {
-      item.uploadFile = await optimize(item.file);
+      const optimized = await optimize(item.file);
+      item.uploadFile = optimized.file;
+      item.width = optimized.width;
+      item.height = optimized.height;
       if (item.uploadFile.size > maxBytes) throw new Error("每張圖片不得超過 20MB。");
       item.status = "queued";
       render();
       pump();
-    } catch (_) {
+    } catch (error) {
       item.status = "failed";
-      item.error = "圖片最佳化失敗。";
+      item.error = error.message || "圖片最佳化失敗。";
       render();
     }
   };
@@ -307,8 +319,8 @@
         showMessage("圖片副檔名與格式不一致。");
         return;
       }
-      if (file.size > maxBytes) {
-        showMessage("每張圖片不得超過 20MB。");
+      if (file.size > maxInputBytes) {
+        showMessage("原始圖片檔案過大，請選擇較小的圖片。");
         return;
       }
     }

@@ -8,6 +8,7 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 from django.core.files.storage import default_storage
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
@@ -17,7 +18,7 @@ from .models import ProductImage
 
 logger = logging.getLogger("catalog.product_images")
 
-MAX_FILE_BYTES = 20 * 1024 * 1024
+MAX_FILE_BYTES = settings.PRODUCT_IMAGE_MAX_BYTES
 PRESIGN_EXPIRES_SECONDS = 600
 ALLOWED_CONTENT_TYPES = {
     "image/jpeg": {".jpg", ".jpeg"},
@@ -46,7 +47,7 @@ def parse_upload_session(value):
         raise ProductImageError("上傳工作階段無效。", "invalid_upload_session") from exc
 
 
-def validate_upload_metadata(filename, content_type, size):
+def validate_upload_metadata(filename, content_type, size, width, height):
     safe_name = os.path.basename(str(filename or "")).strip()
     if not safe_name or safe_name != str(filename or "").strip():
         raise ProductImageError("檔案名稱無效。", "invalid_filename")
@@ -64,7 +65,13 @@ def validate_upload_metadata(filename, content_type, size):
         raise ProductImageError("無法上傳空白圖片檔案。", "invalid_size")
     if normalized_size > MAX_FILE_BYTES:
         raise ProductImageError("每張圖片不得超過 20MB。", "file_too_large")
-    return safe_name[:255], normalized_type, normalized_size, extension
+    try:
+        width, height = int(width), int(height)
+    except (TypeError, ValueError) as exc:
+        raise ProductImageError("圖片尺寸資料無效。", "invalid_dimensions") from exc
+    if width <= 0 or height <= 0 or width > settings.ADMIN_IMAGE_MAX_DIMENSION or height > settings.ADMIN_IMAGE_MAX_DIMENSION or width * height > settings.ADMIN_IMAGE_MAX_OUTPUT_PIXELS:
+        raise ProductImageError("圖片尺寸超過安全上限。", "invalid_dimensions")
+    return safe_name[:255], normalized_type, normalized_size, extension, width, height
 
 
 def build_object_key(extension):
@@ -96,9 +103,9 @@ def _storage_client():
     return client, bucket_name
 
 
-def create_presigned_upload(*, user, upload_session, filename, content_type, size):
-    filename, content_type, size, extension = validate_upload_metadata(
-        filename, content_type, size
+def create_presigned_upload(*, user, upload_session, filename, content_type, size, width, height):
+    filename, content_type, size, extension, width, height = validate_upload_metadata(
+        filename, content_type, size, width, height
     )
     object_key = build_object_key(extension)
     image = ProductImage.objects.create(
@@ -109,6 +116,8 @@ def create_presigned_upload(*, user, upload_session, filename, content_type, siz
         original_filename=filename,
         content_type=content_type,
         file_size=size,
+        width=width,
+        height=height,
     )
     try:
         client, bucket_name = _storage_client()
@@ -133,6 +142,7 @@ def create_presigned_upload(*, user, upload_session, filename, content_type, siz
             "presign_failed",
             503,
         ) from exc
+    logger.info("product_image_presigned width=%s height=%s bytes=%s mime=%s user_id=%s", width, height, size, content_type, user.pk)
     return image, upload_url
 
 
@@ -229,6 +239,7 @@ def complete_upload(*, user, upload_session, object_key, product=None):
     image.save(
         update_fields=("file_size", "content_type", "product", "upload_status", "sort_order")
     )
+    logger.info("product_image_completed width=%s height=%s bytes=%s mime=%s image_id=%s", image.width, image.height, image.file_size, image.content_type, image.pk)
     if product:
         normalize_product_images(product)
         image.refresh_from_db(fields=("sort_order", "is_primary"))

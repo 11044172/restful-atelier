@@ -22,7 +22,15 @@ trap shutdown_services EXIT TERM INT
 python manage.py process_notification_outbox --limit 0 --poll-seconds 2 &
 worker_pid=$!
 
-gunicorn config.wsgi:application --bind "0.0.0.0:${PORT}" --workers 3 --timeout 60 &
+gunicorn config.wsgi:application \
+  --bind "0.0.0.0:${PORT}" \
+  --workers "${GUNICORN_WORKERS:-2}" \
+  --worker-class sync \
+  --timeout 60 \
+  --max-requests "${GUNICORN_MAX_REQUESTS:-500}" \
+  --max-requests-jitter "${GUNICORN_MAX_REQUESTS_JITTER:-50}" \
+  --access-logfile - \
+  --access-logformat '%({x-forwarded-for}i)s %({x-request-id}i)s pid=%(p)s %(m)s %(U)s %(s)s %(L)s' &
 web_pid=$!
 
 set +o errexit

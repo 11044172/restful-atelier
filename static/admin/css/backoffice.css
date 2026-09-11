@@ -47,6 +47,15 @@ body {
 }
 a:link, a:visited { color: var(--link-fg); }
 input, textarea, select, button { font-family: inherit; }
+.direct-image { width:min(520px,100%); padding:14px; border:1px solid var(--border-color); background:#faf9f4; }
+.direct-image__preview img { display:block; width:220px; max-width:100%; height:140px; object-fit:contain; background:#fff; border:1px solid #ddd8ce; }
+.direct-image__actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.direct-image__actions label.button { cursor:pointer; }
+.direct-image__actions input[type=file] { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+.direct-image__progress { margin-top:10px; display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; }
+.direct-image__progress::before { content:""; grid-column:1; grid-row:1; height:6px; background:#e2ded5; }
+.direct-image__progress i { grid-column:1; grid-row:1; z-index:1; width:0; height:6px; background:#617467; transition:width .15s; }
+.direct-image__message { min-height:1.4em; margin:8px 0 0; color:#59665d; }
 
 #header {
   min-height: 76px;

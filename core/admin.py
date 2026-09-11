@@ -4,6 +4,7 @@ from django.contrib.auth.models import Group, User
 from django.utils.html import format_html
 
 from .admin_site import backoffice_site
+from .admin_forms import SiteSettingsAdminForm, request_bound_form
 from .models import PrivacyRequest, SiteSettings
 
 
@@ -13,6 +14,7 @@ backoffice_site.register(Group, GroupAdmin)
 
 @admin.register(SiteSettings, site=backoffice_site)
 class SiteSettingsAdmin(admin.ModelAdmin):
+    form = SiteSettingsAdminForm
     readonly_fields = (
         "brand_logo_preview",
         "shop_logo_preview",
@@ -82,6 +84,13 @@ class SiteSettingsAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        return request_bound_form(super().get_form(request, obj, change=change, **kwargs), request)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        form.mark_direct_uploads_attached()
 
 
 @admin.register(PrivacyRequest, site=backoffice_site)

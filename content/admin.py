@@ -2,12 +2,17 @@ from django.contrib import admin
 from django.utils.html import format_html
 
 from core.admin_site import backoffice_site
+from core.admin_forms import (
+    InteriorProjectAdminForm, InteriorProjectImageAdminForm, PublicationAdminForm,
+    request_bound_form,
+)
 
 from .models import InteriorProject, InteriorProjectImage, PolicyPage, Publication
 
 
 class InteriorProjectImageInline(admin.TabularInline):
     model = InteriorProjectImage
+    form = InteriorProjectImageAdminForm
     extra = 1
     fields = ("preview", "image", "alt_text", "caption", "tone", "sort_order")
     readonly_fields = ("preview",)
@@ -18,9 +23,15 @@ class InteriorProjectImageInline(admin.TabularInline):
             return format_html('<img src="{}" style="width:72px;height:72px;object-fit:cover" alt="">', obj.image.url)
         return "—"
 
+    def get_formset(self, request, obj=None, **kwargs):
+        formset = super().get_formset(request, obj, **kwargs)
+        formset.form = request_bound_form(formset.form, request)
+        return formset
+
 
 @admin.register(InteriorProject, site=backoffice_site)
 class InteriorProjectAdmin(admin.ModelAdmin):
+    form = InteriorProjectAdminForm
     list_display = ("thumbnail", "title", "project_type", "location", "year", "published", "sort_order", "updated_at")
     list_filter = ("published", "project_type", "year")
     list_editable = ("published", "sort_order")
@@ -46,9 +57,23 @@ class InteriorProjectAdmin(admin.ModelAdmin):
     def preview_link(self, obj):
         return format_html('<a href="{}" target="_blank" rel="noopener">預覽 ↗</a>', obj.get_absolute_url()) if obj and obj.pk and obj.published else "公開後顯示"
 
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        return request_bound_form(super().get_form(request, obj, change=change, **kwargs), request)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        form.mark_direct_uploads_attached()
+
+    def save_formset(self, request, form, formset, change):
+        super().save_formset(request, form, formset, change)
+        for inline_form in formset.forms:
+            if hasattr(inline_form, "mark_direct_uploads_attached"):
+                inline_form.mark_direct_uploads_attached()
+
 
 @admin.register(Publication, site=backoffice_site)
 class PublicationAdmin(admin.ModelAdmin):
+    form = PublicationAdminForm
     list_display = ("thumbnail", "issue_number", "title", "published_date", "featured", "published", "sort_order")
     list_filter = ("published", "featured")
     list_editable = ("featured", "published", "sort_order")
@@ -72,6 +97,13 @@ class PublicationAdmin(admin.ModelAdmin):
     @admin.display(description="公開頁面")
     def preview_link(self, obj):
         return format_html('<a href="{}" target="_blank" rel="noopener">預覽 ↗</a>', obj.get_absolute_url()) if obj and obj.pk and obj.published else "公開後顯示"
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        return request_bound_form(super().get_form(request, obj, change=change, **kwargs), request)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        form.mark_direct_uploads_attached()
 
 
 @admin.register(PolicyPage, site=backoffice_site)

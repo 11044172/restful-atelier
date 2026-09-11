@@ -143,18 +143,42 @@ class SiteSettings(models.Model):
         return self.checkout_enabled and line_settings_configured() and bool(self.line_url)
 
     def save(self, *args, **kwargs):
+        # Admin uploads are metadata-only R2 keys. Keep this guard solely for
+        # non-admin legacy callers that still assign an UploadedFile directly.
         for field_name in (
-            "brand_logo",
-            "shop_logo",
-            "default_og_image",
-            "home_hero_image",
-            "shop_hero_image",
-            "shop_story_image",
-            "about_image",
-            "taiwan_pay_qr",
+            "brand_logo", "shop_logo", "default_og_image", "home_hero_image",
+            "shop_hero_image", "shop_story_image", "about_image", "taiwan_pay_qr",
         ):
             sanitize_image_field(self, field_name)
         super().save(*args, **kwargs)
+
+
+class DirectImageUpload(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "等待上傳"
+        READY = "ready", "已確認"
+        ATTACHED = "attached", "已使用"
+        DELETION_PENDING = "deletion_pending", "等待清理"
+
+    object_key = models.CharField(max_length=255, unique=True)
+    category = models.CharField(max_length=80)
+    original_filename = models.CharField(max_length=255)
+    content_type = models.CharField(max_length=64)
+    file_size = models.PositiveBigIntegerField()
+    width = models.PositiveIntegerField()
+    height = models.PositiveIntegerField()
+    status = models.CharField(max_length=24, choices=Status.choices, default=Status.PENDING)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="direct_image_uploads",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [models.Index(fields=("status", "created_at"))]
 
 
 class RateLimitBucket(models.Model):
