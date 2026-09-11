@@ -42,16 +42,26 @@
   };
 
   const api = async (url, body) => {
-    const response = await fetch(url, {
-      method: "POST",
-      credentials: "same-origin",
-      headers: {"Content-Type": "application/json", "X-CSRFToken": csrfToken()},
-      body: JSON.stringify(body),
-    });
-    let payload = {};
-    try { payload = await response.json(); } catch (_) { /* use generic message */ }
-    if (!response.ok) throw new Error(payload.error || "圖片處理失敗，請重試。");
-    return payload;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": csrfToken()},
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      let payload = {};
+      try { payload = await response.json(); } catch (_) { /* use generic message */ }
+      if (!response.ok) throw new Error(payload.error || "圖片處理失敗，請重試。");
+      return payload;
+    } catch (error) {
+      if (error.name === "AbortError") throw new Error("連線逾時，請重試。");
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
   };
 
   const scopePayload = () => ({

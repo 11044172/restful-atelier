@@ -14,7 +14,7 @@
       throw error;
     } finally { clearTimeout(timer); }
   };
-  const decode = async file => {
+  const decode = async (file, cfg) => {
     if (!allowed.has(file.type)) throw new Error("僅支援 JPG、PNG 或 WebP 圖片。");
     if (file.size > cfg.maxInputBytes) throw new Error("原始圖片檔案過大，請選擇較小的圖片。");
     try {
@@ -22,8 +22,8 @@
       return await new Promise((resolve,reject) => { const url=URL.createObjectURL(file), image=new Image(); image.onload=()=>{URL.revokeObjectURL(url);resolve(image);}; image.onerror=()=>{URL.revokeObjectURL(url);reject();}; image.src=url; });
     } catch (_) { throw new Error("無法讀取這張圖片，檔案可能已損壞。"); }
   };
-  const prepare = async (file, profile) => {
-    const source = await decode(file), width=source.width||source.naturalWidth, height=source.height||source.naturalHeight;
+  const prepare = async (file, profile, cfg) => {
+    const source = await decode(file, cfg), width=source.width||source.naturalWidth, height=source.height||source.naturalHeight;
     if (!width || !height || width > cfg.maxInputDimension || height > cfg.maxInputDimension || width*height > cfg.maxInputPixels) { if(source.close)source.close(); throw new Error("圖片尺寸超過安全上限，請先縮小圖片。"); }
     const limit = profile === "photo" ? cfg.photoLongEdge : cfg.artworkLongEdge;
     const scale = Math.min(1, limit/Math.max(width,height));
@@ -48,7 +48,7 @@
     const hidden=root.querySelector('input[type="hidden"]'), input=root.querySelector("[data-file-input]"), preview=root.querySelector("[data-preview]"), img=root.querySelector("[data-preview-image]"), remove=root.querySelector("[data-remove]"), retry=root.querySelector("[data-retry]"), progress=root.querySelector("[data-progress]"), bar=progress.querySelector("i"), status=progress.querySelector("span"), message=root.querySelector("[data-message]");
     let selected=null, localUrl=null;
     const showError=text=>{message.textContent=text;retry.hidden=!selected;progress.hidden=true;};
-    const upload=async()=>{ try { retry.hidden=true;message.textContent="";progress.hidden=false;status.textContent="圖片處理中…";bar.style.width="0%"; const ready=await prepare(selected,root.dataset.profile); status.textContent="上傳中 0%"; const pre=await api(cfg.presignUrl,{category:root.dataset.category,filename:ready.file.name,content_type:ready.file.type,size:ready.file.size,width:ready.width,height:ready.height}); await put(pre.upload_url,ready.file,p=>{bar.style.width=`${p}%`;status.textContent=`上傳中 ${p}%`;}); status.textContent="確認中…"; const done=await api(cfg.completeUrl,{category:root.dataset.category,upload_id:pre.upload_id,object_key:pre.object_key}); hidden.value=`upload:${done.token}`; if(localUrl)URL.revokeObjectURL(localUrl);localUrl=URL.createObjectURL(ready.file);img.src=localUrl;preview.hidden=false;remove.hidden=false;progress.hidden=true;message.textContent="圖片已準備完成，儲存表單後生效。"; } catch(error) { showError(error.message||"圖片上傳失敗，請重試。"); }};
+    const upload=async()=>{ try { retry.hidden=true;message.textContent="";progress.hidden=false;status.textContent="圖片處理中…";bar.style.width="0%"; const ready=await prepare(selected,root.dataset.profile,cfg); status.textContent="上傳中 0%"; const pre=await api(cfg.presignUrl,{category:root.dataset.category,filename:ready.file.name,content_type:ready.file.type,size:ready.file.size,width:ready.width,height:ready.height}); await put(pre.upload_url,ready.file,p=>{bar.style.width=`${p}%`;status.textContent=`上傳中 ${p}%`;}); status.textContent="確認中…"; const done=await api(cfg.completeUrl,{category:root.dataset.category,upload_id:pre.upload_id,object_key:pre.object_key}); hidden.value=`upload:${done.token}`; if(localUrl)URL.revokeObjectURL(localUrl);localUrl=URL.createObjectURL(ready.file);img.src=localUrl;preview.hidden=false;remove.hidden=false;progress.hidden=true;message.textContent="圖片已準備完成，儲存表單後生效。"; } catch(error) { showError(error.message||"圖片上傳失敗，請重試。"); }};
     input.addEventListener("change",()=>{selected=input.files[0]||null;if(selected)upload();input.value="";}); retry.addEventListener("click",upload); remove.addEventListener("click",()=>{hidden.value="";preview.hidden=true;remove.hidden=true;retry.hidden=true;message.textContent="儲存後將移除圖片。";selected=null;});
   });
 })();
