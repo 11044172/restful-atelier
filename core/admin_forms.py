@@ -4,6 +4,7 @@ from content.models import InteriorProject, InteriorProjectImage, Publication
 from orders.models import PaymentMethod
 
 from .direct_image_forms import DirectImageAdminFormMixin
+from .admin_json_fields import StringListFormField
 from .models import SiteSettings
 
 
@@ -20,6 +21,8 @@ class SiteSettingsAdminForm(DirectImageAdminFormMixin, forms.ModelForm):
 
 
 class InteriorProjectAdminForm(DirectImageAdminFormMixin, forms.ModelForm):
+    design_notes = StringListFormField(label="設計筆記")
+    materials = StringListFormField(label="材質列表")
     direct_image_fields = {"featured_image": "project.featured_image"}
     class Meta:
         model = InteriorProject

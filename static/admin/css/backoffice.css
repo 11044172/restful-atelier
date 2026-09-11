@@ -56,6 +56,9 @@ input, textarea, select, button { font-family: inherit; }
 .direct-image__progress::before { content:""; grid-column:1; grid-row:1; height:6px; background:#e2ded5; }
 .direct-image__progress i { grid-column:1; grid-row:1; z-index:1; width:0; height:6px; background:#617467; transition:width .15s; }
 .direct-image__message { min-height:1.4em; margin:8px 0 0; color:#59665d; }
+.string-list-editor { width:min(680px,100%); }
+.string-list-editor__row { display:grid; grid-template-columns:minmax(180px,1fr) auto auto auto; gap:7px; margin-bottom:8px; align-items:center; }
+.string-list-editor__row input { width:100%; }
 
 #header {
   min-height: 76px;

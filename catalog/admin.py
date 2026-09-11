@@ -11,7 +11,7 @@ from django.utils.html import format_html
 
 from core.admin_site import backoffice_site
 
-from .forms import ProductAdminForm
+from .forms import ProductAdminForm, ProductCategoryAdminForm
 from .models import Product, ProductCategory, ProductImage, ProductSpecification
 from .product_image_service import (
     PRESIGN_EXPIRES_SECONDS,
@@ -39,6 +39,7 @@ class ProductSpecificationInline(admin.TabularInline):
 
 @admin.register(ProductCategory, site=backoffice_site)
 class ProductCategoryAdmin(admin.ModelAdmin):
+    form = ProductCategoryAdminForm
     list_display = ("name", "english_name", "sort_order", "is_active")
     list_editable = ("sort_order", "is_active")
     search_fields = ("name", "english_name", "description")

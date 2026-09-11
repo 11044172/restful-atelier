@@ -1,0 +1,15 @@
+<div class="string-list-editor" data-string-list>
+  <input type="hidden" name="{{ widget.name }}" value="{{ widget.serialized }}"{% include "django/forms/widgets/attrs.html" %} data-string-list-value>
+  <div data-string-list-rows>
+    {% for item in widget.items %}
+      <div class="string-list-editor__row">
+        <input type="text" value="{{ item }}" data-string-list-item>
+        <button type="button" class="button" data-move-up aria-label="上移">↑</button>
+        <button type="button" class="button" data-move-down aria-label="下移">↓</button>
+        <button type="button" class="button" data-remove aria-label="刪除">刪除</button>
+      </div>
+    {% endfor %}
+  </div>
+  <button type="button" class="button" data-add>＋ 新增項目</button>
+  <p class="help">每列一個項目，可新增、刪除或調整順序。</p>
+</div>

@@ -1,6 +1,16 @@
 from django import forms
 
 from .models import Product, ProductImage
+from core.admin_json_fields import StringListFormField
+from .models import ProductCategory
+
+
+class ProductCategoryAdminForm(forms.ModelForm):
+    subcategories = StringListFormField(label="篩選項目")
+
+    class Meta:
+        model = ProductCategory
+        fields = "__all__"
 
 
 class ProductAdminForm(forms.ModelForm):
