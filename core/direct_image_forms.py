@@ -3,7 +3,12 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 
-from .direct_image_uploads import DirectImageError, category_config, mark_attached, resolve_token
+from .direct_image_uploads import (
+    DirectImageError,
+    category_config,
+    mark_attached,
+    resolve_token,
+)
 
 
 class DirectImageWidget(forms.Widget):
@@ -23,20 +28,23 @@ class DirectImageWidget(forms.Widget):
     def get_context(self, name, value, attrs):
         context = super().get_context(name, value, attrs)
         raw = getattr(value, "name", value) or ""
-        context["widget"].update({
-            "category": self.category,
-            "profile": self.profile,
-            "current_url": getattr(value, "url", "") if value else "",
-            "has_current": bool(raw),
-            "presign_url": reverse("admin:direct_image_presign"),
-            "complete_url": reverse("admin:direct_image_complete"),
-            "max_input_bytes": settings.ADMIN_IMAGE_MAX_INPUT_BYTES,
-            "max_output_bytes": settings.ADMIN_IMAGE_MAX_OUTPUT_BYTES,
-            "max_input_pixels": settings.ADMIN_IMAGE_MAX_INPUT_PIXELS,
-            "max_input_dimension": settings.ADMIN_IMAGE_MAX_INPUT_DIMENSION,
-            "photo_long_edge": settings.ADMIN_IMAGE_PHOTO_LONG_EDGE,
-            "artwork_long_edge": settings.ADMIN_IMAGE_ARTWORK_LONG_EDGE,
-        })
+        context["widget"].update(
+            {
+                "category": self.category,
+                "profile": self.profile,
+                "current_url": getattr(value, "url", "") if value else "",
+                "has_current": bool(raw),
+                "presign_url": reverse("admin:direct_image_presign"),
+                "complete_url": reverse("admin:direct_image_complete"),
+                "delete_url": reverse("admin:direct_image_delete"),
+                "max_input_bytes": settings.ADMIN_IMAGE_MAX_INPUT_BYTES,
+                "max_output_bytes": settings.ADMIN_IMAGE_MAX_OUTPUT_BYTES,
+                "max_input_pixels": settings.ADMIN_IMAGE_MAX_INPUT_PIXELS,
+                "max_input_dimension": settings.ADMIN_IMAGE_MAX_INPUT_DIMENSION,
+                "photo_long_edge": settings.ADMIN_IMAGE_PHOTO_LONG_EDGE,
+                "artwork_long_edge": settings.ADMIN_IMAGE_ARTWORK_LONG_EDGE,
+            }
+        )
         return context
 
 
@@ -60,7 +68,11 @@ class DirectImageFormField(forms.Field):
         if not value.startswith("upload:") or not self.user:
             raise ValidationError("圖片資料無效，請重新選擇圖片。")
         try:
-            upload = resolve_token(token=value.removeprefix("upload:"), user=self.user, category=self.category)
+            upload = resolve_token(
+                token=value.removeprefix("upload:"),
+                user=self.user,
+                category=self.category,
+            )
         except DirectImageError as exc:
             raise ValidationError(exc.message) from exc
         self.upload_id = upload.pk
@@ -72,23 +84,33 @@ class DirectImageAdminFormMixin:
 
     def __init__(self, *args, **kwargs):
         request = kwargs.pop("request", None)
+        self.request = request
         super().__init__(*args, **kwargs)
         for name, category in self.direct_image_fields.items():
             if name not in self.fields:
                 continue
             old = self.fields[name]
             _permission, _prefix, profile = category_config(category)
-            field = DirectImageFormField(category=category, profile=profile, label=old.label, help_text=old.help_text)
+            field = DirectImageFormField(
+                category=category,
+                profile=profile,
+                label=old.label,
+                help_text=old.help_text,
+            )
             field.initial = getattr(self.instance, name, "")
             field.user = getattr(request, "user", None)
             self.fields[name] = field
 
     @property
     def direct_upload_ids(self):
-        return [field.upload_id for field in self.fields.values() if isinstance(field, DirectImageFormField) and field.upload_id]
+        return [
+            field.upload_id
+            for field in self.fields.values()
+            if isinstance(field, DirectImageFormField) and field.upload_id
+        ]
 
     def mark_direct_uploads_attached(self):
         mark_attached(self.direct_upload_ids)
 
     class Media:
-        js = ("admin/js/direct-images.js",)
+        js = ("admin/js/admin-image-manager.js",)

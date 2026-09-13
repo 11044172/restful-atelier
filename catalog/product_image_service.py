@@ -1,30 +1,31 @@
 """Metadata-only product image operations backed by the existing default R2 storage."""
 
 import logging
-import os
 import re
 from dataclasses import dataclass
-from pathlib import Path
 from uuid import UUID, uuid4
 
-from django.core.files.storage import default_storage
 from django.conf import settings
+from django.core.files.storage import default_storage
 from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
 
-from .models import ProductImage
+from core.admin_image_uploads import (
+    ALLOWED_CONTENT_TYPES,
+    ImageMetadataValidationError,
+    generate_presigned_put,
+    normalized_head_metadata,
+    storage_connection,
+    validate_image_metadata,
+)
 
+from .models import ProductImage
 
 logger = logging.getLogger("catalog.product_images")
 
 MAX_FILE_BYTES = settings.PRODUCT_IMAGE_MAX_BYTES
 PRESIGN_EXPIRES_SECONDS = 600
-ALLOWED_CONTENT_TYPES = {
-    "image/jpeg": {".jpg", ".jpeg"},
-    "image/png": {".png"},
-    "image/webp": {".webp"},
-}
 DIRECT_OBJECT_KEY_PATTERN = re.compile(
     r"^products/\d{4}/\d{2}/[0-9a-f]{32}\.(?:jpg|jpeg|png|webp)$"
 )
@@ -48,30 +49,34 @@ def parse_upload_session(value):
 
 
 def validate_upload_metadata(filename, content_type, size, width, height):
-    safe_name = os.path.basename(str(filename or "")).strip()
-    if not safe_name or safe_name != str(filename or "").strip():
-        raise ProductImageError("檔案名稱無效。", "invalid_filename")
-    normalized_type = str(content_type or "").lower().strip()
-    if normalized_type not in ALLOWED_CONTENT_TYPES:
-        raise ProductImageError("不支援此圖片格式。", "unsupported_type")
-    extension = Path(safe_name).suffix.lower()
-    if extension not in ALLOWED_CONTENT_TYPES[normalized_type]:
-        raise ProductImageError("圖片副檔名與格式不一致。", "extension_mismatch")
     try:
-        normalized_size = int(size)
-    except (TypeError, ValueError) as exc:
-        raise ProductImageError("圖片檔案大小無效。", "invalid_size") from exc
-    if normalized_size <= 0:
-        raise ProductImageError("無法上傳空白圖片檔案。", "invalid_size")
-    if normalized_size > MAX_FILE_BYTES:
-        raise ProductImageError("每張圖片不得超過 20MB。", "file_too_large")
-    try:
-        width, height = int(width), int(height)
-    except (TypeError, ValueError) as exc:
-        raise ProductImageError("圖片尺寸資料無效。", "invalid_dimensions") from exc
-    if width <= 0 or height <= 0 or width > settings.ADMIN_IMAGE_MAX_DIMENSION or height > settings.ADMIN_IMAGE_MAX_DIMENSION or width * height > settings.ADMIN_IMAGE_MAX_OUTPUT_PIXELS:
-        raise ProductImageError("圖片尺寸超過安全上限。", "invalid_dimensions")
-    return safe_name[:255], normalized_type, normalized_size, extension, width, height
+        metadata = validate_image_metadata(
+            filename=filename,
+            content_type=content_type,
+            size=size,
+            width=width,
+            height=height,
+            max_bytes=MAX_FILE_BYTES,
+            max_dimension=settings.ADMIN_IMAGE_MAX_DIMENSION,
+            max_pixels=settings.ADMIN_IMAGE_MAX_OUTPUT_PIXELS,
+            max_bytes_message="每張圖片不得超過 20MB。",
+        )
+    except ImageMetadataValidationError as exc:
+        message = exc.message
+        code = exc.code
+        if code == "unsupported_type":
+            message = "不支援此圖片格式。"
+        elif code in ("dimensions_too_large", "pixels_too_large"):
+            message, code = "圖片尺寸超過安全上限。", "invalid_dimensions"
+        raise ProductImageError(message, code) from exc
+    return (
+        metadata.filename,
+        metadata.content_type,
+        metadata.size,
+        metadata.extension,
+        metadata.width,
+        metadata.height,
+    )
 
 
 def build_object_key(extension):
@@ -86,8 +91,7 @@ def is_direct_object_key(value):
 def _storage_client():
     """Reuse django-storages' configured S3/R2 client and bucket."""
     try:
-        client = default_storage.connection.meta.client
-        bucket_name = default_storage.bucket_name
+        client, bucket_name = storage_connection()
     except AttributeError as exc:
         raise ProductImageError(
             "無法確認 R2 上傳設定。",
@@ -103,7 +107,9 @@ def _storage_client():
     return client, bucket_name
 
 
-def create_presigned_upload(*, user, upload_session, filename, content_type, size, width, height):
+def create_presigned_upload(
+    *, user, upload_session, filename, content_type, size, width, height
+):
     filename, content_type, size, extension, width, height = validate_upload_metadata(
         filename, content_type, size, width, height
     )
@@ -121,28 +127,34 @@ def create_presigned_upload(*, user, upload_session, filename, content_type, siz
     )
     try:
         client, bucket_name = _storage_client()
-        upload_url = client.generate_presigned_url(
-            "put_object",
-            Params={
-                "Bucket": bucket_name,
-                "Key": object_key,
-                "ContentType": content_type,
-            },
-            ExpiresIn=PRESIGN_EXPIRES_SECONDS,
-            HttpMethod="PUT",
+        upload_url = generate_presigned_put(
+            client=client,
+            bucket=bucket_name,
+            object_key=object_key,
+            content_type=content_type,
+            expires_in=PRESIGN_EXPIRES_SECONDS,
         )
     except ProductImageError:
         image.delete()
         raise
     except Exception as exc:
         image.delete()
-        logger.exception("Presigned URL generation failed key=%s user_id=%s", object_key, user.pk)
+        logger.exception(
+            "Presigned URL generation failed key=%s user_id=%s", object_key, user.pk
+        )
         raise ProductImageError(
             "準備上傳失敗，請重試。",
             "presign_failed",
             503,
         ) from exc
-    logger.info("product_image_presigned width=%s height=%s bytes=%s mime=%s user_id=%s", width, height, size, content_type, user.pk)
+    logger.info(
+        "product_image_presigned width=%s height=%s bytes=%s mime=%s user_id=%s",
+        width,
+        height,
+        size,
+        content_type,
+        user.pk,
+    )
     return image, upload_url
 
 
@@ -161,7 +173,9 @@ def _delete_invalid_upload(image, *, reason):
     except Exception:
         image.upload_status = ProductImage.UploadStatus.DELETION_PENDING
         image.save(update_fields=("upload_status",))
-        logger.exception("Invalid R2 object cleanup failed image_id=%s reason=%s", image.pk, reason)
+        logger.exception(
+            "Invalid R2 object cleanup failed image_id=%s reason=%s", image.pk, reason
+        )
     else:
         image.delete()
 
@@ -194,12 +208,12 @@ def complete_upload(*, user, upload_session, object_key, product=None):
             503,
         ) from exc
 
-    try:
-        actual_size = int(metadata.get("ContentLength", -1))
-    except (TypeError, ValueError):
-        actual_size = -1
-    actual_type = str(metadata.get("ContentType", "")).split(";", 1)[0].lower().strip()
-    if actual_size <= 0 or actual_size > MAX_FILE_BYTES or actual_size != image.file_size:
+    actual_size, actual_type = normalized_head_metadata(metadata)
+    if (
+        actual_size <= 0
+        or actual_size > MAX_FILE_BYTES
+        or actual_size != image.file_size
+    ):
         logger.warning(
             "Product image size mismatch image_id=%s expected=%s actual=%s",
             image.pk,
@@ -222,7 +236,9 @@ def complete_upload(*, user, upload_session, object_key, product=None):
     image.content_type = actual_type
     image.product = product
     image.upload_status = (
-        ProductImage.UploadStatus.ATTACHED if product else ProductImage.UploadStatus.TEMPORARY
+        ProductImage.UploadStatus.ATTACHED
+        if product
+        else ProductImage.UploadStatus.TEMPORARY
     )
     if product:
         current_max = product.images.filter(
@@ -237,9 +253,22 @@ def complete_upload(*, user, upload_session, object_key, product=None):
         ).aggregate(value=Max("sort_order"))["value"]
         image.sort_order = (current_max if current_max is not None else -1) + 1
     image.save(
-        update_fields=("file_size", "content_type", "product", "upload_status", "sort_order")
+        update_fields=(
+            "file_size",
+            "content_type",
+            "product",
+            "upload_status",
+            "sort_order",
+        )
     )
-    logger.info("product_image_completed width=%s height=%s bytes=%s mime=%s image_id=%s", image.width, image.height, image.file_size, image.content_type, image.pk)
+    logger.info(
+        "product_image_completed width=%s height=%s bytes=%s mime=%s image_id=%s",
+        image.width,
+        image.height,
+        image.file_size,
+        image.content_type,
+        image.pk,
+    )
     if product:
         normalize_product_images(product)
         image.refresh_from_db(fields=("sort_order", "is_primary"))
@@ -288,7 +317,9 @@ def reorder_temporary_images(*, user, upload_session, ordered_ids):
     if len(ordered_ids) != len(set(ordered_ids)) or set(ordered_ids) != set(images):
         raise ProductImageError("要排序的圖片不一致。", "invalid_image_set")
     for index, image_id in enumerate(ordered_ids):
-        ProductImage.objects.filter(pk=image_id).update(sort_order=index, is_primary=False)
+        ProductImage.objects.filter(pk=image_id).update(
+            sort_order=index, is_primary=False
+        )
 
 
 @transaction.atomic
@@ -323,7 +354,9 @@ def mark_and_delete_image(image):
         if image.thumbnail:
             delete_object(image.thumbnail.name)
     except Exception as exc:
-        logger.exception("R2 delete failed image_id=%s key=%s", image.pk, image.image.name)
+        logger.exception(
+            "R2 delete failed image_id=%s key=%s", image.pk, image.image.name
+        )
         raise ProductImageError(
             "刪除圖片失敗，系統稍後會自動重試。",
             "delete_failed",

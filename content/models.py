@@ -1,5 +1,7 @@
+from django.conf import settings
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 
 from core.validators import sanitize_image_field, validate_image_upload
 
@@ -17,7 +19,12 @@ class InteriorProject(models.Model):
     concept_title = models.CharField("設計概念標題", max_length=300, blank=True)
     design_notes = models.JSONField("設計筆記", default=list, blank=True)
     materials = models.JSONField("材質列表", default=list, blank=True)
-    featured_image = models.ImageField("主要圖片", upload_to="projects/%Y/%m/", blank=True, validators=[validate_image_upload])
+    featured_image = models.ImageField(
+        "主要圖片",
+        upload_to="projects/%Y/%m/",
+        blank=True,
+        validators=[validate_image_upload],
+    )
     image_label = models.CharField("預留圖片文字", max_length=180, blank=True)
     tone = models.CharField("預留圖片色調", max_length=40, default="bamboo", blank=True)
     published = models.BooleanField("公開", default=False)
@@ -44,19 +51,70 @@ class InteriorProject(models.Model):
 
 
 class InteriorProjectImage(models.Model):
-    project = models.ForeignKey(InteriorProject, verbose_name="作品", on_delete=models.CASCADE, related_name="images")
-    image = models.ImageField("圖片", upload_to="projects/gallery/%Y/%m/", blank=True, validators=[validate_image_upload])
-    alt_text = models.CharField("替代文字", max_length=255)
+    class UploadStatus(models.TextChoices):
+        PENDING = "pending", "上傳待確認"
+        TEMPORARY = "temporary", "暫存"
+        ATTACHED = "attached", "已連結作品"
+        DELETION_PENDING = "deletion_pending", "等待刪除"
+
+    project = models.ForeignKey(
+        InteriorProject,
+        verbose_name="作品",
+        on_delete=models.CASCADE,
+        related_name="images",
+        null=True,
+        blank=True,
+    )
+    image = models.ImageField(
+        "圖片",
+        upload_to="projects/gallery/%Y/%m/",
+        blank=True,
+        validators=[validate_image_upload],
+    )
+    alt_text = models.CharField("替代文字", max_length=255, blank=True)
     caption = models.CharField("圖片說明", max_length=255, blank=True)
     tone = models.CharField("預留圖片色調", max_length=40, default="linen", blank=True)
     sort_order = models.PositiveIntegerField("顯示順序", default=0)
+    upload_status = models.CharField(
+        "上傳狀態",
+        max_length=24,
+        choices=UploadStatus.choices,
+        default=UploadStatus.ATTACHED,
+    )
+    upload_session = models.UUIDField(
+        "上傳工作階段", null=True, blank=True, db_index=True
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="上傳者",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uploaded_project_images",
+    )
+    original_filename = models.CharField("原始檔名", max_length=255, blank=True)
+    content_type = models.CharField("Content-Type", max_length=64, blank=True)
+    file_size = models.PositiveBigIntegerField("檔案大小", null=True, blank=True)
+    width = models.PositiveIntegerField("寬度", null=True, blank=True)
+    height = models.PositiveIntegerField("高度", null=True, blank=True)
+    created_at = models.DateTimeField("建立時間", default=timezone.now, editable=False)
 
     class Meta:
         ordering = ("sort_order", "pk")
         verbose_name = "作品圖片"
         verbose_name_plural = "作品圖片"
+        indexes = [
+            models.Index(
+                fields=("project", "upload_status", "sort_order"),
+                name="content_ipi_project_idx",
+            )
+        ]
 
     def save(self, *args, **kwargs):
+        if not (self.alt_text or "").strip():
+            self.alt_text = (
+                (self.project.title if self.project_id else "") or "作品圖片"
+            ).strip()
         sanitize_image_field(self, "image")
         super().save(*args, **kwargs)
 
@@ -69,7 +127,12 @@ class Publication(models.Model):
     description = models.TextField("出版說明", blank=True)
     page_count = models.PositiveIntegerField("頁數", null=True, blank=True)
     published_date = models.DateField("出版日期", null=True, blank=True)
-    cover_image = models.ImageField("封面圖片", upload_to="publications/%Y/%m/", blank=True, validators=[validate_image_upload])
+    cover_image = models.ImageField(
+        "封面圖片",
+        upload_to="publications/%Y/%m/",
+        blank=True,
+        validators=[validate_image_upload],
+    )
     tone = models.CharField("預留圖片色調", max_length=40, default="rice", blank=True)
     featured = models.BooleanField("精選顯示", default=False)
     published = models.BooleanField("公開", default=False)
@@ -118,5 +181,7 @@ class PolicyPage(models.Model):
     def clean(self):
         from django.core.exceptions import ValidationError
 
-        if self.published and (not self.body.strip() or not self.version.strip() or not self.effective_date):
+        if self.published and (
+            not self.body.strip() or not self.version.strip() or not self.effective_date
+        ):
             raise ValidationError("公開政策頁面必須有本文、版本與生效日期。")

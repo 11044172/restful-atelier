@@ -1,8 +1,8 @@
 import json
 import logging
-from django.conf import settings
 from uuid import uuid4
 
+from django.conf import settings
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import path, reverse
@@ -50,7 +50,18 @@ class ProductCategoryAdmin(admin.ModelAdmin):
 class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
     change_form_template = "admin/catalog/product/change_form.html"
-    list_display = ("thumbnail", "display_name", "sku", "category", "publication_state", "readiness_state", "price", "stock", "preview_link", "updated_at")
+    list_display = (
+        "thumbnail",
+        "display_name",
+        "sku",
+        "category",
+        "publication_state",
+        "readiness_state",
+        "price",
+        "stock",
+        "preview_link",
+        "updated_at",
+    )
     list_filter = ("is_published", "is_preorder", "category")
     search_fields = ("name", "sku", "description", "maker", "series")
     list_editable = ("stock",)
@@ -59,12 +70,65 @@ class ProductAdmin(admin.ModelAdmin):
     inlines = (ProductSpecificationInline,)
     readonly_fields = ("preview_link", "created_at", "updated_at")
     fieldsets = (
-        ("基本資訊", {"fields": ("category", "name", "slug", "sku", "maker", "series", "subcategory"), "description": "草稿可先留空；slug 與暫用 SKU 會自動建立。"}),
-        ("商品資訊", {"fields": ("short_description", "description", "care", "shipping_note", "maker_story")}),
-        ("販售設定", {"fields": ("price", "stock", "sale_starts_at", "sale_ends_at", "is_preorder", "preorder_note", "preorder_limit", "preorder_delivery_estimate", "badge_label")}),
+        (
+            "基本資訊",
+            {
+                "fields": (
+                    "category",
+                    "name",
+                    "slug",
+                    "sku",
+                    "maker",
+                    "series",
+                    "subcategory",
+                ),
+                "description": "草稿可先留空；slug 與暫用 SKU 會自動建立。",
+            },
+        ),
+        (
+            "商品資訊",
+            {
+                "fields": (
+                    "short_description",
+                    "description",
+                    "care",
+                    "shipping_note",
+                    "maker_story",
+                )
+            },
+        ),
+        (
+            "販售設定",
+            {
+                "fields": (
+                    "price",
+                    "stock",
+                    "sale_starts_at",
+                    "sale_ends_at",
+                    "is_preorder",
+                    "preorder_note",
+                    "preorder_limit",
+                    "preorder_delivery_estimate",
+                    "badge_label",
+                )
+            },
+        ),
         ("公開設定", {"fields": ("is_published", "preview_link")}),
-        ("圖片預留設定", {"classes": ("collapse",), "fields": ("image_label", "tone"), "description": "僅在尚未上傳正式圖片時顯示。"}),
-        ("管理資訊", {"classes": ("collapse",), "fields": ("sort_order", "created_at", "updated_at")}),
+        (
+            "圖片預留設定",
+            {
+                "classes": ("collapse",),
+                "fields": ("image_label", "tone"),
+                "description": "僅在尚未上傳正式圖片時顯示。",
+            },
+        ),
+        (
+            "管理資訊",
+            {
+                "classes": ("collapse",),
+                "fields": ("sort_order", "created_at", "updated_at"),
+            },
+        ),
     )
     list_per_page = 25
 
@@ -110,7 +174,8 @@ class ProductAdmin(admin.ModelAdmin):
         registry = {
             key: value
             for key, value in registry.items()
-            if value.get("created_at", 0) >= cutoff and value.get("user_id") == request.user.pk
+            if value.get("created_at", 0) >= cutoff
+            and value.get("user_id") == request.user.pk
         }
         upload_session = uuid4()
         registry[str(upload_session)] = {
@@ -126,21 +191,31 @@ class ProductAdmin(admin.ModelAdmin):
         registry = request.session.get(UPLOAD_SESSION_REGISTRY, {})
         record = registry.get(str(upload_session))
         if not record or record.get("user_id") != request.user.pk:
-            raise ProductImageError("無法確認上傳工作階段。", "invalid_upload_session", 403)
+            raise ProductImageError(
+                "無法確認上傳工作階段。", "invalid_upload_session", 403
+            )
         if record.get("created_at", 0) < timezone.now().timestamp() - 24 * 60 * 60:
-            raise ProductImageError("上傳工作階段已逾期。", "expired_upload_session", 403)
+            raise ProductImageError(
+                "上傳工作階段已逾期。", "expired_upload_session", 403
+            )
         recorded_product_id = record.get("product_id")
         if recorded_product_id != product_id:
-            raise ProductImageError("上傳工作階段所屬商品不一致。", "session_product_mismatch", 403)
+            raise ProductImageError(
+                "上傳工作階段所屬商品不一致。", "session_product_mismatch", 403
+            )
         if product_id is None:
             if not self.has_add_permission(request):
-                raise ProductImageError("您沒有新增商品圖片的權限。", "permission_denied", 403)
+                raise ProductImageError(
+                    "您沒有新增商品圖片的權限。", "permission_denied", 403
+                )
             return None
         product = Product.objects.filter(pk=product_id).first()
         if not product:
             raise ProductImageError("找不到指定商品。", "product_not_found", 404)
         if not self.has_change_permission(request, product):
-            raise ProductImageError("您沒有修改商品圖片的權限。", "permission_denied", 403)
+            raise ProductImageError(
+                "您沒有修改商品圖片的權限。", "permission_denied", 403
+            )
         return product
 
     @staticmethod
@@ -171,7 +246,9 @@ class ProductAdmin(admin.ModelAdmin):
         try:
             response = callback()
         except ProductImageError as exc:
-            response = JsonResponse({"error": exc.message, "code": exc.code}, status=exc.status)
+            response = JsonResponse(
+                {"error": exc.message, "code": exc.code}, status=exc.status
+            )
         except Exception:
             logger.exception("Unexpected product image API error")
             response = JsonResponse(
@@ -233,13 +310,9 @@ class ProductAdmin(admin.ModelAdmin):
             if not image:
                 raise ProductImageError("找不到指定圖片。", "image_not_found", 404)
             if product:
-                owned = (
-                    image.product_id == product.pk
-                    and image.upload_status
-                    in (
-                        ProductImage.UploadStatus.ATTACHED,
-                        ProductImage.UploadStatus.DELETION_PENDING,
-                    )
+                owned = image.product_id == product.pk and image.upload_status in (
+                    ProductImage.UploadStatus.ATTACHED,
+                    ProductImage.UploadStatus.DELETION_PENDING,
                 )
             else:
                 owned = (
@@ -247,7 +320,10 @@ class ProductAdmin(admin.ModelAdmin):
                     and image.uploaded_by_id == request.user.pk
                     and image.upload_session == upload_session
                     and image.upload_status
-                    in (ProductImage.UploadStatus.PENDING, ProductImage.UploadStatus.TEMPORARY)
+                    in (
+                        ProductImage.UploadStatus.PENDING,
+                        ProductImage.UploadStatus.TEMPORARY,
+                    )
                 )
             if not owned:
                 raise ProductImageError("您無法刪除此圖片。", "image_not_owned", 403)
@@ -268,7 +344,9 @@ class ProductAdmin(admin.ModelAdmin):
             try:
                 image_ids = [int(value) for value in raw_ids]
             except (TypeError, ValueError) as exc:
-                raise ProductImageError("圖片排序資料無效。", "invalid_image_set") from exc
+                raise ProductImageError(
+                    "圖片排序資料無效。", "invalid_image_set"
+                ) from exc
             if product:
                 normalize_product_images(product, image_ids)
             else:
@@ -285,7 +363,9 @@ class ProductAdmin(admin.ModelAdmin):
         product_id = int(object_id) if object_id else None
         if request.method == "POST" and request.POST.get("product_image_session"):
             try:
-                upload_session = parse_upload_session(request.POST["product_image_session"])
+                upload_session = parse_upload_session(
+                    request.POST["product_image_session"]
+                )
             except ProductImageError:
                 upload_session = self._new_upload_session(request, product_id)
         else:
@@ -306,8 +386,15 @@ class ProductAdmin(admin.ModelAdmin):
             ]
         context = {
             "product_image_config": {
+                "mode": "multiple",
+                "adapter": "model",
                 "uploadSession": str(upload_session),
                 "productId": product_id,
+                "orderValue": ",".join(str(image["id"]) for image in images),
+                "scope": {
+                    "upload_session": str(upload_session),
+                    "product_id": product_id,
+                },
                 "images": images,
                 "presignUrl": reverse("admin:catalog_product_image_presign"),
                 "completeUrl": reverse("admin:catalog_product_image_complete"),
@@ -315,12 +402,20 @@ class ProductAdmin(admin.ModelAdmin):
                 "deleteUrlTemplate": reverse(
                     "admin:catalog_product_image_delete", args=[999999999]
                 ).replace("999999999", "__IMAGE_ID__"),
+                "orderInputId": "id_product_image_order",
+                "sessionInputId": "id_product_image_session",
+                "labels": {
+                    "fallbackFilename": "商品圖片",
+                    "mainBadge": "主要圖片",
+                },
                 "limits": {
+                    "maxFiles": 10,
                     "maxInputBytes": settings.ADMIN_IMAGE_MAX_INPUT_BYTES,
                     "maxOutputBytes": settings.PRODUCT_IMAGE_MAX_BYTES,
                     "maxInputPixels": settings.ADMIN_IMAGE_MAX_INPUT_PIXELS,
                     "maxInputDimension": settings.ADMIN_IMAGE_MAX_INPUT_DIMENSION,
                     "longEdge": settings.ADMIN_IMAGE_PHOTO_LONG_EDGE,
+                    "reencodeThresholdBytes": 8 * 1024 * 1024,
                 },
             }
         }
@@ -352,8 +447,12 @@ class ProductAdmin(admin.ModelAdmin):
     def thumbnail(self, obj):
         image = obj.primary_image
         if image and image.image:
-            return format_html('<img class="admin-thumbnail" src="{}" alt="">', image.image.url)
-        return format_html('<span class="admin-thumbnail-placeholder">{}</span>', obj.name[:1] or "草")
+            return format_html(
+                '<img class="admin-thumbnail" src="{}" alt="">', image.image.url
+            )
+        return format_html(
+            '<span class="admin-thumbnail-placeholder">{}</span>', obj.name[:1] or "草"
+        )
 
     @admin.display(description="狀態", ordering="is_published")
     def publication_state(self, obj):
@@ -368,15 +467,27 @@ class ProductAdmin(admin.ModelAdmin):
     @admin.display(description="公開前檢查")
     def readiness_state(self, obj):
         missing = []
-        if not obj.name: missing.append("商品名稱")
-        if not obj.sku or obj.sku.startswith("DRAFT-"): missing.append("SKU")
-        if obj.price is None: missing.append("售價")
-        if not obj.description: missing.append("說明")
-        if not obj.primary_image: missing.append("圖片")
+        if not obj.name:
+            missing.append("商品名稱")
+        if not obj.sku or obj.sku.startswith("DRAFT-"):
+            missing.append("SKU")
+        if obj.price is None:
+            missing.append("售價")
+        if not obj.description:
+            missing.append("說明")
+        if not obj.primary_image:
+            missing.append("圖片")
         return "準備完成" if not missing else "尚缺：" + "、".join(missing)
 
     @admin.display(description="公開頁面")
     def preview_link(self, obj):
-        if not obj or not obj.pk or not Product.objects.published().filter(pk=obj.pk).exists():
+        if (
+            not obj
+            or not obj.pk
+            or not Product.objects.published().filter(pk=obj.pk).exists()
+        ):
             return "公開準備完成後顯示"
-        return format_html('<a href="{}" target="_blank" rel="noopener">預覽 ↗</a>', obj.get_absolute_url())
+        return format_html(
+            '<a href="{}" target="_blank" rel="noopener">預覽 ↗</a>',
+            obj.get_absolute_url(),
+        )

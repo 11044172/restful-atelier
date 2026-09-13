@@ -3,7 +3,7 @@
 
 {% block extrahead %}
   {{ block.super }}
-  <script src="{% static 'admin/js/product-images.js' %}" defer></script>
+  <script src="{% static 'admin/js/admin-image-manager.js' %}" defer></script>
 {% endblock %}
 
 {% block form_top %}
@@ -18,22 +18,22 @@
   {{ block.super }}
   {{ product_image_config|json_script:"product-image-config" }}
   <input type="hidden" name="product_image_session" id="id_product_image_session" value="{{ product_image_config.uploadSession }}">
-  <input type="hidden" name="product_image_order" id="id_product_image_order" value="">
-  <section class="product-image-manager" data-product-image-manager aria-labelledby="product-image-heading">
-    <header class="product-image-manager__header">
+  <input type="hidden" name="product_image_order" id="id_product_image_order" value="{{ product_image_config.orderValue }}">
+  <section class="admin-image-manager" data-admin-image-manager data-product-image-manager data-config-id="product-image-config" aria-labelledby="product-image-heading">
+    <header class="admin-image-manager__header">
       <div>
         <p class="eyebrow">PRODUCT IMAGES</p>
         <h2 id="product-image-heading">商品圖片</h2>
         <p>一次最多可選擇 10 張圖片。支援 JPG、PNG、WebP，每張上限 20MB。圖片會直接上傳至 Cloudflare R2。</p>
       </div>
-      <label class="button product-image-picker">
+      <label class="button admin-image-picker">
         新增商品圖片
         <input type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" multiple data-image-input>
       </label>
     </header>
-    <div class="product-image-message" data-image-message role="alert" hidden></div>
-    <div class="product-image-grid" data-image-grid aria-live="polite"></div>
-    <p class="product-image-empty" data-image-empty>尚未有商品圖片。</p>
-    <p class="product-image-help">可拖曳圖片調整顯示順序，第一張會作為主要圖片。儲存商品時，POST 請求不會包含圖片檔案。</p>
+    <div class="admin-image-message" data-image-message role="alert" hidden></div>
+    <div class="admin-image-grid" data-image-grid aria-live="polite"></div>
+    <p class="admin-image-empty" data-image-empty>尚未有商品圖片。</p>
+    <p class="admin-image-help">可拖曳圖片調整顯示順序，也可使用左右按鈕。第一張會作為主要圖片。儲存商品時，POST 請求不會包含圖片檔案。</p>
   </section>
 {% endblock %}

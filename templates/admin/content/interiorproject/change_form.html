@@ -1,0 +1,25 @@
+{% extends "admin/change_form.html" %}
+
+{% block after_field_sets %}
+  {{ block.super }}
+  {{ project_image_config|json_script:"project-image-config" }}
+  <input type="hidden" name="project_image_session" id="id_project_image_session" value="{{ project_image_config.uploadSession }}">
+  <input type="hidden" name="project_image_order" id="id_project_image_order" value="{{ project_image_config.orderValue }}">
+  <section class="admin-image-manager" data-admin-image-manager data-config-id="project-image-config" aria-labelledby="project-gallery-heading">
+    <header class="admin-image-manager__header">
+      <div>
+        <p class="eyebrow">PROJECT GALLERY</p>
+        <h2 id="project-gallery-heading">作品圖片 / Gallery</h2>
+        <p>一次最多可選擇 10 張圖片。圖片會直接上傳至 Cloudflare R2，不會經過 Django 傳送圖片本體。</p>
+      </div>
+      <label class="button admin-image-picker">
+        新增作品圖片
+        <input type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" multiple data-image-input>
+      </label>
+    </header>
+    <div class="admin-image-message" data-image-message role="alert" hidden></div>
+    <div class="admin-image-grid" data-image-grid aria-live="polite"></div>
+    <p class="admin-image-empty" data-image-empty>尚未有作品圖片。</p>
+    <p class="admin-image-help">拖曳或使用左右按鈕調整順序。替代文字、圖片說明與預留色調會在離開欄位時自動儲存。</p>
+  </section>
+{% endblock %}
