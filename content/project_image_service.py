@@ -3,6 +3,7 @@
 import logging
 import re
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from uuid import UUID, uuid4
 
 from django.conf import settings
@@ -30,6 +31,7 @@ DIRECT_OBJECT_KEY_PATTERN = re.compile(
 )
 TONE_MAX_LENGTH = InteriorProjectImage._meta.get_field("tone").max_length
 TEXT_MAX_LENGTH = 255
+UNSET = object()
 
 
 @dataclass
@@ -280,11 +282,44 @@ def attach_temporary_images(*, project, user, upload_session, ordered_ids):
     normalize_project_images(project, ordered_ids)
 
 
-def update_image_metadata(image, *, alt_text, caption, tone):
+def validate_focus_coordinate(value, field_name):
+    if isinstance(value, bool):
+        raise ProjectImageError(
+            "圖片焦點必須是 0 到 100 的整數。", f"invalid_{field_name}"
+        )
+    try:
+        coordinate = Decimal(str(value).strip())
+    except (InvalidOperation, TypeError, ValueError, AttributeError) as exc:
+        raise ProjectImageError(
+            "圖片焦點必須是 0 到 100 的整數。",
+            f"invalid_{field_name}",
+        ) from exc
+    if (
+        not coordinate.is_finite()
+        or coordinate != coordinate.to_integral_value()
+        or coordinate < 0
+        or coordinate > 100
+    ):
+        raise ProjectImageError(
+            "圖片焦點必須是 0 到 100 的整數。",
+            f"invalid_{field_name}",
+        )
+    return int(coordinate)
+
+
+def update_image_metadata(
+    image, *, alt_text, caption, tone, focus_x=UNSET, focus_y=UNSET
+):
     values = {
         "alt_text": str(alt_text or "").strip()[:TEXT_MAX_LENGTH],
         "caption": str(caption or "").strip()[:TEXT_MAX_LENGTH],
         "tone": str(tone or "").strip()[:TONE_MAX_LENGTH],
+        "focus_x": validate_focus_coordinate(
+            image.focus_x if focus_x is UNSET else focus_x, "focus_x"
+        ),
+        "focus_y": validate_focus_coordinate(
+            image.focus_y if focus_y is UNSET else focus_y, "focus_y"
+        ),
     }
     if not values["alt_text"]:
         values["alt_text"] = "作品圖片"
@@ -324,6 +359,10 @@ def image_payload(image):
         "alt_text": image.alt_text,
         "caption": image.caption,
         "tone": image.tone,
+        "focus_x": image.focus_x,
+        "focus_y": image.focus_y,
+        "width": image.width,
+        "height": image.height,
         "sort_order": image.sort_order,
         "filename": image.original_filename or image.alt_text,
         "size": image.file_size,

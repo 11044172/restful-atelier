@@ -14,8 +14,9 @@ from .direct_image_uploads import (
 class DirectImageWidget(forms.Widget):
     template_name = "admin/widgets/direct_image.html"
 
-    def __init__(self, *, category, profile, attrs=None):
+    def __init__(self, *, category, profile, focal_point=None, attrs=None):
         self.category, self.profile = category, profile
+        self.focal_point = focal_point
         super().__init__(attrs)
 
     def format_value(self, value):
@@ -43,15 +44,20 @@ class DirectImageWidget(forms.Widget):
                 "max_input_dimension": settings.ADMIN_IMAGE_MAX_INPUT_DIMENSION,
                 "photo_long_edge": settings.ADMIN_IMAGE_PHOTO_LONG_EDGE,
                 "artwork_long_edge": settings.ADMIN_IMAGE_ARTWORK_LONG_EDGE,
+                "focal_point": self.focal_point,
             }
         )
         return context
 
 
 class DirectImageFormField(forms.Field):
-    def __init__(self, *, category, profile, **kwargs):
+    def __init__(self, *, category, profile, focal_point=None, **kwargs):
         kwargs.setdefault("required", False)
-        kwargs["widget"] = DirectImageWidget(category=category, profile=profile)
+        kwargs["widget"] = DirectImageWidget(
+            category=category,
+            profile=profile,
+            focal_point=focal_point,
+        )
         self.category, self.user, self.upload_id = category, None, None
         super().__init__(**kwargs)
 
@@ -81,19 +87,34 @@ class DirectImageFormField(forms.Field):
 
 class DirectImageAdminFormMixin:
     direct_image_fields = {}
+    direct_image_focal_fields = {}
 
     def __init__(self, *args, **kwargs):
         request = kwargs.pop("request", None)
         self.request = request
         super().__init__(*args, **kwargs)
+        for x_name, y_name in self.direct_image_focal_fields.values():
+            if x_name in self.fields:
+                self.fields[x_name].widget = forms.HiddenInput()
+            if y_name in self.fields:
+                self.fields[y_name].widget = forms.HiddenInput()
         for name, category in self.direct_image_fields.items():
             if name not in self.fields:
                 continue
             old = self.fields[name]
             _permission, _prefix, profile = category_config(category)
+            focal_fields = self.direct_image_focal_fields.get(name)
+            focal_point = None
+            if focal_fields:
+                x_name, y_name = focal_fields
+                focal_point = {
+                    "x_input_id": self[x_name].id_for_label,
+                    "y_input_id": self[y_name].id_for_label,
+                }
             field = DirectImageFormField(
                 category=category,
                 profile=profile,
+                focal_point=focal_point,
                 label=old.label,
                 help_text=old.help_text,
             )

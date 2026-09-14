@@ -40,15 +40,34 @@
   const directWidgetConfig = (root) => {
     const hidden = root.querySelector('[data-image-value]');
     const hasCurrent = root.dataset.currentUrl && hidden && hidden.value;
+    const focusXInput = root.dataset.focusXInput ? document.getElementById(root.dataset.focusXInput) : null;
+    const focusYInput = root.dataset.focusYInput ? document.getElementById(root.dataset.focusYInput) : null;
+    const focalPoint = root.dataset.focalPoint === "true" ? {
+      xField: "focus_x",
+      yField: "focus_y",
+      xInputId: root.dataset.focusXInput,
+      yInputId: root.dataset.focusYInput,
+      defaultX: 50,
+      defaultY: 50,
+      previews: [
+        {label: "列表預覽", ratio: "5 / 3.4"},
+        {label: "作品頁預覽", ratio: "16 / 9"},
+      ],
+    } : null;
+    const currentImage = hasCurrent ? {
+      url: root.dataset.currentUrl,
+      filename: root.dataset.currentLabel || "目前圖片",
+      formValue: hidden.value,
+    } : null;
+    if (currentImage && focalPoint) {
+      currentImage[focalPoint.xField] = Number(focusXInput?.value || focalPoint.defaultX);
+      currentImage[focalPoint.yField] = Number(focusYInput?.value || focalPoint.defaultY);
+    }
     return {
       mode: "single",
       adapter: "direct",
       scope: {category: root.dataset.category},
-      images: hasCurrent ? [{
-        url: root.dataset.currentUrl,
-        filename: root.dataset.currentLabel || "目前圖片",
-        formValue: hidden.value,
-      }] : [],
+      images: currentImage ? [currentImage] : [],
       presignUrl: root.dataset.presignUrl,
       completeUrl: root.dataset.completeUrl,
       directDeleteUrl: root.dataset.deleteUrl,
@@ -62,6 +81,7 @@
         longEdge: Number(root.dataset.longEdge),
       },
       labels: {fallbackFilename: "圖片", mainBadge: ""},
+      focalPoint,
     };
   };
 
@@ -173,6 +193,10 @@
     if (!input || !grid || !empty || !message) return;
 
     const labels = config.labels || {};
+    const focalPoint = config.focalPoint || null;
+    root.classList.toggle("admin-image-manager--focal", Boolean(focalPoint));
+    const metadataNames = (config.metadataFields || []).map((field) => field.name);
+    if (focalPoint) metadataNames.push(focalPoint.xField, focalPoint.yField);
     const items = (config.images || []).map((image) => ({
       key: image.id ? `server-${image.id}` : `existing-${Math.random()}`,
       serverId: image.id || null,
@@ -183,7 +207,12 @@
       error: "",
       localUrl: false,
       formValue: image.formValue || "",
-      metadata: Object.fromEntries((config.metadataFields || []).map((field) => [field.name, image[field.name] || ""])),
+      width: image.width || null,
+      height: image.height || null,
+      metadata: Object.fromEntries(metadataNames.map((name) => [
+        name,
+        image[name] ?? (name === focalPoint?.xField ? focalPoint.defaultX : name === focalPoint?.yField ? focalPoint.defaultY : ""),
+      ])),
     }));
     let previousSingleItem = null;
     let running = 0;
@@ -195,6 +224,17 @@
     const showMessage = (text) => {
       message.textContent = text || "";
       message.hidden = !text;
+    };
+    const normalizedFocus = (value, fallback = 50) => {
+      const number = Number(value);
+      return Number.isFinite(number) ? Math.max(0, Math.min(100, Math.round(number))) : fallback;
+    };
+    const syncFocalFormInputs = (item) => {
+      if (!focalPoint || config.mode !== "single") return;
+      const xInput = focalPoint.xInputId ? document.getElementById(focalPoint.xInputId) : null;
+      const yInput = focalPoint.yInputId ? document.getElementById(focalPoint.yInputId) : null;
+      if (xInput) xInput.value = normalizedFocus(item.metadata[focalPoint.xField], focalPoint.defaultX);
+      if (yInput) yInput.value = normalizedFocus(item.metadata[focalPoint.yField], focalPoint.defaultY);
     };
     const syncInputs = () => {
       const sessionInput = config.sessionInputId ? document.getElementById(config.sessionInputId) : null;
@@ -211,6 +251,7 @@
       if (config.mode === "single" && valueInput && items[0]?.status === "done") {
         valueInput.value = items[0].formValue || valueInput.value;
       }
+      if (items[0]) syncFocalFormInputs(items[0]);
     };
     const persistOrder = () => {
       if (config.mode !== "multiple" || !config.reorderUrl) return Promise.resolve();
@@ -250,6 +291,127 @@
         state.textContent = error.message || "儲存失敗";
         state.classList.add("is-error");
       }
+    };
+
+    const focalPointMarkup = (item) => {
+      if (!focalPoint || item.status !== "done") return "";
+      const previews = (focalPoint.previews || []).map((preview) => `
+        <figure class="admin-focal-preview" style="--preview-ratio:${preview.ratio}">
+          <div><img src="" alt=""></div><figcaption>${preview.label}</figcaption>
+        </figure>`).join("");
+      const metadataAttributes = config.metadataUrlTemplate ? "data-metadata-field" : "";
+      return `
+        <section class="admin-focal-editor" data-focal-editor>
+          <div class="admin-focal-editor__heading">
+            <strong>圖片焦點</strong>
+            <span>點擊或拖曳圓點調整希望顯示的圖片位置</span>
+          </div>
+          <div class="admin-focal-surface" data-focal-surface tabindex="0" role="application" aria-label="圖片焦點，可使用方向鍵調整">
+            <img src="" alt=""><span class="admin-focal-marker" data-focal-marker aria-hidden="true"></span>
+          </div>
+          <input type="hidden" name="${focalPoint.xField}" data-focus-x ${metadataAttributes}>
+          <input type="hidden" name="${focalPoint.yField}" data-focus-y ${metadataAttributes}>
+          <div class="admin-focal-previews">${previews}</div>
+          <button type="button" class="button admin-focal-reset" data-focal-reset>重設為置中</button>
+        </section>`;
+    };
+
+    const setupFocalPoint = (item, card) => {
+      if (!focalPoint) return;
+      const editor = card.querySelector("[data-focal-editor]");
+      if (!editor) return;
+      const surface = editor.querySelector("[data-focal-surface]");
+      const sourceImage = surface.querySelector("img");
+      const marker = editor.querySelector("[data-focal-marker]");
+      const xControl = editor.querySelector("[data-focus-x]");
+      const yControl = editor.querySelector("[data-focus-y]");
+      const previewImages = editor.querySelectorAll(".admin-focal-preview img");
+      let activePointer = null;
+      let restoreDraggable = false;
+
+      const update = (x, y) => {
+        const nextX = normalizedFocus(x, focalPoint.defaultX);
+        const nextY = normalizedFocus(y, focalPoint.defaultY);
+        item.metadata[focalPoint.xField] = nextX;
+        item.metadata[focalPoint.yField] = nextY;
+        xControl.value = nextX;
+        yControl.value = nextY;
+        marker.style.left = `${nextX}%`;
+        marker.style.top = `${nextY}%`;
+        previewImages.forEach((image) => { image.style.objectPosition = `${nextX}% ${nextY}%`; });
+        surface.setAttribute("aria-valuetext", `水平 ${nextX}%，垂直 ${nextY}%`);
+        syncFocalFormInputs(item);
+      };
+      const updateFromPointer = (event) => {
+        const bounds = surface.getBoundingClientRect();
+        if (!bounds.width || !bounds.height) return;
+        update(
+          ((event.clientX - bounds.left) / bounds.width) * 100,
+          ((event.clientY - bounds.top) / bounds.height) * 100,
+        );
+      };
+      const persistFocus = () => {
+        if (config.metadataUrlTemplate && item.serverId) persistMetadata(item, card);
+      };
+      const setSurfaceRatio = () => {
+        const width = item.width || sourceImage.naturalWidth;
+        const height = item.height || sourceImage.naturalHeight;
+        if (width && height) surface.style.aspectRatio = `${width} / ${height}`;
+      };
+
+      sourceImage.src = item.previewUrl || "";
+      sourceImage.addEventListener("load", setSurfaceRatio, {once: true});
+      if (sourceImage.complete) setSurfaceRatio();
+      previewImages.forEach((image) => {
+        image.src = item.previewUrl || "";
+        image.alt = "";
+      });
+      update(item.metadata[focalPoint.xField], item.metadata[focalPoint.yField]);
+
+      surface.addEventListener("pointerdown", (event) => {
+        if (event.button !== undefined && event.button !== 0) return;
+        event.preventDefault();
+        event.stopPropagation();
+        restoreDraggable = card.draggable;
+        card.draggable = false;
+        activePointer = event.pointerId;
+        surface.setPointerCapture?.(event.pointerId);
+        updateFromPointer(event);
+      });
+      surface.addEventListener("pointermove", (event) => {
+        if (activePointer !== event.pointerId) return;
+        event.preventDefault();
+        updateFromPointer(event);
+      });
+      const finishPointer = (event) => {
+        if (activePointer !== event.pointerId) return;
+        updateFromPointer(event);
+        activePointer = null;
+        card.draggable = restoreDraggable;
+        restoreDraggable = false;
+        persistFocus();
+      };
+      surface.addEventListener("pointerup", finishPointer);
+      surface.addEventListener("pointercancel", finishPointer);
+      surface.addEventListener("keydown", (event) => {
+        const movements = {
+          ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+        };
+        if (!movements[event.key]) return;
+        event.preventDefault();
+        const amount = event.shiftKey ? 5 : 1;
+        const [moveX, moveY] = movements[event.key];
+        update(
+          Number(item.metadata[focalPoint.xField]) + moveX * amount,
+          Number(item.metadata[focalPoint.yField]) + moveY * amount,
+        );
+        persistFocus();
+      });
+      editor.querySelector("[data-focal-reset]").addEventListener("click", () => {
+        update(focalPoint.defaultX, focalPoint.defaultY);
+        persistFocus();
+        surface.focus();
+      });
     };
 
     const moveItem = (item, offset) => {
@@ -292,7 +454,8 @@
             <div class="admin-image-progress" aria-hidden="true"><i></i></div>
             <span class="admin-image-state"></span>
             <small class="admin-image-error"></small>
-            ${metadataMarkup ? `<div class="admin-image-metadata">${metadataMarkup}<small data-metadata-state aria-live="polite"></small></div>` : ""}
+            ${metadataMarkup || (focalPoint && config.metadataUrlTemplate) ? `<div class="admin-image-metadata">${metadataMarkup}<small data-metadata-state aria-live="polite"></small></div>` : ""}
+            ${focalPointMarkup(item)}
             <div class="admin-image-actions">
               ${navigation}
               <button type="button" class="button" data-retry ${item.status === "failed" ? "" : "hidden"}>重試</button>
@@ -321,6 +484,7 @@
           control.addEventListener("change", () => persistMetadata(item, card));
           if (field.type !== "select") control.addEventListener("blur", () => persistMetadata(item, card));
         });
+        setupFocalPoint(item, card);
         card.querySelector("[data-retry]").addEventListener("click", () => retry(item));
         card.querySelector("[data-delete]").addEventListener("click", () => removeItem(item));
         card.querySelector("[data-move-previous]")?.addEventListener("click", () => moveItem(item, -1));
@@ -378,7 +542,12 @@
         if (completed.image) {
           item.serverId = completed.image.id;
           item.filename = completed.image.filename || item.filename;
-          item.metadata = Object.fromEntries((config.metadataFields || []).map((field) => [field.name, completed.image[field.name] || ""]));
+          item.width = completed.image.width || item.width;
+          item.height = completed.image.height || item.height;
+          item.metadata = Object.fromEntries(metadataNames.map((name) => [
+            name,
+            completed.image[name] ?? (name === focalPoint?.xField ? focalPoint.defaultX : name === focalPoint?.yField ? focalPoint.defaultY : ""),
+          ]));
         } else {
           item.uploadId = completed.upload_id || prepared.upload_id;
           item.objectKey = completed.object_key || prepared.object_key;
@@ -518,7 +687,10 @@
           progress: 0,
           error: "",
           serverId: null,
-          metadata: {},
+          metadata: focalPoint ? {
+            [focalPoint.xField]: focalPoint.defaultX,
+            [focalPoint.yField]: focalPoint.defaultY,
+          } : {},
         };
         items.push(item);
         prepare(item);

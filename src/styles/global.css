@@ -258,6 +258,9 @@ address { font-style: normal; }
 .project-gallery > :nth-child(2) { margin-top: 140px; }
 .project-gallery > :nth-child(3) { width: 74%; margin: 20px 0 0 auto; }
 .project-gallery > :nth-child(4) { width: 82%; margin-top: -40px; }
+.project-gallery > .project-gallery-image--portrait .cms-image,
+.project-gallery > .project-gallery-image--landscape .cms-image,
+.project-gallery > .project-gallery-image--square .cms-image { object-fit: contain; }
 .material-section { display: grid; grid-template-columns: 1fr 1.25fr; gap: 10%; padding-block: 110px; border-top: 1px solid var(--color-line); }
 .material-section h2 { max-width: 500px; font-size: clamp(32px, 4vw, 52px); line-height: 1.55; }
 .material-section ul { margin: 0; padding: 0; list-style: none; }

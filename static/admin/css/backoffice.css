@@ -278,6 +278,9 @@ a.metric-card:hover { background: #f0eee7; transform: translateY(-2px); }
 .admin-image-message { margin-top: 17px; padding: 12px 14px; border-left: 3px solid #9a5148; background: #f3e1de; color: #7d3933; font-size: 12px; }
 .admin-image-grid { margin-top: 22px; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
 .admin-image-manager--single .admin-image-grid { grid-template-columns: minmax(0, 260px); }
+.admin-image-manager--single.admin-image-manager--focal { width: min(760px, 100%); }
+.admin-image-manager--single.admin-image-manager--focal .admin-image-grid { grid-template-columns: minmax(0, 1fr); }
+.admin-image-manager--focal:not(.admin-image-manager--single) .admin-image-grid { grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
 .admin-image-card { min-width: 0; overflow: hidden; border: 1px solid #d8d3c8; border-radius: 3px; background: #fffefa; transition: border-color .15s, box-shadow .15s, opacity .15s; }
 .admin-image-card[draggable="true"] { cursor: grab; }
 .admin-image-card.is-dragging { opacity: .48; }
@@ -307,6 +310,22 @@ a.metric-card:hover { background: #f0eee7; transform: translateY(-2px); }
 .admin-image-metadata-field input, .admin-image-metadata-field select { width: 100%; min-width: 0; box-sizing: border-box; }
 .admin-image-metadata [data-metadata-state] { min-height: 1.4em; color: #65736a; }
 .admin-image-metadata [data-metadata-state].is-error { color: #8d413a; }
+.admin-focal-editor { margin-top: 14px; padding-top: 14px; border-top: 1px solid #e2ddd3; }
+.admin-focal-editor__heading { display: grid; gap: 4px; margin-bottom: 10px; color: #667169; font-size: 10px; line-height: 1.5; }
+.admin-focal-editor__heading strong { color: #344239; font-size: 12px; }
+.admin-focal-surface { position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; border: 1px solid #d4cec2; border-radius: 2px; background: #e9e5dc; cursor: crosshair; touch-action: none; user-select: none; }
+.admin-focal-surface:focus-visible { outline: 3px solid rgba(82,108,91,.35); outline-offset: 2px; }
+.admin-focal-surface img { width: 100%; height: 100%; display: block; object-fit: contain; pointer-events: none; }
+.admin-focal-marker { position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; border: 2px solid #fff; border-radius: 50%; background: rgba(49,72,58,.78); box-shadow: 0 0 0 2px rgba(35,50,41,.5), 0 2px 8px rgba(0,0,0,.25); transform: translate(-50%, -50%); pointer-events: none; }
+.admin-focal-marker::before, .admin-focal-marker::after { position: absolute; left: 50%; top: 50%; content: ""; background: rgba(255,255,255,.92); transform: translate(-50%, -50%); }
+.admin-focal-marker::before { width: 8px; height: 1px; }
+.admin-focal-marker::after { width: 1px; height: 8px; }
+.admin-focal-previews { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 11px; }
+.admin-focal-preview { min-width: 0; margin: 0; }
+.admin-focal-preview > div { position: relative; aspect-ratio: var(--preview-ratio); overflow: hidden; background: #ebe7dd; }
+.admin-focal-preview img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
+.admin-focal-preview figcaption { margin-top: 4px; color: #68736b; font-size: 9px; }
+.admin-focal-reset { margin-top: 10px !important; min-height: 36px !important; padding: 7px 11px !important; font-size: 10px !important; }
 
 @media (max-width: 1100px) {
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
@@ -324,6 +343,7 @@ a.metric-card:hover { background: #f0eee7; transform: translateY(-2px); }
   .admin-image-picker { justify-content: center; }
   .admin-image-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .admin-image-manager--single .admin-image-grid { grid-template-columns: minmax(0, 1fr); }
+  .admin-image-manager--focal:not(.admin-image-manager--single) .admin-image-grid { grid-template-columns: minmax(0, 1fr); }
   #header { min-height: 66px; padding: 0 16px; }
   .brand-copy small, .environment-label, .user-presence, #user-tools > a { display: none; }
   .brand-copy strong { font-size: 15px; }

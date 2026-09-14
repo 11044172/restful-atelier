@@ -31,10 +31,37 @@ class InteriorProjectAdminForm(DirectImageAdminFormMixin, forms.ModelForm):
     project_image_session = forms.UUIDField(required=False, widget=forms.HiddenInput)
     project_image_order = forms.CharField(required=False, widget=forms.HiddenInput)
     direct_image_fields = {"featured_image": "project.featured_image"}
+    direct_image_focal_fields = {
+        "featured_image": (
+            "featured_image_focus_x",
+            "featured_image_focus_y",
+        )
+    }
 
     class Meta:
         model = InteriorProject
         fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["featured_image_focus_x"].required = False
+        self.fields["featured_image_focus_y"].required = False
+
+    def clean_featured_image_focus_x(self):
+        value = self.cleaned_data.get("featured_image_focus_x")
+        return (
+            value
+            if value is not None
+            else getattr(self.instance, "featured_image_focus_x", 50)
+        )
+
+    def clean_featured_image_focus_y(self):
+        value = self.cleaned_data.get("featured_image_focus_y")
+        return (
+            value
+            if value is not None
+            else getattr(self.instance, "featured_image_focus_y", 50)
+        )
 
     def clean(self):
         cleaned_data = super().clean()

@@ -74,7 +74,18 @@ class InteriorProjectAdmin(admin.ModelAdmin):
             "本文與內容",
             {"fields": ("description", "concept_title", "design_notes", "materials")},
         ),
-        ("圖片", {"fields": ("featured_image", "image_label", "tone")}),
+        (
+            "圖片",
+            {
+                "fields": (
+                    "featured_image",
+                    "featured_image_focus_x",
+                    "featured_image_focus_y",
+                    "image_label",
+                    "tone",
+                )
+            },
+        ),
         ("公開設定", {"fields": ("published", "preview_link")}),
         (
             "管理資訊",
@@ -326,9 +337,11 @@ class InteriorProjectAdmin(admin.ModelAdmin):
             )
             update_image_metadata(
                 image,
-                alt_text=data.get("alt_text"),
-                caption=data.get("caption"),
-                tone=data.get("tone"),
+                alt_text=(data["alt_text"] if "alt_text" in data else image.alt_text),
+                caption=(data["caption"] if "caption" in data else image.caption),
+                tone=(data["tone"] if "tone" in data else image.tone),
+                focus_x=(data["focus_x"] if "focus_x" in data else image.focus_x),
+                focus_y=(data["focus_y"] if "focus_y" in data else image.focus_y),
             )
             return JsonResponse({"image": image_payload(image)})
 
@@ -433,6 +446,16 @@ class InteriorProjectAdmin(admin.ModelAdmin):
                         "options": ["linen", "bamboo", "rice", "fog"],
                     },
                 ],
+                "focalPoint": {
+                    "xField": "focus_x",
+                    "yField": "focus_y",
+                    "defaultX": 50,
+                    "defaultY": 50,
+                    "previews": [
+                        {"label": "列表預覽", "ratio": "5 / 3.4"},
+                        {"label": "作品頁預覽", "ratio": "16 / 9"},
+                    ],
+                },
                 "limits": {
                     "maxFiles": 10,
                     "maxInputBytes": settings.ADMIN_IMAGE_MAX_INPUT_BYTES,

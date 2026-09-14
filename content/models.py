@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -25,6 +26,16 @@ class InteriorProject(models.Model):
         blank=True,
         validators=[validate_image_upload],
     )
+    featured_image_focus_x = models.PositiveSmallIntegerField(
+        "主要圖片焦點 X",
+        default=50,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    featured_image_focus_y = models.PositiveSmallIntegerField(
+        "主要圖片焦點 Y",
+        default=50,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
     image_label = models.CharField("預留圖片文字", max_length=180, blank=True)
     tone = models.CharField("預留圖片色調", max_length=40, default="bamboo", blank=True)
     published = models.BooleanField("公開", default=False)
@@ -36,12 +47,26 @@ class InteriorProject(models.Model):
         ordering = ("sort_order", "-year", "title")
         verbose_name = "室內設計作品"
         verbose_name_plural = "室內設計作品"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(featured_image_focus_x__range=(0, 100)),
+                name="content_project_featured_focus_x_range",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(featured_image_focus_y__range=(0, 100)),
+                name="content_project_featured_focus_y_range",
+            ),
+        ]
 
     def __str__(self):
         return self.title
 
     def get_absolute_url(self):
         return reverse("content:project_detail", args=[self.slug])
+
+    @property
+    def featured_image_position(self):
+        return f"{self.featured_image_focus_x}% {self.featured_image_focus_y}%"
 
     def save(self, *args, **kwargs):
         self.design_notes = self.design_notes or []
@@ -97,6 +122,16 @@ class InteriorProjectImage(models.Model):
     file_size = models.PositiveBigIntegerField("檔案大小", null=True, blank=True)
     width = models.PositiveIntegerField("寬度", null=True, blank=True)
     height = models.PositiveIntegerField("高度", null=True, blank=True)
+    focus_x = models.PositiveSmallIntegerField(
+        "圖片焦點 X",
+        default=50,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    focus_y = models.PositiveSmallIntegerField(
+        "圖片焦點 Y",
+        default=50,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
     created_at = models.DateTimeField("建立時間", default=timezone.now, editable=False)
 
     class Meta:
@@ -109,6 +144,36 @@ class InteriorProjectImage(models.Model):
                 name="content_ipi_project_idx",
             )
         ]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(focus_x__range=(0, 100)),
+                name="content_project_image_focus_x_range",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(focus_y__range=(0, 100)),
+                name="content_project_image_focus_y_range",
+            ),
+        ]
+
+    @property
+    def focus_position(self):
+        return f"{self.focus_x}% {self.focus_y}%"
+
+    @property
+    def aspect_ratio(self):
+        if self.width and self.height:
+            return f"{self.width} / {self.height}"
+        return "4 / 3"
+
+    @property
+    def orientation_class(self):
+        if not self.width or not self.height:
+            return "project-gallery-image--unknown"
+        if self.width == self.height:
+            return "project-gallery-image--square"
+        if self.width < self.height:
+            return "project-gallery-image--portrait"
+        return "project-gallery-image--landscape"
 
     def save(self, *args, **kwargs):
         if not (self.alt_text or "").strip():

@@ -3,7 +3,8 @@
  data-delete-url="{{ widget.delete_url }}" data-current-url="{{ widget.current_url }}" data-current-label="目前圖片"
  data-max-input-bytes="{{ widget.max_input_bytes }}" data-max-output-bytes="{{ widget.max_output_bytes }}"
  data-max-input-pixels="{{ widget.max_input_pixels }}" data-max-input-dimension="{{ widget.max_input_dimension }}"
- data-long-edge="{% if widget.profile == 'photo' %}{{ widget.photo_long_edge }}{% else %}{{ widget.artwork_long_edge }}{% endif %}">
+ data-long-edge="{% if widget.profile == 'photo' %}{{ widget.photo_long_edge }}{% else %}{{ widget.artwork_long_edge }}{% endif %}"
+ {% if widget.focal_point %}data-focal-point="true" data-focus-x-input="{{ widget.focal_point.x_input_id }}" data-focus-y-input="{{ widget.focal_point.y_input_id }}"{% endif %}>
   <input type="hidden" name="{{ widget.name }}" value="{{ widget.value|default_if_none:'' }}" data-image-value{% include "django/forms/widgets/attrs.html" %}>
   <label class="button admin-image-picker">選擇圖片<input type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" data-image-input></label>
   <div class="admin-image-message" data-image-message role="alert" hidden></div>
