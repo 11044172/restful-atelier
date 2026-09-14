@@ -171,7 +171,10 @@ address { font-style: normal; }
 .publication-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
 .publication-card .editorial-image { transition: transform .6s ease; }
 .publication-card:hover .editorial-image { transform: scale(1.025); }
-.publication-card { overflow: hidden; }
+.publication-card { align-self: start; overflow: hidden; }
+.publication-card .publication-image--portrait,
+.publication-card .publication-image--landscape,
+.publication-card .publication-image--square { width: 100%; }
 .publication-meta { padding-top: 18px; }
 .publication-meta p { margin-bottom: 7px; font-size: 9px; letter-spacing: .16em; }
 .publication-meta h2 { margin-bottom: 4px; font-size: 25px; }
@@ -283,6 +286,9 @@ address { font-style: normal; }
 .publication-intro > div > p:last-child { max-width: 350px; margin-top: 215px; font-family: var(--serif); font-size: 14px; line-height: 2; }
 .publication-intro h1 { justify-self: center; margin: 0; font-size: clamp(62px, 8vw, 108px); letter-spacing: .1em; line-height: 1.18; }
 .publication-list { padding-bottom: 150px; }
+.publication-detail > .editorial-image { width: 100%; margin: 54px auto 64px; }
+.publication-detail > .publication-image--portrait { width: min(100%, clamp(300px, 48vh, 520px)); }
+.publication-detail > .publication-image--square { width: min(100%, 700px); }
 .journal-note { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 55px; align-items: start; padding-block: 100px; border-top: 1px solid var(--color-line); }
 .journal-note blockquote { margin: 0; font-size: clamp(30px, 4vw, 50px); line-height: 1.65; }
 .journal-note > p:last-child { color: var(--color-text-muted); font-family: var(--serif); font-size: 13px; line-height: 2; }
@@ -560,6 +566,8 @@ address { font-style: normal; }
   .publication-intro > div > p:last-child { margin-top: 45px; }
   .publication-intro h1 { justify-self: start; margin-top: 60px; font-size: 64px; }
   .publication-list { padding-bottom: 90px; }
+  .publication-detail > .editorial-image { margin-block: 42px 52px; }
+  .publication-detail > .publication-image--portrait { width: min(100%, clamp(260px, 48vh, 460px)); }
   .journal-note { grid-template-columns: 1fr; gap: 30px; padding-block: 75px; }
   .journal-note > p:last-child { grid-column: 1; }
   .about-hero { grid-template-columns: 1fr; padding: 55px 0 90px; }

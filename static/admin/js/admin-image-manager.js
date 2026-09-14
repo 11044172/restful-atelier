@@ -42,6 +42,9 @@
     const hasCurrent = root.dataset.currentUrl && hidden && hidden.value;
     const focusXInput = root.dataset.focusXInput ? document.getElementById(root.dataset.focusXInput) : null;
     const focusYInput = root.dataset.focusYInput ? document.getElementById(root.dataset.focusYInput) : null;
+    let focalPreviews = [];
+    try { focalPreviews = JSON.parse(root.dataset.focalPreviews || "[]"); }
+    catch (_) { /* Empty previews are a safe fallback for malformed admin config. */ }
     const focalPoint = root.dataset.focalPoint === "true" ? {
       xField: "focus_x",
       yField: "focus_y",
@@ -49,10 +52,7 @@
       yInputId: root.dataset.focusYInput,
       defaultX: 50,
       defaultY: 50,
-      previews: [
-        {label: "列表預覽", ratio: "5 / 3.4"},
-        {label: "作品頁預覽", ratio: "16 / 9"},
-      ],
+      previews: focalPreviews,
     } : null;
     const currentImage = hasCurrent ? {
       url: root.dataset.currentUrl,

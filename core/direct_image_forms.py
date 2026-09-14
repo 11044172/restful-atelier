@@ -1,3 +1,5 @@
+import json
+
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -58,7 +60,12 @@ class DirectImageFormField(forms.Field):
             profile=profile,
             focal_point=focal_point,
         )
-        self.category, self.user, self.upload_id = category, None, None
+        self.category, self.user, self.upload_id, self.upload = (
+            category,
+            None,
+            None,
+            None,
+        )
         super().__init__(**kwargs)
 
     def clean(self, value):
@@ -82,22 +89,30 @@ class DirectImageFormField(forms.Field):
         except DirectImageError as exc:
             raise ValidationError(exc.message) from exc
         self.upload_id = upload.pk
+        self.upload = upload
         return upload.object_key
 
 
 class DirectImageAdminFormMixin:
     direct_image_fields = {}
     direct_image_focal_fields = {}
+    direct_image_focal_previews = {}
+    direct_image_dimension_fields = {}
 
     def __init__(self, *args, **kwargs):
         request = kwargs.pop("request", None)
         self.request = request
         super().__init__(*args, **kwargs)
+        for width_name, height_name in self.direct_image_dimension_fields.values():
+            self.fields.pop(width_name, None)
+            self.fields.pop(height_name, None)
         for x_name, y_name in self.direct_image_focal_fields.values():
             if x_name in self.fields:
                 self.fields[x_name].widget = forms.HiddenInput()
+                self.fields[x_name].required = False
             if y_name in self.fields:
                 self.fields[y_name].widget = forms.HiddenInput()
+                self.fields[y_name].required = False
         for name, category in self.direct_image_fields.items():
             if name not in self.fields:
                 continue
@@ -110,6 +125,10 @@ class DirectImageAdminFormMixin:
                 focal_point = {
                     "x_input_id": self[x_name].id_for_label,
                     "y_input_id": self[y_name].id_for_label,
+                    "previews_json": json.dumps(
+                        self.direct_image_focal_previews.get(name, []),
+                        ensure_ascii=False,
+                    ),
                 }
             field = DirectImageFormField(
                 category=category,
@@ -121,6 +140,33 @@ class DirectImageAdminFormMixin:
             field.initial = getattr(self.instance, name, "")
             field.user = getattr(request, "user", None)
             self.fields[name] = field
+
+    def clean(self):
+        cleaned_data = super().clean()
+        for x_name, y_name in self.direct_image_focal_fields.values():
+            for field_name in (x_name, y_name):
+                if (
+                    field_name in self.fields
+                    and field_name not in self.errors
+                    and cleaned_data.get(field_name) is None
+                ):
+                    cleaned_data[field_name] = getattr(
+                        self.instance, field_name, 50
+                    )
+
+        for image_name, dimension_names in self.direct_image_dimension_fields.items():
+            if image_name not in self.fields or image_name in self.errors:
+                continue
+            image_field = self.fields[image_name]
+            upload = getattr(image_field, "upload", None)
+            width_name, height_name = dimension_names
+            if upload:
+                setattr(self.instance, width_name, upload.width)
+                setattr(self.instance, height_name, upload.height)
+            elif cleaned_data.get(image_name) == "":
+                setattr(self.instance, width_name, None)
+                setattr(self.instance, height_name, None)
+        return cleaned_data
 
     @property
     def direct_upload_ids(self):

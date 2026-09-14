@@ -37,6 +37,12 @@ class InteriorProjectAdminForm(DirectImageAdminFormMixin, forms.ModelForm):
             "featured_image_focus_y",
         )
     }
+    direct_image_focal_previews = {
+        "featured_image": [
+            {"label": "列表預覽", "ratio": "5 / 3.4"},
+            {"label": "作品頁預覽", "ratio": "16 / 9"},
+        ]
+    }
 
     class Meta:
         model = InteriorProject
@@ -117,6 +123,18 @@ class InteriorProjectImageAdminForm(DirectImageAdminFormMixin, forms.ModelForm):
 
 class PublicationAdminForm(DirectImageAdminFormMixin, forms.ModelForm):
     direct_image_fields = {"cover_image": "publication.cover_image"}
+    direct_image_focal_fields = {
+        "cover_image": ("cover_image_focus_x", "cover_image_focus_y")
+    }
+    direct_image_focal_previews = {
+        "cover_image": [
+            {"label": "出版品列表預覽", "ratio": "3 / 4.25"},
+            {"label": "出版品頁面預覽", "ratio": "16 / 9"},
+        ]
+    }
+    direct_image_dimension_fields = {
+        "cover_image": ("cover_image_width", "cover_image_height")
+    }
 
     class Meta:
         model = Publication

@@ -7,6 +7,24 @@ from django.utils import timezone
 from core.validators import sanitize_image_field, validate_image_upload
 
 
+def image_focus_position(x, y):
+    return f"{x}% {y}%"
+
+
+def image_aspect_ratio(width, height, *, fallback):
+    if width and height:
+        return f"{width} / {height}"
+    return fallback
+
+
+def image_orientation(width, height):
+    if not width or not height:
+        return "unknown"
+    if width == height:
+        return "square"
+    return "portrait" if width < height else "landscape"
+
+
 class InteriorProject(models.Model):
     title = models.CharField("作品標題", max_length=220)
     slug = models.SlugField("slug", max_length=240, unique=True)
@@ -66,7 +84,9 @@ class InteriorProject(models.Model):
 
     @property
     def featured_image_position(self):
-        return f"{self.featured_image_focus_x}% {self.featured_image_focus_y}%"
+        return image_focus_position(
+            self.featured_image_focus_x, self.featured_image_focus_y
+        )
 
     def save(self, *args, **kwargs):
         self.design_notes = self.design_notes or []
@@ -157,23 +177,15 @@ class InteriorProjectImage(models.Model):
 
     @property
     def focus_position(self):
-        return f"{self.focus_x}% {self.focus_y}%"
+        return image_focus_position(self.focus_x, self.focus_y)
 
     @property
     def aspect_ratio(self):
-        if self.width and self.height:
-            return f"{self.width} / {self.height}"
-        return "4 / 3"
+        return image_aspect_ratio(self.width, self.height, fallback="4 / 3")
 
     @property
     def orientation_class(self):
-        if not self.width or not self.height:
-            return "project-gallery-image--unknown"
-        if self.width == self.height:
-            return "project-gallery-image--square"
-        if self.width < self.height:
-            return "project-gallery-image--portrait"
-        return "project-gallery-image--landscape"
+        return f"project-gallery-image--{image_orientation(self.width, self.height)}"
 
     def save(self, *args, **kwargs):
         if not (self.alt_text or "").strip():
@@ -198,6 +210,28 @@ class Publication(models.Model):
         blank=True,
         validators=[validate_image_upload],
     )
+    cover_image_width = models.PositiveIntegerField(
+        "封面圖片寬度",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+    )
+    cover_image_height = models.PositiveIntegerField(
+        "封面圖片高度",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+    )
+    cover_image_focus_x = models.PositiveSmallIntegerField(
+        "封面圖片焦點 X",
+        default=50,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    cover_image_focus_y = models.PositiveSmallIntegerField(
+        "封面圖片焦點 Y",
+        default=50,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
     tone = models.CharField("預留圖片色調", max_length=40, default="rice", blank=True)
     featured = models.BooleanField("精選顯示", default=False)
     published = models.BooleanField("公開", default=False)
@@ -209,12 +243,65 @@ class Publication(models.Model):
         ordering = ("sort_order", "-published_date", "issue_number")
         verbose_name = "出版刊物"
         verbose_name_plural = "出版刊物"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(cover_image_focus_x__range=(0, 100)),
+                name="content_publication_cover_focus_x_range",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(cover_image_focus_y__range=(0, 100)),
+                name="content_publication_cover_focus_y_range",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(cover_image_width__isnull=True)
+                    | models.Q(cover_image_width__gte=1)
+                ),
+                name="content_publication_cover_width_positive",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(cover_image_height__isnull=True)
+                    | models.Q(cover_image_height__gte=1)
+                ),
+                name="content_publication_cover_height_positive",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.issue_number} {self.title}"
 
     def get_absolute_url(self):
         return reverse("content:publication_detail", args=[self.slug])
+
+    @property
+    def cover_image_position(self):
+        return image_focus_position(
+            self.cover_image_focus_x, self.cover_image_focus_y
+        )
+
+    @property
+    def cover_image_aspect_ratio(self):
+        return image_aspect_ratio(
+            self.cover_image_width,
+            self.cover_image_height,
+            fallback="3 / 4.25",
+        )
+
+    @property
+    def cover_image_detail_aspect_ratio(self):
+        return image_aspect_ratio(
+            self.cover_image_width,
+            self.cover_image_height,
+            fallback="16 / 9",
+        )
+
+    @property
+    def cover_image_orientation_class(self):
+        return (
+            "publication-image--"
+            f"{image_orientation(self.cover_image_width, self.cover_image_height)}"
+        )
 
     def save(self, *args, **kwargs):
         sanitize_image_field(self, "cover_image")

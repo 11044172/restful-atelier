@@ -520,7 +520,17 @@ class PublicationAdmin(admin.ModelAdmin):
             },
         ),
         ("本文與內容", {"fields": ("description",)}),
-        ("圖片", {"fields": ("cover_image", "tone")}),
+        (
+            "圖片",
+            {
+                "fields": (
+                    "cover_image",
+                    "cover_image_focus_x",
+                    "cover_image_focus_y",
+                    "tone",
+                )
+            },
+        ),
         ("公開設定", {"fields": ("featured", "published", "preview_link")}),
         (
             "管理資訊",
