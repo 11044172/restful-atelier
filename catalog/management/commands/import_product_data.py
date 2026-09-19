@@ -144,9 +144,12 @@ class Command(BaseCommand):
 
     def _load_products(self, rows, lock):
         ids = [product_id for _, product_id, _ in self._parsed_ids(rows) if product_id]
-        queryset = Product.objects.select_related("category")
         if lock:
-            queryset = queryset.select_for_update()
+            # Do not join the nullable category relation while taking row locks:
+            # PostgreSQL rejects FOR UPDATE on the nullable side of an outer join.
+            queryset = Product.objects.select_for_update()
+        else:
+            queryset = Product.objects.select_related("category")
         return queryset.in_bulk(ids)
 
     def _build_plan(self, rows, products):
