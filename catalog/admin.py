@@ -4,7 +4,9 @@ import logging
 from uuid import uuid4
 
 from django.conf import settings
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.urls import path, reverse
 from django.utils import timezone
@@ -51,7 +53,7 @@ class ProductCategoryAdmin(admin.ModelAdmin):
 class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
     change_form_template = "admin/catalog/product/change_form.html"
-    actions = ("export_product_data",)
+    actions = ("publish_selected_products", "export_product_data")
     list_display = (
         "thumbnail",
         "display_name",
@@ -161,6 +163,68 @@ class ProductAdmin(admin.ModelAdmin):
             if not (product.preorder_delivery_estimate or "").strip():
                 blockers.append("預計交付時間")
         return " | ".join(blockers)
+
+    @admin.action(description="將選取的商品批次公開", permissions=("change",))
+    def publish_selected_products(self, request, queryset):
+        """Publish only selected products that satisfy the existing publish rules."""
+        products = list(
+            queryset.select_related("category").prefetch_related("images")
+        )
+        publishable = []
+        skipped = []
+        already_published = 0
+
+        for product in products:
+            if product.is_published:
+                already_published += 1
+                continue
+
+            images = product.ordered_images
+            blockers = self._publication_blockers(product, images)
+            if blockers:
+                skipped.append((product, blockers))
+                continue
+
+            product.is_published = True
+            product._admin_has_product_image = bool(images)
+            try:
+                product.full_clean()
+            except ValidationError as exc:
+                product.is_published = False
+                skipped.append((product, " | ".join(exc.messages)))
+                continue
+
+            publishable.append(product)
+
+        if publishable:
+            with transaction.atomic():
+                for product in publishable:
+                    product.save(update_fields=("is_published", "updated_at"))
+
+        summary_level = messages.SUCCESS if publishable else messages.INFO
+        self.message_user(
+            request,
+            (
+                f"公開：{len(publishable)} 件 / "
+                f"已公開：{already_published} 件 / "
+                f"未公開：{len(skipped)} 件"
+            ),
+            level=summary_level,
+        )
+
+        if skipped:
+            detail_limit = 20
+            details = "；".join(
+                f"ID {product.pk}「{product.name}」：{reason}"
+                for product, reason in skipped[:detail_limit]
+            )
+            if len(skipped) > detail_limit:
+                details += f"；另有 {len(skipped) - detail_limit} 件未顯示"
+            self.message_user(
+                request,
+                f"以下商品未公開：{details}",
+                level=messages.WARNING,
+            )
 
     @admin.action(description="匯出商品資料", permissions=("view",))
     def export_product_data(self, request, queryset):
