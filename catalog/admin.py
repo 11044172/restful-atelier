@@ -1,10 +1,11 @@
+import csv
 import json
 import logging
 from uuid import uuid4
 
 from django.conf import settings
 from django.contrib import admin
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
@@ -50,6 +51,7 @@ class ProductCategoryAdmin(admin.ModelAdmin):
 class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
     change_form_template = "admin/catalog/product/change_form.html"
+    actions = ("export_product_data",)
     list_display = (
         "thumbnail",
         "display_name",
@@ -131,6 +133,106 @@ class ProductAdmin(admin.ModelAdmin):
         ),
     )
     list_per_page = 25
+
+    @staticmethod
+    def _absolute_image_url(request, image):
+        if not image or not image.image:
+            return ""
+        return request.build_absolute_uri(image.image.url)
+
+    @staticmethod
+    def _publication_blockers(product, images):
+        blockers = []
+        if not (product.name or "").strip():
+            blockers.append("商品名稱")
+        if not (product.sku or "").strip() or product.sku.upper().startswith("DRAFT-"):
+            blockers.append("SKU")
+        if not (product.description or "").strip():
+            blockers.append("商品說明")
+        if product.price is None:
+            blockers.append("售價")
+        if product.category_id is None or not product.category.is_active:
+            blockers.append("商品分類")
+        if not images:
+            blockers.append("商品圖片")
+        if product.is_preorder:
+            if not product.preorder_limit:
+                blockers.append("預購上限")
+            if not (product.preorder_delivery_estimate or "").strip():
+                blockers.append("預計交付時間")
+        return " | ".join(blockers)
+
+    @admin.action(description="匯出商品資料", permissions=("view",))
+    def export_product_data(self, request, queryset):
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        timestamp = timezone.localtime(timezone.now()).strftime("%Y%m%d_%H%M%S")
+        response["Content-Disposition"] = (
+            f'attachment; filename="product_data_{timestamp}.csv"'
+        )
+        response.write("\ufeff")
+        writer = csv.writer(response)
+        writer.writerow(
+            (
+                "product_id",
+                "name",
+                "category",
+                "subcategory",
+                "maker",
+                "series",
+                "price",
+                "stock",
+                "is_preorder",
+                "current_sku",
+                "short_description",
+                "current_description",
+                "primary_image_url",
+                "image_urls",
+                "is_published",
+                "needs_sku",
+                "needs_description",
+                "publication_blockers",
+                "slug",
+                "updated_at",
+            )
+        )
+        products = queryset.select_related("category").prefetch_related("images")
+        for product in products:
+            images = product.ordered_images
+            image_urls = [
+                self._absolute_image_url(request, image) for image in images
+            ]
+            needs_sku = not (product.sku or "").strip() or product.sku.upper().startswith(
+                "DRAFT-"
+            )
+            needs_description = not (product.description or "").strip()
+            updated_at = product.updated_at
+            if updated_at and timezone.is_aware(updated_at):
+                updated_at = timezone.localtime(updated_at)
+            writer.writerow(
+                (
+                    product.pk,
+                    product.name,
+                    product.category.name if product.category_id else "",
+                    product.subcategory,
+                    product.maker,
+                    product.series,
+                    product.price if product.price is not None else "",
+                    product.stock,
+                    str(product.is_preorder).lower(),
+                    product.sku,
+                    product.short_description,
+                    product.description,
+                    image_urls[0] if image_urls else "",
+                    " | ".join(image_urls),
+                    str(product.is_published).lower(),
+                    str(needs_sku).lower(),
+                    str(needs_description).lower(),
+                    self._publication_blockers(product, images),
+                    product.slug,
+                    updated_at.isoformat() if updated_at else "",
+                )
+            )
+        return response
 
     def get_urls(self):
         urls = super().get_urls()
