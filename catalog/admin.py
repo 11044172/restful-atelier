@@ -13,6 +13,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 
 from core.admin_site import backoffice_site
+from core.admin_forms import request_bound_form
 
 from .forms import ProductAdminForm, ProductCategoryAdminForm
 from .models import Product, ProductCategory, ProductImage, ProductSpecification
@@ -43,10 +44,65 @@ class ProductSpecificationInline(admin.TabularInline):
 @admin.register(ProductCategory, site=backoffice_site)
 class ProductCategoryAdmin(admin.ModelAdmin):
     form = ProductCategoryAdminForm
-    list_display = ("name", "english_name", "sort_order", "is_active")
+    list_display = (
+        "thumbnail_preview",
+        "name",
+        "english_name",
+        "sort_order",
+        "is_active",
+    )
     list_editable = ("sort_order", "is_active")
     search_fields = ("name", "english_name", "description")
     prepopulated_fields = {"slug": ("english_name",)}
+    fieldsets = (
+        (
+            "商品分類",
+            {
+                "fields": (
+                    "name",
+                    "slug",
+                    "english_name",
+                    "description",
+                )
+            },
+        ),
+        (
+            "分類圖片",
+            {
+                "fields": (
+                    "thumbnail_image",
+                    "thumbnail_alt",
+                    "thumbnail_focus_x",
+                    "thumbnail_focus_y",
+                    "tone",
+                ),
+                "description": "未設定分類縮圖時，會自動使用公開商品圖片；無可用圖片時才顯示預留圖片。",
+            },
+        ),
+        ("篩選項目", {"fields": ("subcategories",)}),
+        ("顯示設定", {"fields": ("sort_order", "is_active")}),
+    )
+
+    @admin.display(description="縮圖")
+    def thumbnail_preview(self, obj):
+        if obj.thumbnail_image:
+            return format_html(
+                '<img class="admin-thumbnail" src="{}" alt="">',
+                obj.thumbnail_image.url,
+            )
+        return format_html(
+            '<span class="admin-thumbnail-placeholder">{}</span>',
+            (obj.name or "分")[:1],
+        )
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        return request_bound_form(
+            super().get_form(request, obj, change=change, **kwargs), request
+        )
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        form.mark_direct_uploads_attached()
 
 
 @admin.register(Product, site=backoffice_site)

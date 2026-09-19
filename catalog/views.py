@@ -3,13 +3,42 @@ from django.db.models import Exists, OuterRef, Prefetch, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 
-from .models import Product, ProductCategory, ProductSpecification
+from .models import Product, ProductCategory, ProductImage, ProductSpecification
 
 
 def shop(request):
-    products = Product.objects.published().select_related("category").prefetch_related("images")
-    categories = ProductCategory.objects.filter(is_active=True).prefetch_related(Prefetch("products", queryset=Product.objects.published()))
-    return render(request, "catalog/shop.html", {"categories": categories, "products": products, "featured_products": products[:4], "shop_page": True})
+    attached_images = ProductImage.objects.filter(
+        upload_status=ProductImage.UploadStatus.ATTACHED
+    ).exclude(image="")
+    products = list(
+        Product.objects.published()
+        .select_related("category")
+        .prefetch_related(
+            Prefetch(
+                "images",
+                queryset=attached_images.order_by("sort_order", "pk"),
+            )
+        )
+        .order_by("sort_order", "name", "pk")
+    )
+    categories = list(ProductCategory.objects.filter(is_active=True))
+    products_by_category = {category.pk: [] for category in categories}
+    for product in products:
+        products_by_category.setdefault(product.category_id, []).append(product)
+    for category in categories:
+        published_products = products_by_category.get(category.pk, [])
+        category.published_product_count = len(published_products)
+        category.collage_products = published_products[:3]
+    return render(
+        request,
+        "catalog/shop.html",
+        {
+            "categories": categories,
+            "products": products,
+            "featured_products": products[:4],
+            "shop_page": True,
+        },
+    )
 
 
 def category_detail(request, slug):

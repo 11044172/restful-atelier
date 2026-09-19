@@ -20,7 +20,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:image" content="{% if site_settings.default_og_image %}{{ site_settings.default_og_image.url }}{% else %}{{ canonical_origin }}{% static 'images/rfull-home-logo.png' %}{% endif %}">
   <link rel="stylesheet" href="{% static 'global.css' %}?v=20260914.2">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260914.2">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260919.1">
   <title>{% block page_title %}靜院居家{% endblock %}｜靜院居家 RESTFULL ATELIER</title>
   <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"{{ canonical_origin }}/#organization","name":"{{ site_settings.brand_name|escapejs }}","alternateName":"{{ site_settings.public_name|escapejs }}","url":"{{ canonical_origin }}","email":"{{ site_settings.general_email|escapejs }}","telephone":"{{ site_settings.phone_primary|escapejs }}"},{"@type":"WebSite","@id":"{{ canonical_origin }}/#website","name":"{{ site_settings.public_name|escapejs }}","url":"{{ canonical_origin }}","publisher":{"@id":"{{ canonical_origin }}/#organization"}}]}</script>
   {% block structured_data %}{% endblock %}

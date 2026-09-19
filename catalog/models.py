@@ -2,13 +2,19 @@ from decimal import Decimal
 from uuid import uuid4
 
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Exists, OuterRef, Q
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 
-from core.validators import make_thumbnail_content, sanitize_image_field, validate_image_upload
+from core.validators import (
+    image_focus_position,
+    make_thumbnail_content,
+    sanitize_image_field,
+    validate_image_upload,
+)
 
 
 class ProductCategory(models.Model):
@@ -16,6 +22,23 @@ class ProductCategory(models.Model):
     slug = models.SlugField("slug", max_length=140, unique=True)
     english_name = models.CharField("英文名稱", max_length=160, blank=True)
     description = models.TextField("分類說明", blank=True)
+    thumbnail_image = models.ImageField(
+        "分類縮圖",
+        upload_to="catalog/categories/%Y/%m/",
+        blank=True,
+        validators=[validate_image_upload],
+    )
+    thumbnail_alt = models.CharField("分類縮圖替代文字", max_length=255, blank=True)
+    thumbnail_focus_x = models.PositiveSmallIntegerField(
+        "分類縮圖焦點 X",
+        default=50,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    thumbnail_focus_y = models.PositiveSmallIntegerField(
+        "分類縮圖焦點 Y",
+        default=50,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
     subcategories = models.JSONField("篩選項目", default=list, blank=True)
     tone = models.CharField("預留圖片色調", max_length=40, default="linen", blank=True)
     sort_order = models.PositiveIntegerField("顯示順序", default=0)
@@ -25,12 +48,30 @@ class ProductCategory(models.Model):
         ordering = ("sort_order", "name")
         verbose_name = "商品分類"
         verbose_name_plural = "商品分類"
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(thumbnail_focus_x__range=(0, 100)),
+                name="catalog_category_thumbnail_focus_x_range",
+            ),
+            models.CheckConstraint(
+                condition=Q(thumbnail_focus_y__range=(0, 100)),
+                name="catalog_category_thumbnail_focus_y_range",
+            ),
+        ]
 
     def __str__(self):
         return self.name
 
     def get_absolute_url(self):
         return reverse("catalog:category", args=[self.slug])
+
+    @property
+    def thumbnail_position(self):
+        return image_focus_position(self.thumbnail_focus_x, self.thumbnail_focus_y)
+
+    def save(self, *args, **kwargs):
+        sanitize_image_field(self, "thumbnail_image")
+        super().save(*args, **kwargs)
 
 
 class ProductQuerySet(models.QuerySet):

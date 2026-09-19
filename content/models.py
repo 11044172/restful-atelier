@@ -4,11 +4,11 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
-from core.validators import sanitize_image_field, validate_image_upload
-
-
-def image_focus_position(x, y):
-    return f"{x}% {y}%"
+from core.validators import (
+    image_focus_position,
+    sanitize_image_field,
+    validate_image_upload,
+)
 
 
 def image_aspect_ratio(width, height, *, fallback):

@@ -39,6 +39,11 @@ IMAGE_CATEGORIES = {
     ),
     "publication.cover_image": ("content.change_publication", "publications", "photo"),
     "payment.qr_image": ("orders.change_paymentmethod", "payments/methods", "qr"),
+    "catalog.category_thumbnail": (
+        "catalog.change_productcategory",
+        "catalog/categories",
+        "photo",
+    ),
 }
 SAFE_KEY = re.compile(r"^[a-z0-9][a-z0-9/_-]*\.(?:jpg|jpeg|png|webp)$")
 

@@ -11,6 +11,10 @@ ALLOWED_FORMATS = {"JPEG": (".jpg", ".jpeg"), "PNG": (".png",), "WEBP": (".webp"
 FORMAT_CONTENT_TYPES = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp"}
 
 
+def image_focus_position(x, y):
+    return f"{x}% {y}%"
+
+
 def _decode_image(upload):
     max_bytes = settings.MAX_IMAGE_UPLOAD_MB * 1024 * 1024
     if getattr(upload, "size", 0) > max_bytes:

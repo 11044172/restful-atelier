@@ -1,12 +1,24 @@
 from django import forms
 
-from .models import Product, ProductImage
 from core.admin_json_fields import StringListFormField
-from .models import ProductCategory
+from core.direct_image_forms import DirectImageAdminFormMixin
+
+from .models import Product, ProductCategory, ProductImage
 
 
-class ProductCategoryAdminForm(forms.ModelForm):
+class ProductCategoryAdminForm(DirectImageAdminFormMixin, forms.ModelForm):
     subcategories = StringListFormField(label="篩選項目")
+    direct_image_fields = {
+        "thumbnail_image": "catalog.category_thumbnail",
+    }
+    direct_image_focal_fields = {
+        "thumbnail_image": ("thumbnail_focus_x", "thumbnail_focus_y"),
+    }
+    direct_image_focal_previews = {
+        "thumbnail_image": [
+            {"label": "商品分類卡片預覽", "ratio": "4 / 3"},
+        ],
+    }
 
     class Meta:
         model = ProductCategory

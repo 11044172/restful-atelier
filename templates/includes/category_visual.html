@@ -1,0 +1,15 @@
+{% if category.thumbnail_image %}
+  {% include 'includes/editorial_image.html' with image=category.thumbnail_image label=category.english_name alt=category.thumbnail_alt|default:category.name position=category.thumbnail_position tone=category.tone ratio='4 / 3' extra_class='category-card__visual category-card__visual--dedicated' width=1200 height=900 %}
+{% elif category.collage_products %}
+  <div class="category-card__visual category-collage {% if category.collage_products|length == 3 %}category-collage--three{% elif category.collage_products|length == 2 %}category-collage--two{% else %}category-collage--one{% endif %}" aria-hidden="true">
+    {% for product in category.collage_products %}
+      {% with primary=product.primary_image %}
+        <div class="category-collage__item">
+          {% if primary.thumbnail %}<img src="{{ primary.thumbnail.url }}" alt="" loading="lazy" decoding="async" width="640" height="480">{% else %}<img src="{{ primary.image.url }}" alt="" loading="lazy" decoding="async" width="1200" height="900">{% endif %}
+        </div>
+      {% endwith %}
+    {% endfor %}
+  </div>
+{% else %}
+  {% include 'includes/editorial_image.html' with label=category.english_name tone=category.tone ratio='4 / 3' extra_class='category-card__visual category-card__visual--placeholder' %}
+{% endif %}

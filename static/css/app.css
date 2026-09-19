@@ -21,3 +21,14 @@
 .pagination { display: flex; justify-content: center; align-items: center; gap: 28px; margin-top: 56px; font-size: 12px; }
 @media(max-width:420px){.cart-remove-form{grid-column:10/-1;grid-row:2;align-self:center;justify-self:end}.cart-remove{min-width:44px;min-height:44px}.payment-confirm-form{padding:22px 16px}.ecpay-payment-option{padding:18px 46px 18px 16px}.ecpay-payment-option b{right:16px}}
 @media(max-width:380px){.contact-form{padding-inline:10px}.checkout-form{width:calc(100% + 36px);margin-left:-18px}}
+
+/* Category cards: dedicated image, editorial product collage, or placeholder. */
+.category-card__visual{width:100%;aspect-ratio:4/3;overflow:hidden;transition:transform .6s ease}
+.category-card:hover .category-card__visual{transform:scale(1.02)}
+.category-collage{display:grid;gap:1px;background:var(--color-line)}
+.category-collage--three{grid-template-columns:1.62fr 1fr;grid-template-rows:1fr 1fr}
+.category-collage--three .category-collage__item:first-child{grid-row:1/-1}
+.category-collage--two{grid-template-columns:1.55fr 1fr}
+.category-collage--one{grid-template-columns:1fr}
+.category-collage__item{min-width:0;min-height:0;overflow:hidden}
+.category-collage__item img{display:block;width:100%;height:100%;object-fit:cover}
