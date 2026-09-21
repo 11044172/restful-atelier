@@ -1,7 +1,12 @@
 (() => {
-  document.querySelectorAll("[data-string-list]").forEach(root => {
+  const initialize = (root) => {
+    if (root.dataset.stringListInitialized === "true") return;
     const hidden = root.querySelector("[data-string-list-value]");
     const rows = root.querySelector("[data-string-list-rows]");
+    const addButton = root.querySelector("[data-add]");
+    if (!hidden || !rows || !addButton) return;
+
+    root.dataset.stringListInitialized = "true";
     const sync = () => {
       hidden.value = JSON.stringify(Array.from(rows.querySelectorAll("[data-string-list-item]")).map(input => input.value));
     };
@@ -12,12 +17,21 @@
       row.querySelector("[data-move-down]").addEventListener("click", () => { if (row.nextElementSibling) rows.insertBefore(row.nextElementSibling, row); sync(); });
     };
     rows.querySelectorAll(".string-list-editor__row").forEach(bind);
-    root.querySelector("[data-add]").addEventListener("click", () => {
+    addButton.addEventListener("click", () => {
       const row = document.createElement("div");
       row.className = "string-list-editor__row";
       row.innerHTML = '<input type="text" data-string-list-item><button type="button" class="button" data-move-up aria-label="上移">↑</button><button type="button" class="button" data-move-down aria-label="下移">↓</button><button type="button" class="button" data-remove aria-label="刪除">刪除</button>';
       rows.appendChild(row); bind(row); row.querySelector("input").focus(); sync();
     });
+
+    root.closest("form")?.addEventListener("submit", sync, {capture: true});
     sync();
-  });
+  };
+
+  const boot = () => document.querySelectorAll("[data-string-list]").forEach(initialize);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, {once: true});
+  } else {
+    boot();
+  }
 })();
