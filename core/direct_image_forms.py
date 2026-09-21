@@ -181,3 +181,9 @@ class DirectImageAdminFormMixin:
 
     class Media:
         js = ("admin/js/admin-image-manager.js",)
+
+
+def mark_form_direct_uploads_attached(form):
+    marker = getattr(form, "mark_direct_uploads_attached", None)
+    if callable(marker):
+        marker()

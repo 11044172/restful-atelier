@@ -15,6 +15,7 @@ from core.admin_forms import (
     request_bound_form,
 )
 from core.admin_site import backoffice_site
+from core.direct_image_forms import mark_form_direct_uploads_attached
 
 from .models import InteriorProject, InteriorProjectImage, PolicyPage, Publication
 from .project_image_service import (
@@ -472,7 +473,7 @@ class InteriorProjectAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
-        form.mark_direct_uploads_attached()
+        mark_form_direct_uploads_attached(form)
         if not change:
             image_ids = getattr(form, "cleaned_project_image_ids", [])
             upload_session = form.cleaned_data.get("project_image_session")
@@ -570,7 +571,7 @@ class PublicationAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
-        form.mark_direct_uploads_attached()
+        mark_form_direct_uploads_attached(form)
 
 
 @admin.register(PolicyPage, site=backoffice_site)

@@ -5,6 +5,7 @@ from django.utils.html import format_html
 
 from .admin_site import backoffice_site
 from .admin_forms import SiteSettingsAdminForm, request_bound_form
+from .direct_image_forms import mark_form_direct_uploads_attached
 from .models import PrivacyRequest, SiteSettings
 
 
@@ -90,7 +91,7 @@ class SiteSettingsAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
-        form.mark_direct_uploads_attached()
+        mark_form_direct_uploads_attached(form)
 
 
 @admin.register(PrivacyRequest, site=backoffice_site)

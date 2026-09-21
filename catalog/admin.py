@@ -12,8 +12,9 @@ from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
 
-from core.admin_site import backoffice_site
 from core.admin_forms import request_bound_form
+from core.admin_site import backoffice_site
+from core.direct_image_forms import mark_form_direct_uploads_attached
 
 from .forms import ProductAdminForm, ProductCategoryAdminForm
 from .models import Product, ProductCategory, ProductImage, ProductSpecification
@@ -102,7 +103,7 @@ class ProductCategoryAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
-        form.mark_direct_uploads_attached()
+        mark_form_direct_uploads_attached(form)
 
 
 @admin.register(Product, site=backoffice_site)
