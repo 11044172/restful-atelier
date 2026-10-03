@@ -9,10 +9,10 @@
     "build": "astro check && astro build",
     "preview": "astro preview"
   },
-  "dependencies": {
+  "dependencies": {},
+  "devDependencies": {
     "@astrojs/check": "^0.9.4",
     "astro": "^7.3.2",
     "typescript": "^5.9.2"
-  },
-  "devDependencies": {}
+  }
 }
