@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, unquote
+from urllib.parse import quote, unquote_plus
 from urllib.request import Request, urlopen
 
 from cryptography.hazmat.primitives import padding
@@ -142,7 +142,7 @@ def decrypt_data(value, *, hash_key, hash_iv):
         padded = decryptor.update(encrypted) + decryptor.finalize()
         unpadder = padding.PKCS7(128).unpadder()
         encoded = unpadder.update(padded) + unpadder.finalize()
-        return json.loads(unquote(encoded.decode("utf-8")))
+        return json.loads(unquote_plus(encoded.decode("utf-8")))
     except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ECPayInvoiceAPIError(
             "電子發票回應解密失敗。", code="decrypt_failed"

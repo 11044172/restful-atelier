@@ -1,8 +1,12 @@
+import base64
 import json
 import time
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
+from urllib.parse import quote_plus
 
+from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
@@ -28,6 +32,18 @@ from orders.models import Invoice, Order, OrderInvoiceProfile, OrderItem, Paymen
 def _official_sample_text(character_codes):
     """Keep public documentation vectors distinct from deployable credentials."""
     return "".join(chr(code) for code in character_codes)
+
+
+def _encrypt_url_encoded(encoded, *, hash_key, hash_iv):
+    """Build an AES response from the already URL-encoded bytes ECPay returns."""
+    padder = padding.PKCS7(128).padder()
+    padded = padder.update(encoded.encode("utf-8")) + padder.finalize()
+    encryptor = Cipher(
+        algorithms.AES(hash_key.encode("utf-8")),
+        modes.CBC(hash_iv.encode("utf-8")),
+    ).encryptor()
+    encrypted = encryptor.update(padded) + encryptor.finalize()
+    return base64.b64encode(encrypted).decode("ascii")
 
 
 INVOICE_SETTINGS = {
@@ -105,6 +121,51 @@ class ECPayInvoiceTests(TestCase):
                 hash_iv=INVOICE_SETTINGS["ECPAY_INVOICE_HASH_IV"],
             ),
             data,
+        )
+
+    def test_aes_round_trip_preserves_unicode_spaces_and_literal_plus(self):
+        data = {"Message": "靜院 日本語 A+B", "InvoiceDate": "2026-10-03 18:06:49"}
+
+        encrypted = encrypt_data(
+            data,
+            hash_key=INVOICE_SETTINGS["ECPAY_INVOICE_HASH_KEY"],
+            hash_iv=INVOICE_SETTINGS["ECPAY_INVOICE_HASH_IV"],
+        )
+
+        self.assertEqual(
+            decrypt_data(
+                encrypted,
+                hash_key=INVOICE_SETTINGS["ECPAY_INVOICE_HASH_KEY"],
+                hash_iv=INVOICE_SETTINGS["ECPAY_INVOICE_HASH_IV"],
+            ),
+            data,
+        )
+
+    def test_decrypt_restores_form_spaces_and_preserves_encoded_plus(self):
+        data = {"InvoiceDate": "2026-10-03 18:06:49", "Marker": "A+B"}
+        plaintext = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+        form_encoded = quote_plus(plaintext, safe="")
+        self.assertIn("2026-10-03+18%3A06%3A49", form_encoded)
+        self.assertIn("A%2BB", form_encoded)
+        encrypted = _encrypt_url_encoded(
+            form_encoded,
+            hash_key=INVOICE_SETTINGS["ECPAY_INVOICE_HASH_KEY"],
+            hash_iv=INVOICE_SETTINGS["ECPAY_INVOICE_HASH_IV"],
+        )
+
+        decrypted = decrypt_data(
+            encrypted,
+            hash_key=INVOICE_SETTINGS["ECPAY_INVOICE_HASH_KEY"],
+            hash_iv=INVOICE_SETTINGS["ECPAY_INVOICE_HASH_IV"],
+        )
+
+        self.assertEqual(decrypted["InvoiceDate"], "2026-10-03 18:06:49")
+        self.assertEqual(decrypted["Marker"], "A+B")
+        self.assertEqual(
+            _parse_invoice_date(decrypted["InvoiceDate"]).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
+            "2026-10-03 18:06:49",
         )
 
     def test_invoice_config_validation_and_stage_url(self):
