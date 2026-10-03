@@ -331,7 +331,7 @@ Admin URL変更だけには依存していません。強いsuperuser password�
 `render.yaml`はSingapore regionのWeb ServiceとPostgreSQLを定義します。
 
 - build: dependency install + `collectstatic`
-- pre-deploy: `python manage.py migrate`
+- pre-deploy: `./predeploy.sh`（`python -u manage.py migrate --noinput`を実行し、開始・完了・正常終了をログへ明示）
 - initial deploy hook: `python manage.py seed_initial_data`
 - start: Gunicorn
 - health check: `/healthz/`
