@@ -405,13 +405,48 @@ def build_issue_data(invoice, *, config=None):
 
 
 def _parse_invoice_date(value):
+    if not isinstance(value, str) or not value.strip():
+        _raise_invalid_invoice_date(value)
+
+    value = value.strip()
+    parsed = None
     for pattern in ("%Y-%m-%d %H:%M:%S", "%Y/%m/%d %H:%M:%S"):
         try:
-            return datetime.strptime(value, pattern).replace(
-                tzinfo=timezone.get_current_timezone()
-            )
-        except (TypeError, ValueError):
+            parsed = datetime.strptime(value, pattern)
+            break
+        except ValueError:
             continue
+
+    if parsed is None:
+        iso_value = value.replace("/", "-")
+        if len(iso_value) > 10 and iso_value[10] in {" ", "T"}:
+            try:
+                parsed = datetime.fromisoformat(iso_value)
+            except ValueError:
+                pass
+
+    if parsed is None:
+        _raise_invalid_invoice_date(value)
+
+    current_timezone = timezone.get_current_timezone()
+    try:
+        if timezone.is_naive(parsed):
+            return timezone.make_aware(parsed, current_timezone)
+        return parsed.astimezone(current_timezone)
+    except (OverflowError, ValueError):
+        _raise_invalid_invoice_date(value)
+
+
+def _raise_invalid_invoice_date(value):
+    if isinstance(value, str):
+        preview = repr(value)
+    elif value is None:
+        preview = "None"
+    else:
+        preview = f"<{type(value).__name__}>"
+    if len(preview) > 80:
+        preview = f"{preview[:77]}..."
+    logger.warning("Unexpected ECPay invoice date format: %s", preview)
     raise ECPayInvoiceAPIError(
         "電子發票開立日期格式無效。", code="invalid_invoice_date"
     )

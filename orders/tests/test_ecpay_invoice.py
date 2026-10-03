@@ -6,12 +6,14 @@ from unittest.mock import MagicMock, patch
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from orders.ecpay_invoice import (
     STAGE_BASE_URL,
     ECPayInvoiceAPIError,
     ECPayInvoiceConfigurationError,
     _api_call,
+    _parse_invoice_date,
     build_issue_data,
     decrypt_data,
     encrypt_data,
@@ -116,6 +118,50 @@ class ECPayInvoiceTests(TestCase):
         with override_settings(ECPAY_INVOICE_TIMEOUT="not-a-number"):
             with self.assertRaises(ECPayInvoiceConfigurationError):
                 get_config()
+
+    def test_invoice_date_parser_accepts_official_and_defensive_formats(self):
+        cases = {
+            "2026-10-03 17:30:00": (17, 30, 0, 0),
+            "2026/10/03 17:30:00": (17, 30, 0, 0),
+            " 2026-10-03 17:30:00 ": (17, 30, 0, 0),
+            "2026-10-03 17:30:00.123": (17, 30, 0, 123000),
+            "2026-10-03T17:30:00": (17, 30, 0, 0),
+            "2026-10-03T17:30:00+08:00": (17, 30, 0, 0),
+            "2026-10-03T09:30:00+00:00": (17, 30, 0, 0),
+        }
+
+        for value, expected_time in cases.items():
+            with self.subTest(value=value):
+                parsed = _parse_invoice_date(value)
+                self.assertTrue(timezone.is_aware(parsed))
+                self.assertEqual(
+                    (parsed.hour, parsed.minute, parsed.second, parsed.microsecond),
+                    expected_time,
+                )
+                self.assertEqual(str(parsed.tzinfo), "Asia/Taipei")
+
+    def test_invoice_date_parser_rejects_invalid_values_without_echoing_them(self):
+        invalid_values = (None, "", "2026-10-03", 20261003, "not-a-date")
+        with self.assertLogs("orders.ecpay_invoice", level="WARNING") as logs:
+            for value in invalid_values:
+                with self.subTest(value=value):
+                    with self.assertRaises(ECPayInvoiceAPIError) as caught:
+                        _parse_invoice_date(value)
+                    self.assertEqual(caught.exception.code, "invalid_invoice_date")
+                    self.assertEqual(
+                        str(caught.exception), "電子發票開立日期格式無效。"
+                    )
+        self.assertTrue(
+            all("Unexpected ECPay invoice date format:" in entry for entry in logs.output)
+        )
+
+    def test_invoice_date_parser_truncates_warning_value(self):
+        invalid_value = "x" * 100
+        with self.assertLogs("orders.ecpay_invoice", level="WARNING") as logs:
+            with self.assertRaises(ECPayInvoiceAPIError):
+                _parse_invoice_date(invalid_value)
+        self.assertNotIn(invalid_value, logs.output[0])
+        self.assertIn("x" * 70, logs.output[0])
 
     def test_individual_invoice_uses_ecpay_carrier_and_snapshot_items(self):
         data = build_issue_data(self.invoice)
@@ -243,7 +289,15 @@ class ECPayInvoiceTests(TestCase):
         self.assertEqual(issued.status, Invoice.Status.ISSUED)
         self.assertEqual(issued.invoice_no, "UV11100014")
         self.assertTrue(issued.provider_metadata["recovered_by_query"])
-        self.assertEqual(api_call.call_count, 1)
+        api_call.assert_called_once()
+        self.assertEqual(api_call.call_args.args[0], "GetIssue")
+        self.assertEqual(
+            api_call.call_args.args[1],
+            {
+                "MerchantID": INVOICE_SETTINGS["ECPAY_INVOICE_MERCHANT_ID"],
+                "RelateNumber": self.invoice.relate_number,
+            },
+        )
 
     @patch("orders.ecpay_invoice._api_call")
     def test_mobile_barcode_validation_outage_does_not_block_issue(self, api_call):
