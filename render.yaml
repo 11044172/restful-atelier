@@ -5,7 +5,6 @@ services:
     region: singapore
     plan: starter
     buildCommand: ./build.sh
-    preDeployCommand: ./predeploy.sh
     initialDeployHook: python manage.py seed_initial_data
     startCommand: ./start.sh
     healthCheckPath: /healthz/

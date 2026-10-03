@@ -2,6 +2,10 @@
 set -o errexit
 set -o nounset
 
+# Render's pre-deploy runner can remain stuck after a successful command.
+# Gate service startup on migrations before launching either long-lived process.
+./predeploy.sh
+
 worker_pid=""
 web_pid=""
 

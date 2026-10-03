@@ -331,12 +331,12 @@ Admin URL変更だけには依存していません。強いsuperuser password�
 `render.yaml`はSingapore regionのWeb ServiceとPostgreSQLを定義します。
 
 - build: dependency install + `collectstatic`
-- pre-deploy: `./predeploy.sh`（`python -u manage.py migrate --noinput`を実行し、開始・完了・正常終了をログへ明示）
+- startup migration gate: `start.sh`がworkerとGunicornの起動前に`./predeploy.sh`を実行
 - initial deploy hook: `python manage.py seed_initial_data`
 - start: Gunicorn
 - health check: `/healthz/`
 
-migrationをGunicorn起動コマンドへ混ぜていないため、複数workerから同時実行されません。
+`predeploy.sh`は`python -u manage.py migrate --noinput`を実行し、開始・完了・正常終了をログへ明示します。migrationが成功するまでworkerとGunicornを起動しないため、複数Gunicorn workerから同時実行されません。
 pre-deployログの`No migrations to apply.`は正常終了を示し、その後も状態が変わらない場合はRender側のdeploy状態・billing・queueを確認します。
 
 1. GitHub repositoryをRender Blueprintへ接続します。
