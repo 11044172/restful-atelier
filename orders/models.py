@@ -406,6 +406,112 @@ class Payment(models.Model):
                 from .notifications import enqueue_order_notifications
 
                 transaction.on_commit(lambda order_id=self.order_id: enqueue_order_notifications(order_id, "payment_confirmed"))
+                from .ecpay_invoice import prepare_invoice_after_payment
+
+                prepare_invoice_after_payment(self.order_id)
+
+
+class OrderInvoiceProfile(models.Model):
+    class InvoiceType(models.TextChoices):
+        PERSONAL = "personal", "個人電子發票"
+        MOBILE_BARCODE = "mobile_barcode", "手機條碼載具"
+        COMPANY = "company", "公司用電子發票"
+
+    order = models.OneToOneField(
+        Order,
+        verbose_name="訂單",
+        on_delete=models.PROTECT,
+        related_name="invoice_profile",
+    )
+    invoice_type = models.CharField(
+        "發票類型",
+        max_length=24,
+        choices=InvoiceType.choices,
+        default=InvoiceType.PERSONAL,
+    )
+    customer_identifier = models.CharField("統一編號", max_length=8, blank=True)
+    customer_name = models.CharField("發票抬頭／公司名稱", max_length=60, blank=True)
+    carrier_type = models.CharField("載具類別", max_length=1, blank=True)
+    carrier_number = models.CharField("載具編號", max_length=64, blank=True)
+    email = models.EmailField("發票 Email")
+    phone = models.CharField("發票電話", max_length=20, blank=True)
+    configuration_snapshot = models.JSONField("建立時發票設定快照", default=dict, blank=True)
+    created_at = models.DateTimeField("建立時間", auto_now_add=True)
+    updated_at = models.DateTimeField("更新時間", auto_now=True)
+
+    class Meta:
+        verbose_name = "訂單發票資訊"
+        verbose_name_plural = "訂單發票資訊"
+
+    def __str__(self):
+        return f"{self.order.public_number} / {self.get_invoice_type_display()}"
+
+    def clean(self):
+        if self.invoice_type == self.InvoiceType.PERSONAL:
+            if self.customer_identifier or self.customer_name or self.carrier_type != "1" or self.carrier_number:
+                raise ValidationError("個人電子發票必須使用綠界載具，且不可填寫統一編號或公司名稱。")
+        elif self.invoice_type == self.InvoiceType.MOBILE_BARCODE:
+            if self.customer_identifier or self.customer_name or self.carrier_type != "3":
+                raise ValidationError("手機條碼發票不得填寫統一編號，且載具類別必須為手機條碼。")
+        elif self.invoice_type == self.InvoiceType.COMPANY:
+            if not self.customer_identifier.isdigit() or len(self.customer_identifier) != 8:
+                raise ValidationError({"customer_identifier": "統一編號必須為 8 碼數字。"})
+            if not self.customer_name.strip():
+                raise ValidationError({"customer_name": "請填寫發票抬頭／公司名稱。"})
+            if self.carrier_type != "1" or self.carrier_number:
+                raise ValidationError("公司用電子發票必須使用綠界載具且不自行填寫載具編號。")
+
+
+class Invoice(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "發票待處理"
+        ISSUING = "issuing", "開立中"
+        ISSUED = "issued", "已開立"
+        FAILED = "failed", "開立失敗"
+        REVIEW_REQUIRED = "review_required", "需要人工確認"
+        VOIDED = "voided", "已作廢"
+
+    order = models.OneToOneField(
+        Order,
+        verbose_name="訂單",
+        on_delete=models.PROTECT,
+        related_name="invoice",
+    )
+    profile = models.ForeignKey(
+        OrderInvoiceProfile,
+        verbose_name="發票資訊快照",
+        on_delete=models.PROTECT,
+        related_name="invoices",
+    )
+    provider = models.CharField("服務商", max_length=32, default="ecpay", editable=False)
+    status = models.CharField("狀態", max_length=24, choices=Status.choices, default=Status.PENDING)
+    relate_number = models.CharField("特店自訂編號", max_length=30, unique=True, editable=False)
+    invoice_no = models.CharField("發票號碼", max_length=10, blank=True, unique=True, null=True)
+    invoice_date = models.DateTimeField("開立日期", null=True, blank=True)
+    random_number = models.CharField("隨機碼", max_length=4, blank=True)
+    sales_amount = models.DecimalField("發票總額", max_digits=12, decimal_places=0)
+    customer_identifier = models.CharField("統一編號", max_length=8, blank=True)
+    carrier_type = models.CharField("載具類別", max_length=1, blank=True)
+    error_code = models.CharField("錯誤代碼", max_length=64, blank=True)
+    error_message = models.CharField("最近一次錯誤", max_length=300, blank=True)
+    provider_metadata = models.JSONField("服務商回應摘要", default=dict, blank=True)
+    attempt_count = models.PositiveIntegerField("嘗試次數", default=0)
+    last_attempt_at = models.DateTimeField("最近嘗試時間", null=True, blank=True)
+    issued_at = models.DateTimeField("開立完成時間", null=True, blank=True)
+    voided_at = models.DateTimeField("作廢時間", null=True, blank=True)
+    created_at = models.DateTimeField("建立時間", auto_now_add=True)
+    updated_at = models.DateTimeField("更新時間", auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "電子發票"
+        verbose_name_plural = "電子發票"
+        constraints = [
+            models.CheckConstraint(condition=Q(sales_amount__gt=0), name="invoice_sales_amount_positive"),
+        ]
+
+    def __str__(self):
+        return f"{self.order.public_number} / {self.get_status_display()}"
 
 
 class PolicyAcceptance(models.Model):

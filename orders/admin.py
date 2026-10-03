@@ -1,10 +1,17 @@
 from decimal import Decimal
 
-from django.contrib import admin
-from django.contrib import messages
+from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
-from django.db.models import Case, Exists, IntegerField, OuterRef, Q, Subquery, Value, When
+from django.db.models import (
+    Case,
+    Exists,
+    IntegerField,
+    OuterRef,
+    Subquery,
+    Value,
+    When,
+)
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import path, reverse
 from django.utils import timezone
@@ -14,10 +21,43 @@ from core.admin_forms import PaymentMethodAdminForm, request_bound_form
 from core.admin_site import backoffice_site
 from core.direct_image_forms import mark_form_direct_uploads_attached
 
-from .models import LineCustomer, LineNotification, LineWebhookEvent, NotificationOutbox, Order, OrderAuditLog, OrderItem, Payment, PaymentMethod, PolicyAcceptance
-from .forms import ManualPaymentConfirmationForm, ShippingConfirmationForm, ShippingDispatchForm, ShippingRevisionForm
-from .notifications import enqueue_order_notifications, retry_or_enqueue_order_notifications
-from .operations import cancel_order, complete_order, confirm_manual_payment, confirm_shipping_and_request_payment, mark_preparing, mark_shipped, record_refund, revise_shipping_and_reissue_payment, start_shipping_review
+from .ecpay_invoice import configuration_status as invoice_configuration_status
+from .ecpay_invoice import issue_invoice_safe
+from .forms import (
+    ManualPaymentConfirmationForm,
+    ShippingConfirmationForm,
+    ShippingDispatchForm,
+    ShippingRevisionForm,
+)
+from .models import (
+    Invoice,
+    LineCustomer,
+    LineNotification,
+    LineWebhookEvent,
+    NotificationOutbox,
+    Order,
+    OrderAuditLog,
+    OrderInvoiceProfile,
+    OrderItem,
+    Payment,
+    PaymentMethod,
+    PolicyAcceptance,
+)
+from .notifications import (
+    retry_or_enqueue_order_notifications,
+)
+from .operations import (
+    cancel_order,
+    complete_order,
+    confirm_manual_payment,
+    confirm_shipping_and_request_payment,
+    mark_preparing,
+    mark_shipped,
+    record_audit,
+    record_refund,
+    revise_shipping_and_reissue_payment,
+    start_shipping_review,
+)
 
 
 class OrderItemInline(admin.TabularInline):
@@ -271,7 +311,7 @@ class OrderAdmin(admin.ModelAdmin):
         order = self.get_object(request, object_id)
         context = dict(extra_context or {})
         if order:
-            order = Order.objects.select_related("line_customer").prefetch_related(
+            order = Order.objects.select_related("line_customer", "invoice_profile", "invoice").prefetch_related(
                 "items", "payments__method", "notification_outbox", "audit_logs"
             ).get(pk=order.pk)
             eligible_payments = order.payments.filter(
@@ -279,6 +319,7 @@ class OrderAdmin(admin.ModelAdmin):
                 amount=order.final_total,
             ).exclude(status=Payment.Status.CONFIRMED)
             confirmed_payment = order.payments.filter(status=Payment.Status.CONFIRMED).first()
+            invoice_configured, invoice_configuration_error = invoice_configuration_status()
             action_reason = {
                 Order.Status.RECEIVED: "訂單已成立，請先開始確認運費。",
                 Order.Status.SHIPPING_REVIEW: "店家需要確認運費，並向顧客傳送付款通知。",
@@ -301,6 +342,10 @@ class OrderAdmin(admin.ModelAdmin):
                 manual_payment_form=ManualPaymentConfirmationForm(order=order),
                 eligible_manual_payments=eligible_payments,
                 confirmed_payment=confirmed_payment,
+                order_invoice_profile=getattr(order, "invoice_profile", None),
+                order_invoice=getattr(order, "invoice", None),
+                invoice_configured=invoice_configured,
+                invoice_configuration_error=invoice_configuration_error,
                 notification_jobs=order.notification_outbox.all().order_by("-created_at", "-pk")[:20],
                 payment_notification_jobs=order.notification_outbox.filter(event_type="payment_request").order_by("-created_at", "-pk")[:10],
                 shipping_notification_jobs=order.notification_outbox.filter(event_type="order_shipped").order_by("-created_at", "-pk")[:10],
@@ -321,6 +366,7 @@ class OrderAdmin(admin.ModelAdmin):
             path("<path:object_id>/mark-preparing/", self.admin_site.admin_view(self.prepare_order), name="orders_order_mark_preparing"),
             path("<path:object_id>/complete/", self.admin_site.admin_view(self.complete), name="orders_order_complete"),
             path("<path:object_id>/cancel/", self.admin_site.admin_view(self.cancel), name="orders_order_cancel"),
+            path("<path:object_id>/retry-invoice/", self.admin_site.admin_view(self.retry_invoice), name="orders_order_retry_invoice"),
         ]
         return custom + super().get_urls()
 
@@ -354,7 +400,6 @@ class OrderAdmin(admin.ModelAdmin):
         return self._run(request, object_id, start_shipping_review, "已開始確認運費。")
 
     def revise_shipping(self, request, object_id):
-        order = get_object_or_404(Order, pk=object_id)
         if request.method != "POST":
             return redirect(reverse("admin:orders_order_change", args=[object_id]))
         form = ShippingRevisionForm(request.POST)
@@ -412,6 +457,28 @@ class OrderAdmin(admin.ModelAdmin):
     def cancel(self, request, object_id):
         return self._run(request, object_id, cancel_order, "已取消訂單並還原相關庫存。")
 
+    def retry_invoice(self, request, object_id):
+        order = get_object_or_404(Order, pk=object_id)
+        if not self.has_change_permission(request, order):
+            raise PermissionDenied
+        if request.method != "POST":
+            return redirect(reverse("admin:orders_order_change", args=[object_id]))
+        try:
+            invoice = order.invoice
+        except Invoice.DoesNotExist:
+            self.message_user(request, "此訂單尚未建立電子發票待處理記錄。", level=messages.ERROR)
+            return redirect(reverse("admin:orders_order_change", args=[object_id]))
+        if invoice.status not in {Invoice.Status.PENDING, Invoice.Status.FAILED, Invoice.Status.REVIEW_REQUIRED}:
+            self.message_user(request, "只有尚未開立的電子發票可以安全重試。", level=messages.ERROR)
+            return redirect(reverse("admin:orders_order_change", args=[object_id]))
+        record_audit(order, "invoice_retry_requested", actor=request.user, changes={"invoice_id": invoice.pk})
+        result = issue_invoice_safe(invoice.pk, allow_retry=True)
+        if result.status == Invoice.Status.ISSUED:
+            self.message_user(request, "電子發票已開立。", level=messages.SUCCESS)
+        else:
+            self.message_user(request, result.error_message or "電子發票仍待處理。", level=messages.ERROR)
+        return redirect(reverse("admin:orders_order_change", args=[object_id]))
+
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
 
@@ -443,6 +510,7 @@ class PaymentAdmin(admin.ModelAdmin):
     readonly_fields = (
         "order", "method", "provider", "amount", "currency", "status", "paid_at", "note",
         "refunded_amount", "refund_status", "refunded_at", "refund_operator",
+        "invoice_accounting_warning",
         "payment_variant_label", "ecpay_payment_type", "normalized_payment_method",
         "actual_installments", "merchant_trade_no", "provider_reference", "provider_event_id", "provider_metadata",
         "created_at", "updated_at", "confirmed_at", "cancelled_at", "refunded_at",
@@ -450,7 +518,7 @@ class PaymentAdmin(admin.ModelAdmin):
     actions = ("record_remaining_full_refund",)
     fieldsets = (
         ("付款資訊", {"fields": ("order", "method", "provider", "amount", "currency", "status", "paid_at", "note")}),
-        ("退款資訊", {"fields": ("refunded_amount", "refund_status", "refund_reason", "refunded_at", "refund_operator")}),
+        ("退款資訊", {"fields": ("invoice_accounting_warning", "refunded_amount", "refund_status", "refund_reason", "refunded_at", "refund_operator")}),
         ("交易識別資訊", {"classes": ("collapse",), "fields": ("payment_variant_label", "ecpay_payment_type", "normalized_payment_method", "actual_installments", "merchant_trade_no", "provider_reference", "provider_event_id")}),
         ("供應商回應與系統資訊", {"classes": ("collapse",), "fields": ("provider_metadata", "created_at", "updated_at", "confirmed_at", "cancelled_at")}),
     )
@@ -477,6 +545,16 @@ class PaymentAdmin(admin.ModelAdmin):
     def actual_installments(self, obj):
         return obj.actual_installments or "—"
 
+    @admin.display(description="電子發票與退款")
+    def invoice_accounting_warning(self, obj):
+        try:
+            invoice = obj.order.invoice
+        except Invoice.DoesNotExist:
+            return "未查到已開立電子發票。"
+        if invoice.status == Invoice.Status.ISSUED:
+            return "此訂單已開立電子發票；登記退款不會自動作廢或開立折讓，請先確認 ECPay 後台與實際會計處理。"
+        return f"電子發票狀態：{invoice.get_status_display()}"
+
     @admin.action(description="將剩餘金額登記為全額退款並保留稽核記錄")
     def record_remaining_full_refund(self, request, queryset):
         completed = 0
@@ -493,6 +571,41 @@ class PaymentAdmin(admin.ModelAdmin):
             else:
                 completed += 1
         self.message_user(request, f"已處理 {completed} 筆退款記錄。")
+
+
+@admin.register(OrderInvoiceProfile, site=backoffice_site)
+class OrderInvoiceProfileAdmin(admin.ModelAdmin):
+    list_display = ("order", "invoice_type", "customer_identifier", "carrier_type", "created_at")
+    search_fields = ("order__public_number", "customer_identifier", "customer_name")
+    readonly_fields = (
+        "order", "invoice_type", "customer_identifier", "customer_name", "carrier_type",
+        "carrier_number", "email", "phone", "configuration_snapshot", "created_at", "updated_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Invoice, site=backoffice_site)
+class InvoiceAdmin(admin.ModelAdmin):
+    list_display = ("order", "status", "invoice_no", "sales_amount", "attempt_count", "issued_at", "updated_at")
+    list_filter = ("status", "provider", "created_at")
+    search_fields = ("order__public_number", "relate_number", "invoice_no")
+    readonly_fields = (
+        "order", "profile", "provider", "status", "relate_number", "invoice_no", "invoice_date",
+        "random_number", "sales_amount", "customer_identifier", "carrier_type", "error_code",
+        "error_message", "provider_metadata", "attempt_count", "last_attempt_at", "issued_at",
+        "voided_at", "created_at", "updated_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(NotificationOutbox, site=backoffice_site)

@@ -36,6 +36,16 @@
     <div class="field-row"><div class="field"><label for="{{ form.postal_code.id_for_label }}">郵遞區號 <span>必填</span></label>{{ form.postal_code }}{{ form.postal_code.errors }}</div><div class="field"><label for="{{ form.city.id_for_label }}">縣市 <span>必填</span></label>{{ form.city }}{{ form.city.errors }}</div></div>
     <div class="field-row"><div class="field"><label for="{{ form.district.id_for_label }}">鄉鎮市區 <span>必填</span></label>{{ form.district }}{{ form.district.errors }}</div><div class="field"><label for="{{ form.street_address.id_for_label }}">街道地址 <span>必填</span></label>{{ form.street_address }}{{ form.street_address.errors }}</div></div>
     <div class="field"><label for="{{ form.delivery_note.id_for_label }}">配送備註</label>{{ form.delivery_note }}{{ form.delivery_note.errors }}</div>
+    <fieldset class="invoice-fields" data-invoice-fields>
+      <legend><span class="eyebrow">STEP 3・INVOICE</span>發票資訊</legend>
+      <p class="manual-shipping-note">付款確認後才會開立電子發票。預設使用綠界電子發票載具，不寄送紙本發票。</p>
+      <div class="invoice-choice-list">{{ form.invoice_type }}{{ form.invoice_type.errors }}</div>
+      <div class="field" data-invoice-mobile hidden><label for="{{ form.invoice_carrier_number.id_for_label }}">手機條碼 <span>必填</span></label>{{ form.invoice_carrier_number }}{{ form.invoice_carrier_number.errors }}<small>格式為「/」開頭，共 8 碼；英文字母請使用大寫。</small></div>
+      <div data-invoice-company hidden>
+        <div class="field-row"><div class="field"><label for="{{ form.invoice_customer_identifier.id_for_label }}">統一編號 <span>必填</span></label>{{ form.invoice_customer_identifier }}{{ form.invoice_customer_identifier.errors }}</div><div class="field"><label for="{{ form.invoice_customer_name.id_for_label }}">發票抬頭／公司名稱 <span>必填</span></label>{{ form.invoice_customer_name }}{{ form.invoice_customer_name.errors }}</div></div>
+        <p class="manual-shipping-note">公司用電子發票將使用綠界載具保存，不列印紙本。</p>
+      </div>
+    </fieldset>
     <div class="field"><label for="{{ form.customer_note.id_for_label }}">備註</label>{{ form.customer_note }}{{ form.customer_note.errors }}</div>
     <p class="manual-shipping-note">運費將由工作人員確認商品與配送方式後另行通知。送出後尚未完成付款，也不需要立即付款。</p>
     <div class="policy-consent">{{ form.policies_accepted }}<label for="{{ form.policies_accepted.id_for_label }}">送出訂單代表訂單受理與運費確認請求，尚未付款。我已閱讀並同意 <a href="{% url 'content:policy' 'shopping-guide' %}" target="_blank">購物須知</a>、<a href="{% url 'content:policy' 'payment-methods' %}" target="_blank">付款說明</a>、<a href="{% url 'content:policy' 'shipping-policy' %}" target="_blank">配送說明</a>、<a href="{% url 'content:policy' 'preorder-information' %}" target="_blank">預購說明</a>、<a href="{% url 'content:policy' 'returns-policy' %}" target="_blank">退換貨政策</a>與<a href="{% url 'content:policy' 'privacy-policy' %}" target="_blank">隱私權政策</a>。</label>{{ form.policies_accepted.errors }}</div>
@@ -44,4 +54,19 @@
   </form>
   {% endif %}
 </div><aside class="checkout-summary"><p class="eyebrow">ORDER SUMMARY</p>{% for item in cart_items %}<div class="summary-line"><span>{{ item.product.name }} × {{ item.quantity }}</span><span>{{ item.line_total|currency }}</span></div>{% endfor %}<div class="summary-total"><span>商品合計</span><strong>{{ cart.subtotal|currency }}</strong></div><p>運費：未確定<br>最終金額：未確定</p></aside></section>
+<script>
+(() => {
+  const root = document.querySelector('[data-invoice-fields]');
+  if (!root) return;
+  const mobile = root.querySelector('[data-invoice-mobile]');
+  const company = root.querySelector('[data-invoice-company]');
+  const sync = () => {
+    const selected = root.querySelector('input[name="invoice_type"]:checked')?.value || 'personal';
+    mobile.hidden = selected !== 'mobile_barcode';
+    company.hidden = selected !== 'company';
+  };
+  root.addEventListener('change', sync);
+  sync();
+})();
+</script>
 {% endblock %}

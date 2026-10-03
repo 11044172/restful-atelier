@@ -32,3 +32,5 @@
 .category-collage--one{grid-template-columns:1fr}
 .category-collage__item{min-width:0;min-height:0;overflow:hidden}
 .category-collage__item img{display:block;width:100%;height:100%;object-fit:cover}
+/* Checkout invoice fields intentionally follow the existing editorial form system. */
+.invoice-fields{margin:34px 0;padding:26px;border:1px solid var(--color-line)}.invoice-fields legend{padding:0 10px;font-family:var(--serif);font-size:20px}.invoice-fields legend .eyebrow{display:block;margin-bottom:4px;font-family:var(--sans);font-size:10px}.invoice-choice-list ul{display:grid;gap:10px;margin:18px 0 24px;padding:0;list-style:none}.invoice-choice-list label{display:flex;gap:10px;align-items:center}.invoice-choice-list input{width:auto;min-height:auto}.invoice-fields small{display:block;margin-top:8px;color:var(--color-text-muted);font-size:11px}.invoice-fields [hidden]{display:none!important}@media(max-width:620px){.invoice-fields{padding:22px 16px}}

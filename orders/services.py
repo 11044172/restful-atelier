@@ -9,13 +9,32 @@ from django.urls import reverse
 
 from catalog.models import Product
 from core.models import SiteSettings
-from .models import Order, OrderAuditLog, OrderItem, PolicyAcceptance, generate_order_number
+
+from .models import (
+    Order,
+    OrderAuditLog,
+    OrderInvoiceProfile,
+    OrderItem,
+    PolicyAcceptance,
+    generate_order_number,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class CartValidationError(Exception):
     pass
+
+
+def invoice_configuration_snapshot():
+    environment = settings.ECPAY_INVOICE_ENV
+    stage_defaults = environment == "stage"
+    return {
+        "environment": environment,
+        "tax_type": settings.ECPAY_INVOICE_TAX_TYPE or ("1" if stage_defaults else ""),
+        "inv_type": settings.ECPAY_INVOICE_INV_TYPE or ("07" if stage_defaults else ""),
+        "vat": settings.ECPAY_INVOICE_VAT or ("1" if stage_defaults else ""),
+    }
 
 
 @transaction.atomic
@@ -102,6 +121,25 @@ def create_order_from_cart(*, cart, cleaned_data, line_customer=None, policy_ver
             line_total=line_total,
             stock_was_reserved=reserved,
         )
+    invoice_type = cleaned_data.get("invoice_type") or OrderInvoiceProfile.InvoiceType.PERSONAL
+    carrier_type = {
+        OrderInvoiceProfile.InvoiceType.PERSONAL: "1",
+        OrderInvoiceProfile.InvoiceType.MOBILE_BARCODE: "3",
+        OrderInvoiceProfile.InvoiceType.COMPANY: "1",
+    }[invoice_type]
+    profile = OrderInvoiceProfile(
+        order=order,
+        invoice_type=invoice_type,
+        customer_identifier=cleaned_data.get("invoice_customer_identifier", ""),
+        customer_name=cleaned_data.get("invoice_customer_name", ""),
+        carrier_type=carrier_type,
+        carrier_number=cleaned_data.get("invoice_carrier_number", ""),
+        email=order.email,
+        phone="".join(character for character in order.phone if character.isdigit())[:20],
+        configuration_snapshot=invoice_configuration_snapshot(),
+    )
+    profile.full_clean()
+    profile.save()
     metadata = request_metadata or {}
     for document_type, version in (policy_versions or {}).items():
         PolicyAcceptance.objects.create(

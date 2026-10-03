@@ -28,11 +28,11 @@ from inquiries.antispam import rate_limit_exceeded, verify_turnstile
 
 from .cart import Cart
 from .ecpay import (
+    PAYMENT_VARIANT_INSTALLMENT,
+    PAYMENT_VARIANT_STANDARD,
     ECPayCallbackError,
     ECPayConfigurationError,
     ECPayError,
-    PAYMENT_VARIANT_INSTALLMENT,
-    PAYMENT_VARIANT_STANDARD,
     configured_installments,
     enabled_payment_variants,
     get_or_create_payment_attempt,
@@ -138,6 +138,17 @@ def checkout(request):
                 "street_address": previous_order.street_address,
                 "delivery_note": previous_order.delivery_note,
             })
+            try:
+                previous_invoice_profile = previous_order.invoice_profile
+            except Order.invoice_profile.RelatedObjectDoesNotExist:
+                previous_invoice_profile = None
+            if previous_invoice_profile:
+                initial.update({
+                    "invoice_type": previous_invoice_profile.invoice_type,
+                    "invoice_carrier_number": previous_invoice_profile.carrier_number,
+                    "invoice_customer_identifier": previous_invoice_profile.customer_identifier,
+                    "invoice_customer_name": previous_invoice_profile.customer_name,
+                })
         form = CheckoutForm(initial=initial)
     else:
         if not enabled:
@@ -374,10 +385,10 @@ def payment(request, token):
                 "orders/provider_redirect.html",
                 {"order": order, "payment": payment_record, **checkout, "shop_page": True, "noindex": True},
             )
-    standard_methods = ["信用卡", "銀聯卡", "Apple Pay"]
+    standard_methods = ["信用卡一次付清", "網路 ATM", "ATM 櫃員機", "超商代碼", "超商條碼", "全家條碼立即繳"]
     if twqr_amount_is_eligible(order.final_total):
         standard_methods.append("TWQR")
-    standard_methods.extend(["iPASS MONEY", "街口支付", "綠界Pay"])
+    standard_methods.append("微信支付")
     return render(request, "orders/payment_instructions.html", {
         "order": order,
         "form": form,

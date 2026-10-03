@@ -112,7 +112,7 @@ services:
       - key: PAYMENT_LINK_MAX_AGE
         value: "604800"
       - key: ECPAY_ENV
-        value: stage
+        value: production
       - key: ECPAY_MERCHANT_ID
         sync: false
       - key: ECPAY_HASH_KEY
@@ -124,9 +124,27 @@ services:
       - key: ECPAY_INSTALLMENT_ENABLED
         value: "false"
       - key: ECPAY_CREDIT_INSTALLMENTS
-        value: 3,6,12,18,24
+        value: ""
       - key: ECPAY_IGNORE_PAYMENT
-        value: WebATM#ATM#CVS#BARCODE#BNPL#WeiXin
+        value: ApplePay#BNPL#DigitalPayment
+      - key: ECPAY_INVOICE_ENABLED
+        value: "false"
+      - key: ECPAY_INVOICE_ENV
+        value: stage
+      - key: ECPAY_INVOICE_MERCHANT_ID
+        sync: false
+      - key: ECPAY_INVOICE_HASH_KEY
+        sync: false
+      - key: ECPAY_INVOICE_HASH_IV
+        sync: false
+      - key: ECPAY_INVOICE_TAX_TYPE
+        sync: false
+      - key: ECPAY_INVOICE_INV_TYPE
+        sync: false
+      - key: ECPAY_INVOICE_VAT
+        sync: false
+      - key: ECPAY_INVOICE_TIMEOUT
+        value: "10"
 
 databases:
   - name: restfull-db

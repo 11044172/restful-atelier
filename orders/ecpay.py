@@ -27,8 +27,10 @@ PAYMENT_VARIANT_STANDARD = "standard"
 PAYMENT_VARIANT_INSTALLMENT = "installment"
 PAYMENT_VARIANTS = {PAYMENT_VARIANT_STANDARD, PAYMENT_VARIANT_INSTALLMENT}
 ALLOWED_CREDIT_INSTALLMENTS = ("3", "6", "12", "18", "24")
-ALLOWED_IGNORE_PAYMENTS = ("WebATM", "ATM", "CVS", "BARCODE", "BNPL", "WeiXin")
-FORBIDDEN_IGNORE_PAYMENTS = {"Credit", "ApplePay", "TWQR", "DigitalPayment"}
+ALLOWED_IGNORE_PAYMENTS = (
+    "Credit", "ApplePay", "WebATM", "ATM", "CVS", "BARCODE",
+    "TWQR", "BNPL", "WeiXin", "DigitalPayment",
+)
 TWQR_MIN_AMOUNT = Decimal("6")
 TWQR_MAX_AMOUNT = Decimal("49999")
 
@@ -36,10 +38,26 @@ TWQR_MAX_AMOUNT = Decimal("49999")
 # as Credit_CreditCard by AIO (the official table describes it as credit card
 # or Apple Mobile Pay), so no invented ApplePay callback value is accepted.
 PAYMENT_TYPE_LABELS = {
-    "Credit_CreditCard": "信用卡／Apple Pay",
+    "Credit_CreditCard": "信用卡一次付清",
+    "WebATM_BOT": "網路 ATM（臺灣銀行）",
+    "WebATM_CHINATRUST": "網路 ATM（中國信託）",
+    "WebATM_FIRST": "網路 ATM（第一銀行）",
+    "WebATM_LAND": "網路 ATM（土地銀行）",
+    "ATM_BOT": "ATM（臺灣銀行）",
+    "ATM_CHINATRUST": "ATM（中國信託）",
+    "ATM_FIRST": "ATM（第一銀行）",
+    "ATM_LAND": "ATM（土地銀行）",
+    "ATM_CATHAY": "ATM（國泰世華）",
+    "ATM_PANHSIN": "ATM（板信銀行）",
+    "ATM_KGI": "ATM（凱基銀行）",
+    "CVS_CVS": "超商代碼",
+    "CVS_OK": "OK 超商代碼",
+    "CVS_FAMILY": "全家超商代碼",
+    "CVS_HILIFE": "萊爾富超商代碼",
+    "CVS_IBON": "7-ELEVEN ibon 代碼",
+    "BARCODE_BARCODE": "超商條碼",
     "TWQR_OPAY": "TWQR",
-    "DigitalPayment_Jkopay": "街口支付",
-    "DigitalPayment_IPASS": "iPASS MONEY",
+    "WeiXin_OPAY": "微信支付",
 }
 ALLOWED_CALLBACK_PAYMENT_TYPES = frozenset(PAYMENT_TYPE_LABELS)
 
@@ -114,12 +132,7 @@ def _configured_installments():
 def _configured_ignore_payment():
     raw = str(settings.ECPAY_IGNORE_PAYMENT).strip()
     values = tuple(value.strip() for value in raw.split("#") if value.strip())
-    forbidden = [value for value in values if value in FORBIDDEN_IGNORE_PAYMENTS]
     invalid = [value for value in values if value not in ALLOWED_IGNORE_PAYMENTS]
-    if forbidden:
-        raise ECPayConfigurationError(
-            "ECPAY_IGNORE_PAYMENT must not hide: " + ", ".join(forbidden)
-        )
     if invalid:
         raise ECPayConfigurationError(
             "ECPAY_IGNORE_PAYMENT contains unsupported values: " + ", ".join(invalid)
@@ -451,7 +464,8 @@ def _mark_callback_for_review(payment, order, *, metadata, trade_no, paid_at, re
 def process_callback(parameters):
     config = get_config()
     required = {
-        "MerchantID", "MerchantTradeNo", "TradeAmt", "RtnCode", "PaymentType", "CheckMacValue"
+        "MerchantID", "MerchantTradeNo", "TradeAmt", "RtnCode", "PaymentType",
+        "SimulatePaid", "CheckMacValue",
     }
     if not required.issubset(parameters):
         raise ECPayCallbackError("Missing required ECPay callback parameters.")
@@ -489,6 +503,8 @@ def process_callback(parameters):
     metadata["callback"] = _sanitized_callback(parameters)
     metadata["callback_received_at"] = timezone.now().isoformat()
     payment_type = parameters["PaymentType"].strip()
+    if parameters["SimulatePaid"] not in {"0", "1"}:
+        raise ECPayCallbackError("Invalid ECPay SimulatePaid value.")
     actual_installments = _actual_installments(parameters)
     metadata["ecpay_payment_type"] = payment_type
     metadata["actual_installments"] = actual_installments

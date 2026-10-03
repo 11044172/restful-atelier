@@ -1,5 +1,7 @@
 # ECPay 全方位金流（AIO）実装計画
 
+> 履歴資料: この文書は初期導入時の計画です。AIO V5実装は完了しており、2026-10-03現在の本番運用手順は[ECPAY_OPERATIONS.md](ECPAY_OPERATIONS.md)、電子發票は[ECPAY_INVOICE_OPERATIONS.md](ECPAY_INVOICE_OPERATIONS.md)をsource of truthとします。
+
 調査日: 2026-08-12
 
 ## 結論

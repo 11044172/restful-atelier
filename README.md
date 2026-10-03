@@ -176,10 +176,10 @@ ECPayの導轉式「全方位金流 AioCheckOut V5」を使用します。LINE�
 - `ECPAY_HASH_IV`
 - `ECPAY_STANDARD_ENABLED=true`
 - `ECPAY_INSTALLMENT_ENABLED=false`
-- `ECPAY_CREDIT_INSTALLMENTS=3,6,12,18,24`（本番で開通済みの期数だけ）
-- `ECPAY_IGNORE_PAYMENT=WebATM#ATM#CVS#BARCODE#BNPL#WeiXin`
+- `ECPAY_CREDIT_INSTALLMENTS=`（分割契約確認後、本番で開通済みの期数だけ）
+- `ECPAY_IGNORE_PAYMENT=ApplePay#BNPL#DigitalPayment`（本番の未契約カテゴリを非表示。契約変更時は後台「合約及費率」と照合）
 
-`ECPAY_IGNORE_PAYMENT`へ`Credit`、`ApplePay`、`TWQR`、`DigitalPayment`は設定できません。通常入口では、加盟店で契約・開通済みかつ金額・端末条件を満たす信用卡、銀聯卡、Apple Pay、TWQR、iPASS MONEY、街口支付、綠界PayがECPay画面に表示されます。表示可否はSTAGE／本番加盟店契約に依存します。TWQRは公式のNT$6～49,999条件をサーバーでも検査しますが、対象外でも他の通常決済入口は無効にしません。
+`ECPAY_IGNORE_PAYMENT`はECPay公式の`Credit`、`ApplePay`、`WebATM`、`ATM`、`CVS`、`BARCODE`、`TWQR`、`BNPL`、`WeiXin`、`DigitalPayment`だけを受け付けます。2026-10-03時点の確認済み契約は信用卡一次付清、網路ATM、ATM、超商代碼、超商條碼、全家條碼立即繳、TWQR、微信支付です。未確認の分割、銀聯、Apple Pay、iPASS MONEY、街口、綠界Payは有効扱いにせず、ECPay後台「合約及費率」をsource of truthにします。
 
 秘密値は`.env`またはRender Environment Variablesにのみ設定し、Git、HTML、JavaScript、ログへ入れません。値が不足している場合、ECPay入口は支払いページに表示されず、顧客へ500を返しません。callbackのraw `PaymentType`、実分割回数`stage`、MerchantTradeNo、ECPay TradeNoはPaymentへ保存しますが、カード番号・安全碼・完全なカード情報は保存しません。AIO公式reply一覧外の`PaymentType`や分割回数不一致は自動入金確定せず、Adminの監査待ちにします。
 
@@ -189,6 +189,24 @@ ECPayの導轉式「全方位金流 AioCheckOut V5」を使用します。LINE�
 - production: `https://payment.ecpay.com.tw/Cashier/AioCheckOut/V5`
 
 migration後、管理画面の「付款方式設定」で`信用卡`のproviderが`ecpay`であることを確認し、STAGE認証情報を設定した環境でのみ`enabled`を有効にしてください。詳しい検証・障害確認手順は[docs/ECPAY_OPERATIONS.md](docs/ECPAY_OPERATIONS.md)を参照してください。
+
+## ECPay B2C 電子發票
+
+Checkoutで個人電子發票（綠界載具）、手機條碼、公司用電子發票を選択し、注文時点の発票情報と税設定を`OrderInvoiceProfile`へsnapshot保存します。実際の入金確定後だけ`Invoice`を作成し、DB commit後にECPayへ発行します。発票APIの失敗はPayment／Orderを未払いへ戻しません。Adminと`python manage.py retry_pending_invoices`から同じRelateNumberを照会して安全に再試行できます。
+
+初期値は必ず無効です。
+
+- `ECPAY_INVOICE_ENABLED=false`
+- `ECPAY_INVOICE_ENV=stage`（本番切替時は`production`）
+- `ECPAY_INVOICE_MERCHANT_ID`（金流credentialと別管理）
+- `ECPAY_INVOICE_HASH_KEY`
+- `ECPAY_INVOICE_HASH_IV`
+- `ECPAY_INVOICE_TAX_TYPE`（ECPay後台・会計判断で明示）
+- `ECPAY_INVOICE_INV_TYPE`（字軌類別）
+- `ECPAY_INVOICE_VAT`（注文価格が含税なら`1`）
+- `ECPAY_INVOICE_TIMEOUT=10`
+
+Productionではcredentialと税設定3項目がすべて揃い、`ECPAY_INVOICE_ENABLED=true`の場合だけ自動発行します。STAGE検証、本番設定、失敗再試行、少額smoke test、作廢／折讓を自動化しない理由は[docs/ECPAY_INVOICE_OPERATIONS.md](docs/ECPAY_INVOICE_OPERATIONS.md)を参照してください。
 
 ## LINE Developers Console設定
 
@@ -354,10 +372,12 @@ Blueprintが自動設定する値：
 - `LINE_LOGIN_CALLBACK_URL=https://restfull-xhex.onrender.com/auth/line/callback/`
 - `LINE_API_TIMEOUT=5` / `LINE_FRIENDSHIP_MAX_AGE=900`
 - `PAYMENT_LINK_MAX_AGE=604800`
-- `ECPAY_ENV=stage`
+- `ECPAY_ENV=production`
 - `ECPAY_STANDARD_ENABLED=true` / `ECPAY_INSTALLMENT_ENABLED=false`
-- `ECPAY_CREDIT_INSTALLMENTS=3,6,12,18,24`
-- `ECPAY_IGNORE_PAYMENT=WebATM#ATM#CVS#BARCODE#BNPL#WeiXin`
+- `ECPAY_CREDIT_INSTALLMENTS=`
+- `ECPAY_IGNORE_PAYMENT=ApplePay#BNPL#DigitalPayment`
+- `ECPAY_INVOICE_ENABLED=false` / `ECPAY_INVOICE_ENV=stage`（STAGE確認後に本番値へ手動切替）
+- `ECPAY_INVOICE_TIMEOUT=10`
 
 Render Dashboardで実値を入力する`sync: false`項目：
 
@@ -366,6 +386,7 @@ Render Dashboardで実値を入力する`sync: false`項目：
 - Turnstile: `TURNSTILE_SITE_KEY`、`TURNSTILE_SECRET_KEY`
 - LINE: `LINE_LOGIN_CHANNEL_ID`、`LINE_LOGIN_CHANNEL_SECRET`、`LINE_MESSAGING_CHANNEL_ACCESS_TOKEN`、`LINE_MESSAGING_CHANNEL_SECRET`、`LINE_OFFICIAL_ACCOUNT_BASIC_ID`
 - ECPay: `ECPAY_MERCHANT_ID`、`ECPAY_HASH_KEY`、`ECPAY_HASH_IV`
+- ECPay電子發票: `ECPAY_INVOICE_MERCHANT_ID`、`ECPAY_INVOICE_HASH_KEY`、`ECPAY_INVOICE_HASH_IV`、`ECPAY_INVOICE_TAX_TYPE`、`ECPAY_INVOICE_INV_TYPE`、`ECPAY_INVOICE_VAT`
 
 取得元はEmail provider、Cloudflare R2 / Turnstile、LINE Developers Consoleです。秘密値はGitHub、`render.yaml`、HTML、JavaScriptへ記載しません。
 

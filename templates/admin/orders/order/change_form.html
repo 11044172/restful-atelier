@@ -92,6 +92,37 @@
       {% endif %}
     </section>
 
+    <section class="order-next-action" aria-labelledby="invoice-title">
+      <header class="operation-heading"><span>E-INVOICE</span><div><h2 id="invoice-title">電子發票</h2><p>付款與發票為獨立處理；發票失敗不會回復付款狀態。</p></div></header>
+      {% if order_invoice_profile %}
+        <div class="operation-facts">
+          <span>發票類型<strong>{{ order_invoice_profile.get_invoice_type_display }}</strong></span>
+          <span>載具<strong>{% if order_invoice_profile.carrier_type == '3' %}手機條碼 {{ order_invoice_profile.carrier_number }}{% elif order_invoice_profile.carrier_type == '1' %}綠界載具{% else %}—{% endif %}</strong></span>
+          <span>統一編號<strong>{{ order_invoice_profile.customer_identifier|default:"—" }}</strong></span>
+          <span>發票抬頭<strong>{{ order_invoice_profile.customer_name|default:"—" }}</strong></span>
+        </div>
+      {% else %}
+        <div class="operation-message"><strong>此既有訂單沒有發票資訊快照。</strong><p>訂單與付款資料不受影響；確認付款時系統會以訂單 Email 建立個人電子發票待處理記錄。</p></div>
+      {% endif %}
+      {% if order_invoice %}
+        <div class="operation-facts">
+          <span>狀態<strong class="status-pill status-{{ order_invoice.status }}">{{ order_invoice.get_status_display }}</strong></span>
+          <span>發票號碼<strong>{{ order_invoice.invoice_no|default:"—" }}</strong></span>
+          <span>開立日期<strong>{{ order_invoice.invoice_date|date:"Y/m/d H:i"|default:"—" }}</strong></span>
+          <span>最近一次錯誤<strong>{{ order_invoice.error_message|default:"—" }}</strong></span>
+        </div>
+        {% if order_invoice.status == 'pending' or order_invoice.status == 'failed' or order_invoice.status == 'review_required' %}
+          <form method="post" action="{% url 'admin:orders_order_retry_invoice' operation_order.pk %}" class="operation-actions">{% csrf_token %}<button type="submit" data-confirm="系統會先以相同 RelateNumber 查詢既有發票，再安全重試。確定執行嗎？">重新嘗試開立電子發票</button></form>
+        {% endif %}
+        {% if order_invoice.status == 'issued' and operation_order.status == 'refund_pending' or order_invoice.status == 'issued' and operation_order.status == 'refunded' %}
+          <p class="operation-warning">此訂單已有已開立發票。退款不會自動作廢或開立折讓，請先依實際會計情況至 ECPay 後台處理並核對。</p>
+        {% endif %}
+      {% elif operation_order.is_paid %}
+        <div class="operation-message"><strong>發票待處理記錄尚未建立。</strong><p>請確認此付款是否為導入電子發票功能前的既有資料。</p></div>
+      {% endif %}
+      {% if not invoice_configured %}<p class="operation-warning">電子發票未設定：{{ invoice_configuration_error }}</p>{% endif %}
+    </section>
+
     <section class="order-items-section" aria-labelledby="order-items-title">
       <header><span>ORDER ITEMS</span><h2 id="order-items-title">商品資訊</h2></header>
       <div class="order-items-table">

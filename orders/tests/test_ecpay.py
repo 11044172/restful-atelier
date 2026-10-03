@@ -16,6 +16,7 @@ from orders.ecpay import (
 )
 from orders.line_messaging import build_payment_confirmed
 from orders.models import (
+    Invoice,
     LineCustomer,
     LineNotification,
     NotificationOutbox,
@@ -36,7 +37,7 @@ ECPAY_SETTINGS = {
     "ECPAY_STANDARD_ENABLED": True,
     "ECPAY_INSTALLMENT_ENABLED": False,
     "ECPAY_CREDIT_INSTALLMENTS": "3,6,12,18,24",
-    "ECPAY_IGNORE_PAYMENT": "WebATM#ATM#CVS#BARCODE#BNPL#WeiXin",
+    "ECPAY_IGNORE_PAYMENT": "ApplePay#BNPL#DigitalPayment",
     "CANONICAL_ORIGIN": "https://shop.example.test",
     "LINE_MESSAGING_CHANNEL_ACCESS_TOKEN": "line-test-token",
 }
@@ -194,8 +195,8 @@ class ECPayTests(TestCase):
         self.assertEqual(fields["TotalAmount"], "1100")
         self.assertEqual(fields["ChoosePayment"], "ALL")
         ignored = set(fields["IgnorePayment"].split("#"))
-        self.assertTrue({"WebATM", "ATM", "CVS", "BARCODE", "BNPL", "WeiXin"}.issubset(ignored))
-        self.assertTrue({"Credit", "ApplePay", "TWQR", "DigitalPayment"}.isdisjoint(ignored))
+        self.assertEqual(ignored, {"ApplePay", "BNPL", "DigitalPayment"})
+        self.assertTrue({"Credit", "WebATM", "ATM", "CVS", "BARCODE", "TWQR", "WeiXin"}.isdisjoint(ignored))
         self.assertNotIn("CreditInstallment", fields)
         self.assertEqual(fields["PaymentType"], "aio")
         self.assertEqual(fields["EncryptType"], "1")
@@ -255,8 +256,8 @@ class ECPayTests(TestCase):
         response = self.client.get(self._payment_url())
         self.assertNotContains(response, "使用 ECPay 付款")
 
-    @override_settings(ECPAY_IGNORE_PAYMENT="WebATM#Credit")
-    def test_forbidden_ignore_payment_configuration_hides_standard_entry(self):
+    @override_settings(ECPAY_IGNORE_PAYMENT="WebATM#InventedPayment")
+    def test_invalid_ignore_payment_configuration_hides_standard_entry(self):
         response = self.client.get(self._payment_url())
         self.assertNotContains(response, "使用 ECPay 付款")
         self.assertContains(response, "目前沒有已完成設定的付款方式")
@@ -401,10 +402,26 @@ class ECPayTests(TestCase):
 
     def test_all_official_standard_callback_payment_types_are_confirmed_and_normalized(self):
         expected = {
-            "Credit_CreditCard": "信用卡／Apple Pay",
+            "Credit_CreditCard": "信用卡一次付清",
+            "WebATM_BOT": "網路 ATM（臺灣銀行）",
+            "WebATM_CHINATRUST": "網路 ATM（中國信託）",
+            "WebATM_FIRST": "網路 ATM（第一銀行）",
+            "WebATM_LAND": "網路 ATM（土地銀行）",
+            "ATM_BOT": "ATM（臺灣銀行）",
+            "ATM_CHINATRUST": "ATM（中國信託）",
+            "ATM_FIRST": "ATM（第一銀行）",
+            "ATM_LAND": "ATM（土地銀行）",
+            "ATM_CATHAY": "ATM（國泰世華）",
+            "ATM_PANHSIN": "ATM（板信銀行）",
+            "ATM_KGI": "ATM（凱基銀行）",
+            "CVS_CVS": "超商代碼",
+            "CVS_OK": "OK 超商代碼",
+            "CVS_FAMILY": "全家超商代碼",
+            "CVS_HILIFE": "萊爾富超商代碼",
+            "CVS_IBON": "7-ELEVEN ibon 代碼",
+            "BARCODE_BARCODE": "超商條碼",
             "TWQR_OPAY": "TWQR",
-            "DigitalPayment_Jkopay": "街口支付",
-            "DigitalPayment_IPASS": "iPASS MONEY",
+            "WeiXin_OPAY": "微信支付",
         }
         self.assertEqual(ALLOWED_CALLBACK_PAYMENT_TYPES, frozenset(expected))
         for index, (payment_type, label) in enumerate(expected.items(), start=1):
@@ -505,6 +522,7 @@ class ECPayTests(TestCase):
         self.assertEqual(first.content, b"1|OK")
         self.assertEqual(second.content, b"1|OK")
         self.assertEqual(NotificationOutbox.objects.filter(event_type="payment_confirmed").count(), 2)
+        self.assertEqual(Invoice.objects.filter(order=self.order).count(), 1)
 
         with patch("orders.line_messaging.push_message") as push:
             process_next_outbox()
@@ -521,6 +539,19 @@ class ECPayTests(TestCase):
         self.assertEqual(response.content, b"1|OK")
         payment.refresh_from_db()
         self.assertEqual(payment.status, Payment.Status.FAILED)
+
+    def test_callback_requires_valid_simulate_paid_flag(self):
+        _response, payment = self._start_payment()
+        fields = self._callback_fields(payment)
+        fields.pop("SimulatePaid")
+        fields["CheckMacValue"] = generate_check_mac_value(
+            fields,
+            hash_key=ECPAY_SETTINGS["ECPAY_HASH_KEY"],
+            hash_iv=ECPAY_SETTINGS["ECPAY_HASH_IV"],
+        )
+        self.assertEqual(self._post_callback(fields).status_code, 400)
+        invalid = self._callback_fields(payment, SimulatePaid="yes")
+        self.assertEqual(self._post_callback(invalid).status_code, 400)
 
     def test_return_page_only_displays_database_status(self):
         response, payment = self._start_payment()
