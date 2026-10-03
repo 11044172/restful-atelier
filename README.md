@@ -337,6 +337,7 @@ Admin URL変更だけには依存していません。強いsuperuser password�
 - health check: `/healthz/`
 
 migrationをGunicorn起動コマンドへ混ぜていないため、複数workerから同時実行されません。
+pre-deployログの`No migrations to apply.`は正常終了を示し、その後も状態が変わらない場合はRender側のdeploy状態・billing・queueを確認します。
 
 1. GitHub repositoryをRender Blueprintへ接続します。
 2. `sync: false`のEmail / R2 / Turnstile / LINE Channel ID・Secret・Access Token・Basic IDをDashboardで入力します。
