@@ -415,6 +415,7 @@ GitHub ActionsはPostgreSQL 17でsystem check、migration consistency、migrate�
 
 - [日常運用・注文・通知・個資](docs/OPERATIONS.md)
 - [Backup / Restore](docs/BACKUP_RESTORE.md)
+- [正式運用開始前のテスト注文リセット](docs/RESET_TEST_ORDERS.md)
 - [正式公開Runbook](docs/LAUNCH_RUNBOOK.md)
 - [Security運用](docs/SECURITY.md)
 - [台湾EC政策ドラフト根拠](docs/LEGAL_DRAFT_NOTES.md)
