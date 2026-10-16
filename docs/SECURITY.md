@@ -7,3 +7,5 @@
 - 依存関係は `requirements.lock` と `pnpm-lock.yaml` をrelease sourceとする。push／PRのrelease gateでpip-audit／pnpm audit／gitleaksを確認し、同じ依存監査を毎日と手動実行でも先行確認する。Dependabotが毎日作成するpatch／minor更新PRを放置せず、CI成功後に取り込む。
 - 5xx、付款失敗、LINE/Email dead、Outbox backlog、slow request、R2失敗、在庫不整合をalert対象にする。Sentry等は未契約のため必須化していない。
 - インシデント時はログと監査記録を保全し、秘密値をrotateし、影響範囲・個人情報・通知義務を事業者と専門家が評価する。
+
+2026-10-16の9件に対する実装と反映条件は[修正記録](SECURITY_REMEDIATION_2026-10-16.md)を参照。画像アップロードには独立した非公開stagingバケットの設定が必要。

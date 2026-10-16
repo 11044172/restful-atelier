@@ -87,7 +87,7 @@ R2への保存とブラウザへの公開配信は別の設定です。公開ド
 
 ### 管理画面画像のR2直接アップロード
 
-商品、室內設計の主要画像／ギャラリー、出版物カバーは、共通のadmin image managerから既存のdefault storageが保持するR2/S3 clientに10分有効のPresigned PUT URLを発行し、画像本体をブラウザから既存bucketへ直接送ります。Djangoへ届くのはファイル名、MIME、容量、寸法、object key、upload session、画像ID、表示順だけです。完了通知時にはDjangoがR2へHEADを行い、存在、Content-Length（申告値と一致）、Content-Type、発行済みobject key、管理ユーザーとsessionの所有関係を再確認します。
+商品、室內設計の主要画像／ギャラリー、出版物カバーは、共通のadmin image managerから独立した非公開R2 bucketへの10分有効のPresigned PUT URLを発行します。Content-Typeと正確なContent-Lengthを署名に含め、管理ユーザー共通の毎時発行数・容量制限を適用します。完了時にはDjangoが所有関係とHEADを確認し、上限付きで実データを取得して形式・寸法・画素数・フレーム数を検証します。EXIF等を除去して再生成した画像だけを別の公開用keyへ保存するため、一時URLの再利用で公開画像を差し替えることはできません。
 
 新規商品で未連結の画像は24時間保持されます。Render Cron Job等から次を定期実行してください。
 
@@ -98,7 +98,7 @@ python manage.py cleanup_orphan_project_images
 
 確認だけ行う場合は`--dry-run`、保持時間を変更する場合は`--hours 48`のように指定できます。1件のR2削除に失敗しても残りを続行し、失敗レコードは次回の実行対象としてDBへ残します。
 
-ブラウザからR2へPUTするため、対象bucketのCORSに本番originが必要です。既存ルールに同等設定がない場合のみ、Cloudflare Dashboardで次を追加してください（bucket名や資格情報の変更は不要です）。
+ブラウザからR2へPUTするため、非公開staging bucketのCORSに本番originが必要です。`ADMIN_IMAGE_STAGING_BUCKET`へ公開用とは別のbucketを設定し、r2.devとカスタムドメインを無効にしてください。S3資格情報には両bucketへの必要な読み書き権限が必要です。stagingの`pending/`を1日で削除するlifecycleルールも設定してください。
 
 ```json
 [
@@ -116,7 +116,7 @@ python manage.py cleanup_orphan_project_images
 ]
 ```
 
-ローカルブラウザから実際のR2へ直接アップロードする場合だけ、開発中のorigin（例：`http://localhost:8000`）も追加します。本番で`AllowedOrigins: ["*"]`は使用しません。この機能のための新しいRender環境変数はありません。
+ローカルブラウザから実際のR2へ直接アップロードする場合だけ、開発中のorigin（例：`http://localhost:8000`）も追加します。本番で`AllowedOrigins: ["*"]`は使用しません。新しいRender環境変数`ADMIN_IMAGE_STAGING_BUCKET`が未設定、または公開bucketと同じ場合、新規アップロードは停止します。実R2で署名サイズ制限とブラウザ互換性を確認してください。詳細は[セキュリティ修正記録](docs/SECURITY_REMEDIATION_2026-10-16.md)を参照してください。
 
 ## Email
 
@@ -135,7 +135,7 @@ SMTP互換設定です。特定配信会社に依存しません。
 
 ## LINE Login / Messaging API
 
-購入ではLINE LoginとRfull公式アカウントの友だち追加が必須です。ブラウザ上の自己申告チェックではなく、Friendship Status API、LINE Login callbackの`friendship_status_changed=true`、または署名検証済みfollow Webhookで友だち状態を確認したsessionだけが注文を送信できます。LINE access token、authorization code、PKCE verifierはDBへ保存せず、callback処理後に破棄します。
+購入ではLINE LoginとRfull公式アカウントの友だち追加が必須です。ブラウザ上の自己申告チェックではなく、成功したFriendship Status API、または署名検証済みfollow Webhookで友だち状態を確認したsessionだけが注文を送信できます。LINE access token、authorization code、PKCE verifierはDBへ保存せず、callback処理後に破棄します。
 
 必要な環境変数：
 

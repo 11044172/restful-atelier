@@ -1,4 +1,3 @@
-import csv
 import json
 import logging
 from uuid import uuid4
@@ -283,15 +282,22 @@ class ProductAdmin(admin.ModelAdmin):
                 level=messages.WARNING,
             )
 
-    @admin.action(description="匯出商品資料", permissions=("view",))
+    @admin.action(description="匯出商品資料（XLSX）", permissions=("view",))
     def export_product_data(self, request, queryset):
-        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        try:
+            return self._export_product_workbook(request, queryset)
+        except ValueError as exc:
+            self.message_user(request, str(exc), level=messages.ERROR)
+
+    def _export_product_workbook(self, request, queryset):
+        from .product_data_files import CONTENT_TYPE, ProductDataWriter
+
+        response = HttpResponse(content_type=CONTENT_TYPE)
         timestamp = timezone.localtime(timezone.now()).strftime("%Y%m%d_%H%M%S")
         response["Content-Disposition"] = (
-            f'attachment; filename="product_data_{timestamp}.csv"'
+            f'attachment; filename="product_data_{timestamp}.xlsx"'
         )
-        response.write("\ufeff")
-        writer = csv.writer(response)
+        writer = ProductDataWriter()
         writer.writerow(
             (
                 "product_id",
@@ -353,6 +359,8 @@ class ProductAdmin(admin.ModelAdmin):
                     updated_at.isoformat() if updated_at else "",
                 )
             )
+        response.write(writer.content())
+        response["Cache-Control"] = "no-store"
         return response
 
     def get_urls(self):

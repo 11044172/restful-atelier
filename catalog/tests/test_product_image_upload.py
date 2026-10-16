@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -18,8 +18,17 @@ from catalog.product_image_service import (
 )
 
 
+@override_settings(ADMIN_IMAGE_STAGING_BUCKET="private-tests")
 class ProductImageApiTests(TestCase):
     def setUp(self):
+        storage_patch = patch("catalog.product_image_service._storage_client", return_value=(Mock(), "bucket"))
+        storage_patch.start()
+        self.addCleanup(storage_patch.stop)
+        verification = patch("catalog.product_image_service.verify_and_publish_image", side_effect=lambda **data: (
+            data["object_key"].removeprefix("pending/"), data["size"], data["width"], data["height"]
+        ))
+        verification.start()
+        self.addCleanup(verification.stop)
         self.user = get_user_model().objects.create_superuser(
             "image-admin", "images@example.com", "password"
         )
@@ -66,7 +75,7 @@ class ProductImageApiTests(TestCase):
 
     def pending_image(self, **overrides):
         values = {
-            "image": "products/2026/09/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg",
+            "image": "pending/products/2026/09/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg",
             "upload_status": ProductImage.UploadStatus.PENDING,
             "upload_session": self.session_id,
             "uploaded_by": self.user,
@@ -120,7 +129,7 @@ class ProductImageApiTests(TestCase):
                 self.assertEqual(payload["expires_in"], PRESIGN_EXPIRES_SECONDS)
                 self.assertRegex(
                     payload["object_key"],
-                    rf"^products/\d{{4}}/\d{{2}}/[0-9a-f]{{32}}\.{filename.rsplit('.', 1)[1]}$",
+                    rf"^pending/products/\d{{4}}/\d{{2}}/[0-9a-f]{{32}}\.{filename.rsplit('.', 1)[1]}$",
                 )
                 self.assertNotIn(filename, payload["object_key"])
         self.assertTrue(
@@ -180,10 +189,11 @@ class ProductImageApiTests(TestCase):
             },
         )
         self.assertEqual(response.status_code, 200)
+        original_key = image.image.name
         image.refresh_from_db()
         self.assertEqual(image.upload_status, ProductImage.UploadStatus.TEMPORARY)
         self.assertIsNone(image.product_id)
-        head.assert_called_once_with(image.image.name)
+        head.assert_called_once_with(original_key)
 
     @patch("catalog.product_image_service.head_object")
     def test_complete_attaches_to_the_session_product(self, head):
@@ -226,7 +236,7 @@ class ProductImageApiTests(TestCase):
         for metadata, code in cases:
             with self.subTest(code=code):
                 image = self.pending_image(
-                    image=f"products/2026/09/{uuid4().hex}.jpg"
+                    image=f"pending/products/2026/09/{uuid4().hex}.jpg"
                 )
                 head.return_value = metadata
                 response = self.post_json(

@@ -88,6 +88,12 @@ class Command(BaseCommand):
         storage_backend = settings.STORAGES["default"]["BACKEND"]
         r2_ok = storage_backend.startswith("storages.backends.s3")
         self._check(r2_ok, "R2/S3 storage設定済み", "本番メディアがR2/S3ではない", fail=production)
+        self._check(
+            bool(settings.ADMIN_IMAGE_STAGING_BUCKET and settings.ADMIN_IMAGE_STAGING_BUCKET != settings.R2_BUCKET_NAME),
+            "画像の独立した非公開staging bucket設定済み",
+            "ADMIN_IMAGE_STAGING_BUCKET が未設定または公開bucketと同一。画像の新規アップロードは停止します",
+            fail=production,
+        )
         if r2_ok:
             options_storage = settings.STORAGES["default"].get("OPTIONS", {})
             self._check(bool(options_storage.get("custom_domain") or options_storage.get("querystring_auth")), "R2 read配信方式設定済み", "R2 媒體沒有公開網域，也未啟用簽署網址", fail=True)

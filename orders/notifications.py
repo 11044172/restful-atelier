@@ -134,15 +134,17 @@ def _email_body(order, event_type):
 
 def send_order_email_event(order, event_type):
     subject, body = _email_body(order, event_type)
-    recipients = [order.email]
+    sent = send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [order.email], fail_silently=False)
     if event_type == "order_received":
         site = SiteSettings.load()
+        recipients = []
         for address in [site.order_notification_email or settings.ORDER_NOTIFICATION_EMAIL, *settings.ORDER_NOTIFICATION_EMAILS]:
-            if address and address not in recipients:
+            if address and address != order.email and address not in recipients:
                 recipients.append(address)
         admin_url = f"{settings.CANONICAL_ORIGIN}{reverse('admin:orders_order_change', args=[order.pk])}"
-        body += f"\n\n管理員訂單頁面：{admin_url}"
-    return send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, recipients, fail_silently=False)
+        if recipients:
+            sent += send_mail(subject, body + f"\n\n管理員訂單頁面：{admin_url}", settings.DEFAULT_FROM_EMAIL, recipients, fail_silently=False)
+    return sent
 
 
 def deliver_outbox(job):

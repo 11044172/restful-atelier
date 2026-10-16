@@ -1,0 +1,64 @@
+$ astro check && astro build
+13:03:03 [vite] Re-optimizing dependencies because lockfile has changed
+13:03:03 [types] Generated 118ms
+13:03:03 [check] Getting diagnostics for Astro files in /Users/eusyoicloud.com/Lean Dev Studio/靜院居家...
+[96mstatic/admin/js/admin-image-manager.js[0m:[93m712[0m:[93m13[0m - [93mwarning[0m[90m ts(6385): [0m'returnValue' is deprecated.
+
+[7m712[0m       event.returnValue = "";
+[7m   [0m [93m            ~~~~~~~~~~~[0m
+
+Result (37 files):
+- 0 errors
+- 0 warnings
+- 1 hint
+
+13:03:06 [types] Generated 20ms
+13:03:06 [build] output: "static"
+13:03:06 [build] mode: "static"
+13:03:06 [build] directory: /Users/eusyoicloud.com/Lean Dev Studio/靜院居家/dist/
+13:03:06 [build] Collecting build info...
+13:03:06 [build] ✓ Completed in 37ms.
+13:03:06 [build] Building static entrypoints...
+13:03:06 [vite] ✓ built in 261ms
+13:03:06 [vite] ✓ built in 13ms
+13:03:06 [build] Rearranging server assets...
+
+ generating static routes
+13:03:06   ├─ /404.html (+7ms)
+13:03:06   ├─ /about/index.html (+2ms)
+13:03:06   ├─ /contact/index.html (+1ms)
+13:03:06   ├─ /publications/index.html (+1ms)
+13:03:06   ├─ /shop/cart/index.html (+5ms)
+13:03:06   ├─ /shop/category/daily-living/index.html (+1ms)
+13:03:06   ├─ /shop/category/incense-fragrance/index.html (+1ms)
+13:03:06   ├─ /shop/category/tea-selection/index.html (+1ms)
+13:03:06   ├─ /shop/category/art-collection/index.html (+1ms)
+13:03:06   ├─ /shop/category/healthy-living/index.html (+1ms)
+13:03:06   ├─ /shop/category/pampered-pets/index.html (+1ms)
+13:03:06   ├─ /shop/favorites/index.html (+1ms)
+13:03:06   ├─ /shop/products/morning-cup/index.html (+1ms)
+13:03:06   ├─ /shop/products/wooden-spoon-set/index.html (+1ms)
+13:03:06   ├─ /shop/products/linen-tablecloth/index.html (+1ms)
+13:03:06   ├─ /shop/products/ceramic-vase/index.html (+1ms)
+13:03:06   ├─ /shop/products/woven-blanket/index.html (+1ms)
+13:03:06   ├─ /shop/products/teak-coaster-set/index.html (+1ms)
+13:03:06   ├─ /shop/products/brass-candle-holder/index.html (+1ms)
+13:03:06   ├─ /shop/products/bamboo-basket/index.html (+1ms)
+13:03:06   ├─ /shop/products/stone-incense-holder/index.html (+0ms)
+13:03:06   ├─ /shop/products/aged-tea-jar/index.html (+1ms)
+13:03:06   ├─ /shop/products/oak-reading-stool/index.html (+7ms)
+13:03:06   ├─ /shop/products/pet-dining-bowl/index.html (+1ms)
+13:03:06   ├─ /shop/products/pet-rest-mat/index.html (+1ms)
+13:03:06   ├─ /shop/search/index.html (+1ms)
+13:03:06   ├─ /shop/index.html (+1ms)
+13:03:06   ├─ /works/bamboo-house-yilan/index.html (+1ms)
+13:03:06   ├─ /works/taipei-flat-renewal/index.html (+0ms)
+13:03:06   ├─ /works/hualien-seaside-stay/index.html (+1ms)
+13:03:06   ├─ /works/tainan-tea-room/index.html (+0ms)
+13:03:06   ├─ /works/index.html (+1ms)
+13:03:06   ├─ /index.html (+1ms)
+13:03:06 ✓ Completed in 58ms.
+
+13:03:06 [build] ✓ Completed in 348ms.
+13:03:06 [build] 33 page(s) built in 394ms
+13:03:06 [build] Complete!

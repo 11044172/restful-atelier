@@ -555,10 +555,24 @@ class PaymentAdmin(admin.ModelAdmin):
             return "此訂單已開立電子發票；登記退款不會自動作廢或開立折讓，請先確認 ECPay 後台與實際會計處理。"
         return f"電子發票狀態：{invoice.get_status_display()}"
 
-    @admin.action(description="將剩餘金額登記為全額退款並保留稽核記錄")
+    def has_record_refund_permission(self, request, obj=None):
+        return (
+            self.has_change_permission(request, obj)
+            and request.user.has_perm("orders.record_refund")
+            and backoffice_site._registry[Order].has_change_permission(
+                request, obj.order if obj else None
+            )
+        )
+
+    @admin.action(description="將剩餘金額登記為全額退款並保留稽核記錄", permissions=("record_refund",))
     def record_remaining_full_refund(self, request, queryset):
+        payments = list(queryset)
+        if not self.has_record_refund_permission(request) or any(
+            not self.has_record_refund_permission(request, payment) for payment in payments
+        ):
+            raise PermissionDenied
         completed = 0
-        for payment in queryset:
+        for payment in payments:
             reason = payment.refund_reason.strip()
             increment = (payment.amount or Decimal("0")) - payment.refunded_amount
             if increment <= 0 or not reason:
@@ -621,8 +635,12 @@ class NotificationOutboxAdmin(admin.ModelAdmin):
         ("冪等與原始回應", {"classes": ("collapse",), "fields": ("dedupe_key", "payload", "response_metadata", "created_at", "updated_at")}),
     )
 
-    @admin.action(description="將選取的通知安全地恢復為等待重送")
+    @admin.action(description="將選取的通知安全地恢復為等待重送", permissions=("change",))
     def retry_jobs(self, request, queryset):
+        if not self.has_change_permission(request) or any(
+            not self.has_change_permission(request, job) for job in queryset
+        ):
+            raise PermissionDenied
         count = 0
         with transaction.atomic():
             for job in queryset.select_for_update().filter(status__in=(NotificationOutbox.Status.DEAD, NotificationOutbox.Status.RETRY)):
@@ -715,16 +733,29 @@ class LineNotificationAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
-    @admin.action(description="安全重試傳送失敗的 LINE 通知")
+    @admin.action(description="安全重試傳送失敗的 LINE 通知", permissions=("change",))
+    @transaction.atomic
     def retry_failed(self, request, queryset):
+        notifications = list(queryset)
+        if not self.has_change_permission(request) or any(
+            not self.has_change_permission(request, notification) for notification in notifications
+        ):
+            raise PermissionDenied
         count = 0
-        for notification in queryset.filter(status=LineNotification.Status.FAILED):
+        for notification in notifications:
+            if notification.status != LineNotification.Status.FAILED:
+                continue
             jobs = retry_or_enqueue_order_notifications(
                 notification.order_id,
                 notification.notification_type,
                 channels=("line",),
             )
             count += len(jobs)
+            OrderAuditLog.objects.create(
+                order=notification.order, event="notification_requeued", actor=request.user,
+                actor_label=request.user.get_username(),
+                metadata={"line_notification_id": notification.pk, "outbox_ids": [job.pk for job in jobs]},
+            )
         self.message_user(request, f"已將 {count} 筆通知安全排入 Outbox。")
 
 

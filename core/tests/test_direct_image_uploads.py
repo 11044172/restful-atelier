@@ -1,4 +1,6 @@
 import json
+from io import BytesIO
+from PIL import Image
 from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
@@ -21,6 +23,7 @@ from core.logging_filters import redact_signed_paths
 
 
 @override_settings(
+    ADMIN_IMAGE_STAGING_BUCKET="private-tests",
     ADMIN_IMAGE_MAX_INPUT_BYTES=30 * 1024 * 1024,
     ADMIN_IMAGE_MAX_OUTPUT_BYTES=10 * 1024 * 1024,
     ADMIN_IMAGE_MAX_INPUT_PIXELS=32_000_000,
@@ -69,19 +72,23 @@ class DirectImageUploadTests(TestCase):
         storage.assert_not_called()
 
     @patch("core.direct_image_uploads._storage_client")
-    def test_put_is_presigned_and_head_verified_without_get_object(self, storage):
+    def test_put_is_presigned_and_actual_bytes_are_verified(self, storage):
         client = Mock()
         client.generate_presigned_url.return_value = "https://r2.example/put"
-        client.head_object.return_value = {"ContentLength":1234, "ContentType":"image/jpeg"}
+        raw = BytesIO()
+        Image.new("RGB", (1200, 800)).save(raw, format="JPEG")
+        client.get_object.return_value = {"Body": BytesIO(raw.getvalue())}
+        client.head_object.return_value = {"ContentLength":len(raw.getvalue()), "ContentType":"image/jpeg"}
         storage.return_value = (client, "bucket")
-        prepared = self.post(self.presign, self.metadata())
+        prepared = self.post(self.presign, self.metadata(size=len(raw.getvalue())))
         self.assertEqual(prepared.status_code, 200)
         payload = prepared.json()
         self.assertNotIn("..", payload["object_key"])
         completed = self.post(self.complete, {"category":"site.home_hero_image", "upload_id":payload["upload_id"], "object_key":payload["object_key"]})
         self.assertEqual(completed.status_code, 200)
-        client.head_object.assert_called_once_with(Bucket="bucket", Key=payload["object_key"])
-        self.assertFalse(hasattr(client, "get_object") and client.get_object.called)
+        client.head_object.assert_called_once_with(Bucket="private-tests", Key=payload["object_key"])
+        self.assertTrue(client.get_object.called)
+        self.assertNotEqual(completed.json()["object_key"], payload["object_key"])
 
     def test_safe_token_saves_all_admin_image_models_and_marks_attached(self):
         cases = []
@@ -136,7 +143,7 @@ class DirectImageUploadTests(TestCase):
         self.assertEqual(redact_signed_paths("Not Found: /pay/secret-token/"), "Not Found: /pay/<redacted>/")
         self.assertEqual(redact_signed_paths("/shop/cancel/secret-token/"), "/shop/cancel/<redacted>/")
 
-    @patch("core.management.commands.cleanup_direct_image_uploads.default_storage.delete")
+    @patch("core.management.commands.cleanup_direct_image_uploads.delete_image_object")
     def test_orphan_cleanup_is_dry_run_by_default_and_retries_failures(self, delete):
         upload, _token = self.ready_upload("project.featured_image", "projects/2026/09/orphan.jpg")
         DirectImageUpload.objects.filter(pk=upload.pk).update(created_at=timezone.now()-timedelta(hours=25))

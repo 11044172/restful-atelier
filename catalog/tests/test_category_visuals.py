@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.template.loader import render_to_string
-from django.test import Client, RequestFactory, TestCase, TransactionTestCase
+from django.test import override_settings, Client, RequestFactory, TestCase, TransactionTestCase
 from django.urls import reverse
 
 from catalog.models import Product, ProductCategory, ProductImage
@@ -194,6 +194,7 @@ class CategoryThumbnailModelTests(TestCase):
             category.full_clean()
 
 
+@override_settings(ADMIN_IMAGE_STAGING_BUCKET="private-tests")
 class CategoryThumbnailAdminTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_superuser(
@@ -274,7 +275,7 @@ class CategoryThumbnailAdminTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.json()["object_key"].startswith("catalog/categories/"))
+        self.assertTrue(response.json()["object_key"].startswith("pending/catalog/categories/"))
         r2.generate_presigned_url.assert_called_once()
 
     def test_admin_save_marks_upload_attached(self):

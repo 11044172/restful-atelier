@@ -164,6 +164,9 @@ ADMIN_IMAGE_MAX_DIMENSION = int(os.getenv("ADMIN_IMAGE_MAX_DIMENSION", "8000"))
 ADMIN_IMAGE_PHOTO_LONG_EDGE = int(os.getenv("ADMIN_IMAGE_PHOTO_LONG_EDGE", "2800"))
 ADMIN_IMAGE_ARTWORK_LONG_EDGE = int(os.getenv("ADMIN_IMAGE_ARTWORK_LONG_EDGE", "2000"))
 PRODUCT_IMAGE_MAX_BYTES = int(os.getenv("PRODUCT_IMAGE_MAX_BYTES", str(20 * 1024 * 1024)))
+ADMIN_IMAGE_STAGING_BUCKET = os.getenv("ADMIN_IMAGE_STAGING_BUCKET", "").strip()
+ADMIN_IMAGE_UPLOADS_PER_HOUR = int(os.getenv("ADMIN_IMAGE_UPLOADS_PER_HOUR", "60"))
+ADMIN_IMAGE_BYTES_PER_HOUR = int(os.getenv("ADMIN_IMAGE_BYTES_PER_HOUR", str(200 * 1024 * 1024)))
 TRUSTED_PROXY_IPS = {value.strip() for value in os.getenv("TRUSTED_PROXY_IPS", "").split(",") if value.strip()}
 
 LINE_LOGIN_CHANNEL_ID = os.getenv("LINE_LOGIN_CHANNEL_ID", "")
@@ -220,7 +223,7 @@ if not DEBUG:
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "formatters": {"structured": {"format": "time=%(asctime)s level=%(levelname)s logger=%(name)s message=%(message)s"}},
+    "formatters": {"structured": {"()": "core.logging_filters.SensitivePathFormatter", "format": "time=%(asctime)s level=%(levelname)s logger=%(name)s message=%(message)s"}},
     "filters": {"sensitive_paths": {"()": "core.logging_filters.SensitivePathFilter"}},
     "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "structured", "filters": ["sensitive_paths"]}},
     "loggers": {

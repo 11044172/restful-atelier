@@ -4,10 +4,16 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.core import signing
-from django.core.files.storage import default_storage
+from django.db import transaction
+from django.utils import timezone
 
 from .admin_image_uploads import (
     ALLOWED_CONTENT_TYPES,
+    atomic_image_operation,
+    delete_image_object,
+    reserve_upload_quota,
+    staging_bucket,
+    verify_and_publish_image,
     ImageMetadataValidationError,
     generate_presigned_put,
     normalized_head_metadata,
@@ -114,6 +120,7 @@ def _storage_client():
         ) from exc
 
 
+@transaction.atomic
 def create_upload(*, user, category, filename, content_type, size, width, height):
     require_category_permission(user, category)
     _permission, prefix, _profile = category_config(category)
@@ -124,9 +131,12 @@ def create_upload(*, user, category, filename, content_type, size, width, height
         width=width,
         height=height,
     )
-    from django.utils import timezone
 
-    key = f"{prefix}/{timezone.now():%Y/%m}/{uuid4().hex}{extension}"
+    try:
+        reserve_upload_quota(user, size)
+    except ImageMetadataValidationError as exc:
+        raise DirectImageError(exc.message, exc.code, 429) from exc
+    key = f"pending/{prefix}/{timezone.now():%Y/%m}/{uuid4().hex}{extension}"
     upload = DirectImageUpload.objects.create(
         object_key=key,
         category=category,
@@ -144,6 +154,7 @@ def create_upload(*, user, category, filename, content_type, size, width, height
             bucket=bucket,
             object_key=key,
             content_type=content_type,
+            size=size,
             expires_in=PRESIGN_EXPIRES_SECONDS,
         )
     except Exception as exc:
@@ -166,12 +177,13 @@ def create_upload(*, user, category, filename, content_type, size, width, height
     return upload, url
 
 
+@atomic_image_operation(DirectImageError)
 def complete_upload(*, user, category, upload_id, object_key):
     require_category_permission(user, category)
     if not SAFE_KEY.fullmatch(str(object_key or "")) or ".." in str(object_key):
         raise DirectImageError("圖片識別資料無效。", "invalid_object_key")
     try:
-        upload = DirectImageUpload.objects.get(
+        upload = DirectImageUpload.objects.select_for_update().get(
             pk=upload_id,
             object_key=object_key,
             category=category,
@@ -182,9 +194,13 @@ def complete_upload(*, user, category, upload_id, object_key):
         raise DirectImageError(
             "找不到這次圖片上傳，請重新選擇圖片。", "upload_not_owned", 404
         ) from exc
+    if not object_key.startswith("pending/"):
+        raise DirectImageError("請重新上傳圖片。", "invalid_object_key")
+    if (timezone.now() - upload.created_at).total_seconds() > PRESIGN_EXPIRES_SECONDS:
+        raise DirectImageError("圖片上傳已逾時，請重新選擇圖片。", "upload_expired")
     try:
         client, bucket = _storage_client()
-        metadata = client.head_object(Bucket=bucket, Key=object_key)
+        metadata = client.head_object(Bucket=staging_bucket(bucket), Key=object_key)
     except Exception as exc:
         logger.exception(
             "image_head_failed upload_id=%s category=%s", upload.pk, category
@@ -207,8 +223,19 @@ def complete_upload(*, user, category, upload_id, object_key):
         raise DirectImageError(
             "上傳後的圖片格式不一致，請重新選擇圖片。", "mime_mismatch"
         )
+    try:
+        upload.object_key, upload.file_size, upload.width, upload.height = verify_and_publish_image(
+            client=client, bucket=bucket, object_key=object_key,
+            content_type=upload.content_type, size=upload.file_size,
+            width=upload.width, height=upload.height, max_bytes=settings.ADMIN_IMAGE_MAX_OUTPUT_BYTES,
+        )
+    except ImageMetadataValidationError as exc:
+        _delete_invalid_upload(upload, reason=exc.code)
+        raise DirectImageError(exc.message, exc.code) from exc
+    except Exception as exc:
+        raise DirectImageError("圖片驗證服務無法使用，請重試。", "verification_failed", 503) from exc
     upload.status = DirectImageUpload.Status.READY
-    upload.save(update_fields=("status", "updated_at"))
+    upload.save(update_fields=("object_key", "file_size", "width", "height", "status", "updated_at"))
     token = signing.dumps(
         {"id": upload.pk, "key": upload.object_key, "category": category},
         salt=TOKEN_SALT,
@@ -228,7 +255,7 @@ def complete_upload(*, user, category, upload_id, object_key):
 
 def _delete_invalid_upload(upload, *, reason):
     try:
-        default_storage.delete(upload.object_key)
+        delete_image_object(upload.object_key)
     except Exception:
         upload.status = DirectImageUpload.Status.DELETION_PENDING
         upload.save(update_fields=("status", "updated_at"))
@@ -262,7 +289,7 @@ def delete_upload(*, user, category, upload_id, object_key):
     upload.status = DirectImageUpload.Status.DELETION_PENDING
     upload.save(update_fields=("status", "updated_at"))
     try:
-        default_storage.delete(upload.object_key)
+        delete_image_object(upload.object_key)
     except Exception as exc:
         logger.exception("direct_image_delete_failed upload_id=%s", upload.pk)
         raise DirectImageError("刪除圖片失敗，請重試。", "delete_failed", 503) from exc

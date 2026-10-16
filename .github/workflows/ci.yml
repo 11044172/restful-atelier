@@ -67,7 +67,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - run: pnpm audit --prod --audit-level high
+      - run: pnpm audit --audit-level moderate
 
   dependency-security:
     runs-on: ubuntu-latest

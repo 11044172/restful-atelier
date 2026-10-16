@@ -1,11 +1,13 @@
 import json
 import re
 from pathlib import Path
+from io import BytesIO
+from PIL import Image
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -16,8 +18,17 @@ from core.admin_forms import PublicationAdminForm
 from core.models import DirectImageUpload
 
 
+@override_settings(ADMIN_IMAGE_STAGING_BUCKET="private-tests")
 class ProjectImageAdminTests(TestCase):
     def setUp(self):
+        storage_patch = patch("content.project_image_service._storage_client", return_value=(Mock(), "bucket"))
+        storage_patch.start()
+        self.addCleanup(storage_patch.stop)
+        verification = patch("content.project_image_service.verify_and_publish_image", side_effect=lambda **data: (
+            data["object_key"].removeprefix("pending/"), data["size"], data["width"], data["height"]
+        ))
+        verification.start()
+        self.addCleanup(verification.stop)
         self.user = get_user_model().objects.create_superuser(
             "project-admin", "projects@example.com", "password"
         )
@@ -69,7 +80,7 @@ class ProjectImageAdminTests(TestCase):
 
     def pending_image(self, **overrides):
         values = {
-            "image": "projects/gallery/2026/09/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg",
+            "image": "pending/projects/gallery/2026/09/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg",
             "upload_status": InteriorProjectImage.UploadStatus.PENDING,
             "upload_session": self.session_id,
             "uploaded_by": self.user,
@@ -144,12 +155,13 @@ class ProjectImageAdminTests(TestCase):
             {**self.scope(), "object_key": image.image.name},
         )
         self.assertEqual(response.status_code, 200)
+        original_key = image.image.name
         image.refresh_from_db()
         self.assertEqual(
             image.upload_status, InteriorProjectImage.UploadStatus.TEMPORARY
         )
         self.assertIsNone(image.project_id)
-        head.assert_called_once_with(image.image.name)
+        head.assert_called_once_with(original_key)
 
     @patch("content.project_image_service.head_object")
     def test_complete_attaches_immediately_on_change_page(self, head):
@@ -376,6 +388,7 @@ class ProjectImageAdminTests(TestCase):
         self.assertEqual(denied.status_code, 403)
 
 
+@override_settings(ADMIN_IMAGE_STAGING_BUCKET="private-tests")
 class SingleImageAdminTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_superuser(
@@ -404,8 +417,11 @@ class SingleImageAdminTests(TestCase):
     def test_featured_and_cover_use_presign_put_complete_head_flow(self, storage):
         r2 = Mock()
         r2.generate_presigned_url.return_value = "https://r2.example/put"
+        raw = BytesIO()
+        Image.new("RGB", (1200, 800)).save(raw, format="JPEG")
+        r2.get_object.side_effect = lambda **kwargs: {"Body": BytesIO(raw.getvalue())}
         r2.head_object.return_value = {
-            "ContentLength": 1234,
+            "ContentLength": len(raw.getvalue()),
             "ContentType": "image/jpeg",
         }
         storage.return_value = (r2, "bucket")
@@ -421,7 +437,7 @@ class SingleImageAdminTests(TestCase):
                             "category": category,
                             "filename": "image.jpg",
                             "content_type": "image/jpeg",
-                            "size": 1234,
+                            "size": len(raw.getvalue()),
                             "width": 1200,
                             "height": 800,
                         }
@@ -430,7 +446,7 @@ class SingleImageAdminTests(TestCase):
                 )
                 self.assertEqual(prepared.status_code, 200)
                 payload = prepared.json()
-                self.assertTrue(payload["object_key"].startswith(prefix))
+                self.assertTrue(payload["object_key"].startswith("pending/" + prefix))
                 completed = self.client.post(
                     reverse("admin:direct_image_complete"),
                     json.dumps(
@@ -508,7 +524,7 @@ class SingleImageAdminTests(TestCase):
         publication.refresh_from_db()
         self.assertEqual(publication.cover_image.name, "")
 
-    @patch("core.direct_image_uploads.default_storage.delete")
+    @patch("core.direct_image_uploads.delete_image_object")
     def test_unattached_single_upload_can_be_deleted_only_by_owner(self, delete):
         upload = DirectImageUpload.objects.create(
             object_key="publications/2026/09/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg",

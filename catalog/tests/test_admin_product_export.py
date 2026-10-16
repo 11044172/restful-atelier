@@ -1,6 +1,6 @@
-import csv
 from decimal import Decimal
-from io import StringIO
+from io import BytesIO
+from openpyxl import load_workbook
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
@@ -80,23 +80,24 @@ class ProductAdminExportTests(TestCase):
 
     @staticmethod
     def rows(response):
-        text = response.content.decode("utf-8-sig")
-        return list(csv.DictReader(StringIO(text)))
+        workbook = load_workbook(BytesIO(response.content))
+        values = list(workbook.active.values)
+        return [dict(zip(values[0], ("" if value is None else str(value) for value in row))) for row in values[1:]]
 
-    def test_action_returns_csv_response(self):
+    def test_action_returns_xlsx_response(self):
         response = self.export(self.draft)
         self.assertEqual(response.status_code, 200)
-        self.assertIn("product_id", response.content.decode("utf-8-sig"))
+        self.assertIn("product_id", self.rows(response)[0])
 
-    def test_content_type_is_csv(self):
+    def test_content_type_is_xlsx(self):
         response = self.export(self.draft)
-        self.assertEqual(response["Content-Type"], "text/csv; charset=utf-8")
+        self.assertEqual(response["Content-Type"], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
     def test_content_disposition_has_expected_filename(self):
         disposition = self.export(self.draft)["Content-Disposition"]
         self.assertRegex(
             disposition,
-            r'^attachment; filename="product_data_\d{8}_\d{6}\.csv"$',
+            r'^attachment; filename="product_data_\d{8}_\d{6}\.xlsx"$',
         )
 
     def test_filename_has_no_internal_service_wording(self):
@@ -105,8 +106,8 @@ class ProductAdminExportTests(TestCase):
         self.assertNotIn("gpt", filename)
         self.assertNotIn("ai", filename)
 
-    def test_csv_starts_with_utf8_bom(self):
-        self.assertTrue(self.export(self.draft).content.startswith(b"\xef\xbb\xbf"))
+    def test_xlsx_is_a_zip_archive(self):
+        self.assertTrue(self.export(self.draft).content.startswith(b"PK"))
 
     def test_product_id_is_exported(self):
         row = self.rows(self.export(self.draft))[0]

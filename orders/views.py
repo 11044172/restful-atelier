@@ -107,6 +107,7 @@ def cart_update(request, product_id):
     return redirect("orders:cart")
 
 
+@never_cache
 def checkout(request):
     cart = Cart(request)
     site = SiteSettings.load()
@@ -185,6 +186,7 @@ def checkout(request):
     return render(request, "orders/checkout.html", {"form": form, "cart": cart, "cart_items": cart.items(), "checkout_enabled": enabled, "line_customer": line_customer, "line_identity": line_identity, "line_friend_check_failed": line_friend_check_failed, "has_previous_order": bool(previous_order), "turnstile_site_key": settings.TURNSTILE_SITE_KEY, "shop_page": True, "noindex": True})
 
 
+@never_cache
 def order_complete(request, order_number):
     if request.session.get("completed_order") != order_number:
         return redirect("catalog:shop")
@@ -278,17 +280,14 @@ def line_login_callback(request):
         messages.error(request, "LINE 登入驗證失敗，請稍後再試。")
         return redirect("orders:checkout")
 
-    friendship_status_changed = request.GET.get("friendship_status_changed")
     try:
         is_friend = get_friendship_status(tokens["access_token"])
     except LineLoginError as exc:
         # The ID token already proves the login. A separate friendship API
         # outage or channel-linking error must not discard that identity.
         logger.warning("LINE Login friendship status check failed: %s", exc)
-        # LINE documents this callback value as an alternative way to detect
-        # that the user added or unblocked the linked Official Account during
-        # this authorization flow.
-        is_friend = True if friendship_status_changed == "true" else None
+        # Callback query parameters are not signed friendship evidence.
+        is_friend = None
 
     now = timezone.now()
     customer, created = LineCustomer.objects.get_or_create(

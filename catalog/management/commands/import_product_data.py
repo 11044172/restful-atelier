@@ -111,6 +111,13 @@ class Command(BaseCommand):
     def _read_rows(self, csv_path):
         if not csv_path.is_file():
             raise CommandError(f"CSV file not found: {csv_path}")
+        if csv_path.suffix.lower() == ".xlsx":
+            from catalog.product_data_files import read_product_workbook
+            headers, rows = read_product_workbook(csv_path)
+            missing = sorted(REQUIRED_COLUMNS - set(headers))
+            if missing:
+                raise CommandError(f"XLSX is missing required columns: {', '.join(missing)}")
+            return rows
         try:
             with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
                 reader = csv.DictReader(handle)

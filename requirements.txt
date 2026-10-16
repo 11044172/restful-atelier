@@ -7,3 +7,5 @@ Pillow>=12.3,<13
 django-storages[s3]>=1.14,<2
 boto3>=1.35,<2
 cryptography>=50,<51
+openpyxl>=3.1.5,<3.2
+defusedxml>=0.7.1,<0.8

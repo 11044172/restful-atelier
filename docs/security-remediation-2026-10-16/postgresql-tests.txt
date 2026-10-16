@@ -1,0 +1,812 @@
+Creating test database for alias 'default'...
+time=2026-10-16 13:17:09,608 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:09,636 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:09,662 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:09,686 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:09,710 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:09,735 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:09,759 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:09,786 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:09,812 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:09,861 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:09,886 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:09,910 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:09,947 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:09,974 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,001 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,028 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,054 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=337 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,082 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,108 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,134 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,160 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,187 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,213 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,366 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:10,372 level=WARNING logger=django.request message=Forbidden (Permission denied): /admin/catalog/product/
+Traceback (most recent call last):
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/contrib/admin/options.py", line 720, in wrapper
+    return self.admin_site.admin_view(view)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/utils/decorators.py", line 192, in _view_wrapper
+    result = _process_exception(request, e)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/utils/decorators.py", line 190, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/views/decorators/cache.py", line 80, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/contrib/admin/sites.py", line 246, in inner
+    return view(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/utils/decorators.py", line 192, in _view_wrapper
+    result = _process_exception(request, e)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/utils/decorators.py", line 190, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/contrib/admin/options.py", line 2022, in changelist_view
+    raise PermissionDenied
+django.core.exceptions.PermissionDenied
+.time=2026-10-16 13:17:10,490 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,516 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=257 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,641 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=340 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,667 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/catalog/product/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,708 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=340 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,731 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=420 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,757 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=340 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:10,761 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/catalog/product/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,792 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=340 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,818 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=340 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,941 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/catalog/product/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:10,950 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=340 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:10,972 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=421 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:11,126 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/productcategory/3/change/ content_length=1193 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:11,248 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/catalog/productcategory/4/change/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:11,376 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/presign/ content_length=144 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:11,380 level=INFO logger=restfull.image_uploads message=image_presigned category=catalog.category_thumbnail width=1200 height=900 bytes=1234 mime=image/jpeg user_id=8
+.time=2026-10-16 13:17:11,494 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/productcategory/6/change/ content_length=1032 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:11,499 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/ content_length=0 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:11,532 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:11,555 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:11,577 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:11,598 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:11,620 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:11,642 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:11,664 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:11,686 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:11,738 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/ content_length=0 cgroup_memory_current=unavailable
+...........time=2026-10-16 13:17:11,901 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/catalog/product/add/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:11,923 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/add/ content_length=3515 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:11,933 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/catalog/product/36/change/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:11,952 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/catalog/product/36/change/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:11,971 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/36/change/ content_length=3704 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:11,981 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/products/product-36/ content_length=0 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:12,027 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/products/product-38/ content_length=0 cgroup_memory_current=unavailable
+......time=2026-10-16 13:17:12,062 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/products/draft-3cafaa83cf1b4aaba3589e56576fa12e/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:12,068 level=WARNING logger=django.request message=Not Found: /shop/products/draft-3cafaa83cf1b4aaba3589e56576fa12e/
+...time=2026-10-16 13:17:12,106 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/search/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:12,128 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/search/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:12,150 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/search/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:12,173 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/search/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:12,195 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/products/test-cup/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:12,199 level=WARNING logger=django.request message=Not Found: /shop/products/test-cup/
+.time=2026-10-16 13:17:12,318 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/complete/ content_length=155 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:12,321 level=INFO logger=catalog.product_images message=product_image_completed width=None height=None bytes=100 mime=image/jpeg image_id=38
+.time=2026-10-16 13:17:12,438 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/complete/ content_length=157 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:12,441 level=INFO logger=catalog.product_images message=product_image_completed width=None height=None bytes=100 mime=image/jpeg image_id=39
+.time=2026-10-16 13:17:12,590 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/complete/ content_length=137 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:12,592 level=ERROR logger=catalog.product_images message=R2 HEAD failed image_id=40 key=pending/products/2026/09/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg
+Traceback (most recent call last):
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/catalog/product_image_service.py", line 217, in complete_upload
+    metadata = head_object(object_key)
+               ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: missing
+time=2026-10-16 13:17:12,594 level=WARNING logger=restfull.requests message=http_request_end pid=28468 method=POST path=/admin/catalog/product/product-images/complete/ status=503 duration_ms=4.0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:12,594 level=ERROR logger=django.request message=Service Unavailable: /admin/catalog/product/product-images/complete/
+.time=2026-10-16 13:17:12,709 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/complete/ content_length=92 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:12,710 level=WARNING logger=catalog.product_images message=Rejected invalid product image object key user_id=14
+time=2026-10-16 13:17:12,711 level=WARNING logger=django.request message=Bad Request: /admin/catalog/product/product-images/complete/
+time=2026-10-16 13:17:12,711 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/complete/ content_length=137 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:12,713 level=WARNING logger=django.request message=Not Found: /admin/catalog/product/product-images/complete/
+.time=2026-10-16 13:17:12,827 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/complete/ content_length=137 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:12,829 level=WARNING logger=catalog.product_images message=Product image size mismatch image_id=42 expected=100 actual=20971521
+time=2026-10-16 13:17:12,829 level=WARNING logger=django.request message=Bad Request: /admin/catalog/product/product-images/complete/
+time=2026-10-16 13:17:12,830 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/complete/ content_length=137 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:12,831 level=WARNING logger=catalog.product_images message=Product image MIME mismatch image_id=43 expected=image/jpeg actual=image/png
+time=2026-10-16 13:17:12,832 level=WARNING logger=django.request message=Bad Request: /admin/catalog/product/product-images/complete/
+.time=2026-10-16 13:17:12,948 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/44/delete/ content_length=76 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:12,950 level=ERROR logger=catalog.product_images message=R2 delete failed image_id=44 key=products/keep.jpg
+Traceback (most recent call last):
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/catalog/product_image_service.py", line 383, in mark_and_delete_image
+    delete_object(image.image.name)
+  File "/Users/eusyoicloud.com/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: R2 unavailable
+time=2026-10-16 13:17:12,950 level=WARNING logger=restfull.requests message=http_request_end pid=28468 method=POST path=/admin/catalog/product/product-images/44/delete/ status=503 duration_ms=2.4 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:12,950 level=ERROR logger=django.request message=Service Unavailable: /admin/catalog/product/product-images/44/delete/
+.time=2026-10-16 13:17:13,067 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/45/delete/ content_length=76 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:13,069 level=WARNING logger=django.request message=Forbidden: /admin/catalog/product/product-images/45/delete/
+time=2026-10-16 13:17:13,184 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/45/delete/ content_length=76 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:13,187 level=WARNING logger=django.request message=Forbidden: /admin/catalog/product/product-images/45/delete/
+.time=2026-10-16 13:17:13,303 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/presign/ content_length=181 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:13,307 level=INFO logger=catalog.product_images message=product_image_presigned width=2400 height=1600 bytes=5340000 mime=image/jpeg user_id=19
+time=2026-10-16 13:17:13,307 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/presign/ content_length=182 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:13,309 level=INFO logger=catalog.product_images message=product_image_presigned width=2400 height=1600 bytes=5340000 mime=image/jpeg user_id=19
+time=2026-10-16 13:17:13,309 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/presign/ content_length=180 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:13,311 level=INFO logger=catalog.product_images message=product_image_presigned width=2400 height=1600 bytes=5340000 mime=image/png user_id=19
+time=2026-10-16 13:17:13,312 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/presign/ content_length=182 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:13,314 level=INFO logger=catalog.product_images message=product_image_presigned width=2400 height=1600 bytes=5340000 mime=image/webp user_id=19
+.time=2026-10-16 13:17:13,432 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/presign/ content_length=183 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:13,547 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/presign/ content_length=183 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:13,548 level=WARNING logger=django.request message=Forbidden: /admin/catalog/product/product-images/presign/
+.time=2026-10-16 13:17:13,762 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/presign/ content_length=183 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:13,764 level=WARNING logger=django.request message=Forbidden: /admin/catalog/product/product-images/presign/
+.time=2026-10-16 13:17:13,880 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/presign/ content_length=178 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:13,881 level=WARNING logger=django.request message=Bad Request: /admin/catalog/product/product-images/presign/
+time=2026-10-16 13:17:13,881 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/presign/ content_length=184 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:13,882 level=WARNING logger=django.request message=Bad Request: /admin/catalog/product/product-images/presign/
+time=2026-10-16 13:17:13,882 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/presign/ content_length=181 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:13,883 level=WARNING logger=django.request message=Bad Request: /admin/catalog/product/product-images/presign/
+.time=2026-10-16 13:17:13,998 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/presign/ content_length=183 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:14,116 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/reorder/ content_length=96 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:14,119 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/51/delete/ content_length=76 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:14,240 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/product-images/reorder/ content_length=96 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:14,242 level=WARNING logger=django.request message=Bad Request: /admin/catalog/product/product-images/reorder/
+..time=2026-10-16 13:17:14,254 level=ERROR logger=catalog.product_images message=Orphan product image cleanup failed image_id=58 key=products/failed.jpg
+Traceback (most recent call last):
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/catalog/management/commands/cleanup_orphan_product_images.py", line 48, in handle
+    delete_object(image.image.name)
+  File "/Users/eusyoicloud.com/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1202, in _execute_mock_call
+    raise result
+RuntimeError: R2 unavailable
+product image #58: RuntimeError
+..time=2026-10-16 13:17:14,374 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/add/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:14,542 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/add/ content_length=761 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:14,666 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/complete/ content_length=162 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:14,786 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/complete/ content_length=165 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:14,906 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/6/delete/ content_length=75 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:14,908 level=WARNING logger=django.request message=Forbidden: /admin/content/interiorproject/project-images/6/delete/
+time=2026-10-16 13:17:14,908 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/reorder/ content_length=96 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:14,909 level=WARNING logger=django.request message=Bad Request: /admin/content/interiorproject/project-images/reorder/
+time=2026-10-16 13:17:14,910 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/4/delete/ content_length=75 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:15,029 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/presign/ content_length=176 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,030 level=WARNING logger=django.request message=Forbidden: /admin/content/interiorproject/project-images/presign/
+time=2026-10-16 13:17:15,031 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/7/delete/ content_length=78 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,032 level=WARNING logger=django.request message=Forbidden: /admin/content/interiorproject/project-images/7/delete/
+.time=2026-10-16 13:17:15,148 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/8/metadata/ content_length=151 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:15,264 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/presign/ content_length=173 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,267 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/presign/ content_length=174 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,270 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/presign/ content_length=172 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,272 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/presign/ content_length=174 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:15,390 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/reorder/ content_length=95 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,393 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/6/change/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:15,521 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/presign/ content_length=176 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,636 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/presign/ content_length=176 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,639 level=WARNING logger=django.request message=Forbidden: /admin/content/interiorproject/project-images/presign/
+time=2026-10-16 13:17:15,655 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/presign/ content_length=176 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,656 level=WARNING logger=django.request message=Forbidden: /admin/content/interiorproject/project-images/presign/
+time=2026-10-16 13:17:15,656 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/presign/ content_length=174 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,657 level=WARNING logger=django.request message=Bad Request: /admin/content/interiorproject/project-images/presign/
+time=2026-10-16 13:17:15,657 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/presign/ content_length=175 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,658 level=WARNING logger=django.request message=Bad Request: /admin/content/interiorproject/project-images/presign/
+time=2026-10-16 13:17:15,658 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/presign/ content_length=180 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,659 level=WARNING logger=django.request message=Bad Request: /admin/content/interiorproject/project-images/presign/
+time=2026-10-16 13:17:15,659 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/presign/ content_length=176 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,660 level=WARNING logger=django.request message=Bad Request: /admin/content/interiorproject/project-images/presign/
+time=2026-10-16 13:17:15,660 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/presign/ content_length=177 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,661 level=WARNING logger=django.request message=Bad Request: /admin/content/interiorproject/project-images/presign/
+time=2026-10-16 13:17:15,661 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/complete/ content_length=112 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,662 level=WARNING logger=django.request message=Bad Request: /admin/content/interiorproject/project-images/complete/
+..time=2026-10-16 13:17:15,882 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/presign/ content_length=138 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,885 level=INFO logger=restfull.image_uploads message=image_presigned category=project.featured_image width=1200 height=800 bytes=15627 mime=image/jpeg user_id=47
+time=2026-10-16 13:17:15,886 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/complete/ content_length=133 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,891 level=INFO logger=restfull.image_uploads message=image_completed category=project.featured_image width=1200 height=800 bytes=15628 mime=image/jpeg upload_id=3
+time=2026-10-16 13:17:15,892 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/presign/ content_length=139 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,893 level=INFO logger=restfull.image_uploads message=image_presigned category=publication.cover_image width=1200 height=800 bytes=15627 mime=image/jpeg user_id=47
+time=2026-10-16 13:17:15,894 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/complete/ content_length=138 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:15,899 level=INFO logger=restfull.image_uploads message=image_completed category=publication.cover_image width=1200 height=800 bytes=15628 mime=image/jpeg upload_id=4
+.time=2026-10-16 13:17:16,013 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/publication/add/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:16,025 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/publication/1/change/ content_length=0 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:16,253 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/presign/ content_length=138 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:16,269 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/complete/ content_length=93 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:16,270 level=WARNING logger=django.request message=Bad Request: /admin/image-uploads/complete/
+.time=2026-10-16 13:17:16,483 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/delete/ content_length=130 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:16,484 level=WARNING logger=django.request message=Not Found: /admin/image-uploads/delete/
+time=2026-10-16 13:17:16,540 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/delete/ content_length=130 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:16,658 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/8/change/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:16,788 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/18/metadata/ content_length=105 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:17,004 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/19/metadata/ content_length=106 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:17,007 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/19/metadata/ content_length=119 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:17,008 level=WARNING logger=django.request message=Bad Request: /admin/content/interiorproject/project-images/19/metadata/
+time=2026-10-16 13:17:17,009 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/19/metadata/ content_length=109 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:17,010 level=WARNING logger=django.request message=Bad Request: /admin/content/interiorproject/project-images/19/metadata/
+time=2026-10-16 13:17:17,010 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/19/metadata/ content_length=107 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:17,012 level=WARNING logger=django.request message=Bad Request: /admin/content/interiorproject/project-images/19/metadata/
+time=2026-10-16 13:17:17,012 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/19/metadata/ content_length=106 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:17,013 level=WARNING logger=django.request message=Bad Request: /admin/content/interiorproject/project-images/19/metadata/
+.time=2026-10-16 13:17:17,129 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/20/metadata/ content_length=106 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:17,131 level=WARNING logger=django.request message=Forbidden: /admin/content/interiorproject/project-images/20/metadata/
+time=2026-10-16 13:17:17,231 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/project-images/21/metadata/ content_length=108 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:17,232 level=WARNING logger=django.request message=Forbidden: /admin/content/interiorproject/project-images/21/metadata/
+....time=2026-10-16 13:17:17,258 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/works/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:17,264 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/works/public-focus/ content_length=0 cgroup_memory_current=unavailable
+....time=2026-10-16 13:17:17,699 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/publication/add/ content_length=0 cgroup_memory_current=unavailable
+....time=2026-10-16 13:17:17,840 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/publications/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:17,845 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/publications/public-portrait/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:17,848 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/publications/public-landscape/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:17,850 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/publications/public-square/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:17,869 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/publications/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:17,872 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/publications/public-unknown/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:17,990 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/catalog/productcategory/40/change/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,000 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/16/change/ content_length=0 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:18,035 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/17/change/ content_length=1471 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:18,079 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/productcategory/42/change/ content_length=1017 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,083 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/catalog/productcategory/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:18,109 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/18/change/ content_length=1491 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,116 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,124 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/18/change/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:18,156 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/19/change/ content_length=1449 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,163 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,172 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/19/change/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:18,247 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/20/change/ content_length=1487 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,254 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,262 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/20/change/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:18,293 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/21/change/ content_length=1462 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,300 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,308 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/21/change/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:18,340 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/22/change/ content_length=1495 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,347 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,355 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/22/change/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:18,387 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/23/change/ content_length=1477 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,394 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,402 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/23/change/ content_length=0 cgroup_memory_current=unavailable
+....time=2026-10-16 13:17:18,636 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/interiorproject/ content_length=659 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,641 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/interiorproject/ content_length=0 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:18,864 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/paymentmethod/ content_length=656 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,868 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/paymentmethod/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:18,990 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/productcategory/ content_length=578 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:18,994 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/catalog/productcategory/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:19,116 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=574 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:19,122 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/catalog/product/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:19,246 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/content/publication/ content_length=658 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:19,250 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/content/publication/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:19,380 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:19,396 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/catalog/product/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:19,405 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/catalog/product/55/change/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:19,424 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:19,434 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/1/change/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:19,460 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/inquiries/inquiry/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:19,467 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/core/sitesettings/1/change/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:19,656 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:19,681 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/ content_length=0 cgroup_memory_current=unavailable
+...time=2026-10-16 13:17:19,730 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/products/product/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:19,737 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/robots.txt content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:19,754 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/products/product/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:19,760 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/robots.txt content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:19,760 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/sitemap.xml content_length=0 cgroup_memory_current=unavailable
+....Could not delete upload 10: R2 unavailable
+.time=2026-10-16 13:17:20,227 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/presign/ content_length=134 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:20,342 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/presign/ content_length=134 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:20,345 level=WARNING logger=django.request message=Forbidden: /admin/image-uploads/presign/
+time=2026-10-16 13:17:20,360 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/presign/ content_length=130 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:20,362 level=WARNING logger=django.request message=Bad Request: /admin/image-uploads/presign/
+time=2026-10-16 13:17:20,362 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/presign/ content_length=138 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:20,363 level=WARNING logger=django.request message=Bad Request: /admin/image-uploads/presign/
+time=2026-10-16 13:17:20,363 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/presign/ content_length=134 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:20,364 level=WARNING logger=django.request message=Bad Request: /admin/image-uploads/presign/
+time=2026-10-16 13:17:20,364 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/presign/ content_length=135 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:20,364 level=WARNING logger=django.request message=Bad Request: /admin/image-uploads/presign/
+time=2026-10-16 13:17:20,365 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/presign/ content_length=137 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:20,365 level=WARNING logger=django.request message=Bad Request: /admin/image-uploads/presign/
+.time=2026-10-16 13:17:20,481 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/presign/ content_length=135 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:20,484 level=INFO logger=restfull.image_uploads message=image_presigned category=site.home_hero_image width=1200 height=800 bytes=15627 mime=image/jpeg user_id=79
+time=2026-10-16 13:17:20,485 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/image-uploads/complete/ content_length=133 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:20,490 level=INFO logger=restfull.image_uploads message=image_completed category=site.home_hero_image width=1200 height=800 bytes=15628 mime=image/jpeg upload_id=11
+....time=2026-10-16 13:17:20,724 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/order-complete/RF-20261016-E65C70/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:20,747 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/products/responsive-product/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:20,773 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/contact/ content_length=0 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:20,797 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:20,904 level=INFO logger=restfull.image_uploads message=image_presigned category=site.home_hero_image width=2 height=2 bytes=633 mime=image/jpeg user_id=82
+time=2026-10-16 13:17:20,908 level=INFO logger=catalog.product_images message=product_image_presigned width=2 height=2 bytes=633 mime=image/jpeg user_id=82
+.time=2026-10-16 13:17:21,009 level=INFO logger=restfull.image_uploads message=image_presigned category=site.home_hero_image width=2 height=2 bytes=203 mime=image/png user_id=83
+time=2026-10-16 13:17:21,011 level=INFO logger=catalog.product_images message=product_image_presigned width=2 height=2 bytes=203 mime=image/png user_id=83
+.time=2026-10-16 13:17:21,113 level=INFO logger=restfull.image_uploads message=image_presigned category=site.home_hero_image width=2 height=2 bytes=633 mime=image/jpeg user_id=84
+.time=2026-10-16 13:17:21,212 level=INFO logger=restfull.image_uploads message=image_presigned category=site.home_hero_image width=2 height=2 bytes=633 mime=image/jpeg user_id=85
+time=2026-10-16 13:17:21,214 level=INFO logger=catalog.product_images message=product_image_presigned width=2 height=2 bytes=633 mime=image/jpeg user_id=85
+.time=2026-10-16 13:17:21,316 level=INFO logger=restfull.image_uploads message=image_presigned category=site.home_hero_image width=2 height=2 bytes=633 mime=image/jpeg user_id=86
+.time=2026-10-16 13:17:21,414 level=INFO logger=restfull.image_uploads message=image_presigned category=site.home_hero_image width=3 height=3 bytes=633 mime=image/jpeg user_id=87
+time=2026-10-16 13:17:21,416 level=INFO logger=catalog.product_images message=product_image_presigned width=3 height=3 bytes=633 mime=image/jpeg user_id=87
+.time=2026-10-16 13:17:21,518 level=INFO logger=restfull.image_uploads message=image_presigned category=site.home_hero_image width=2 height=2 bytes=20 mime=image/jpeg user_id=88
+time=2026-10-16 13:17:21,521 level=INFO logger=catalog.product_images message=product_image_presigned width=2 height=2 bytes=20 mime=image/jpeg user_id=88
+.time=2026-10-16 13:17:21,624 level=INFO logger=restfull.image_uploads message=image_presigned category=site.home_hero_image width=2 height=2 bytes=73 mime=image/png user_id=89
+time=2026-10-16 13:17:21,626 level=INFO logger=restfull.image_uploads message=image_completed category=site.home_hero_image width=2 height=2 bytes=73 mime=image/png upload_id=24
+time=2026-10-16 13:17:21,627 level=INFO logger=catalog.product_images message=product_image_presigned width=2 height=2 bytes=73 mime=image/png user_id=89
+time=2026-10-16 13:17:21,629 level=INFO logger=catalog.product_images message=product_image_completed width=2 height=2 bytes=73 mime=image/png image_id=78
+time=2026-10-16 13:17:21,634 level=INFO logger=restfull.image_uploads message=image_presigned category=site.home_hero_image width=2 height=2 bytes=100 mime=image/webp user_id=89
+time=2026-10-16 13:17:21,636 level=INFO logger=restfull.image_uploads message=image_completed category=site.home_hero_image width=2 height=2 bytes=104 mime=image/webp upload_id=25
+time=2026-10-16 13:17:21,637 level=INFO logger=catalog.product_images message=product_image_presigned width=2 height=2 bytes=100 mime=image/webp user_id=89
+time=2026-10-16 13:17:21,639 level=INFO logger=catalog.product_images message=product_image_completed width=2 height=2 bytes=104 mime=image/webp image_id=79
+.time=2026-10-16 13:17:21,740 level=ERROR logger=restfull.image_uploads message=image_presign_failed category=site.home_hero_image user_id=90
+Traceback (most recent call last):
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/core/direct_image_uploads.py", line 152, in create_upload
+    url = generate_presigned_put(
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/core/admin_image_uploads.py", line 182, in generate_presigned_put
+    "Bucket": staging_bucket(bucket),
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/core/admin_image_uploads.py", line 139, in staging_bucket
+    raise ImageMetadataValidationError(
+core.admin_image_uploads.ImageMetadataValidationError: 請先設定獨立且非公開的圖片暫存儲存桶。
+time=2026-10-16 13:17:21,744 level=ERROR logger=restfull.image_uploads message=image_presign_failed category=site.home_hero_image user_id=90
+Traceback (most recent call last):
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/core/direct_image_uploads.py", line 152, in create_upload
+    url = generate_presigned_put(
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/core/admin_image_uploads.py", line 182, in generate_presigned_put
+    "Bucket": staging_bucket(bucket),
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/core/admin_image_uploads.py", line 139, in staging_bucket
+    raise ImageMetadataValidationError(
+core.admin_image_uploads.ImageMetadataValidationError: 請先設定獨立且非公開的圖片暫存儲存桶。
+..time=2026-10-16 13:17:22,021 level=INFO logger=catalog.product_images message=product_image_presigned width=2 height=2 bytes=633 mime=image/jpeg user_id=92
+.time=2026-10-16 13:17:22,125 level=INFO logger=restfull.image_uploads message=image_presigned category=site.home_hero_image width=2 height=2 bytes=633 mime=image/jpeg user_id=93
+.time=2026-10-16 13:17:22,284 level=INFO logger=restfull.image_uploads message=image_presigned category=site.home_hero_image width=2 height=2 bytes=689 mime=image/jpeg user_id=94
+time=2026-10-16 13:17:22,285 level=INFO logger=restfull.image_uploads message=image_completed category=site.home_hero_image width=2 height=2 bytes=634 mime=image/jpeg upload_id=29
+time=2026-10-16 13:17:22,288 level=INFO logger=catalog.product_images message=product_image_presigned width=2 height=2 bytes=689 mime=image/jpeg user_id=94
+time=2026-10-16 13:17:22,289 level=INFO logger=catalog.product_images message=product_image_completed width=2 height=2 bytes=634 mime=image/jpeg image_id=81
+...time=2026-10-16 13:17:22,334 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/notificationoutbox/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,347 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/notificationoutbox/ content_length=362 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,371 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/linenotification/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,378 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/linenotification/ content_length=364 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:22,403 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/checkout/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,410 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/order-complete/RF-20261016-5767D0/ content_length=0 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:22,537 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/catalog/product/ content_length=258 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:22,570 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cart/add/audit-order/ content_length=92 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,575 level=WARNING logger=django.request message=Not Found: /shop/cart/add/audit-order/
+time=2026-10-16 13:17:22,575 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/login/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,576 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/callback/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,577 level=WARNING logger=orders.views message=LINE Login friendship status check failed: outage
+time=2026-10-16 13:17:22,580 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/checkout/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,586 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/checkout/ content_length=635 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:22,610 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/readiness/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,610 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/readiness/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,611 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/readiness/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,611 level=WARNING logger=restfull.requests message=http_request_end pid=28468 method=GET path=/readiness/ status=503 duration_ms=0.2 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,611 level=ERROR logger=django.request message=Service Unavailable: /readiness/
+.time=2026-10-16 13:17:22,634 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/payment/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,641 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/payment/ content_length=380 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,669 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/payment/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,676 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/payment/ content_length=380 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,704 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/payment/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,711 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/payment/ content_length=380 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,739 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/payment/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,747 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/payment/ content_length=380 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:22,779 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/payment/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,785 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/payment/ content_length=380 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:22,812 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/notificationoutbox/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,818 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/notificationoutbox/ content_length=362 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,843 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/linenotification/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:22,849 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/linenotification/ content_length=364 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:22,982 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/core/sitesettings/5/change/ content_length=9139 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:23,010 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:23,035 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:23,057 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:23,062 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/about/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:23,065 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/works/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:23,069 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/works/test-home/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:23,072 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/publications/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:23,075 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/publications/test-journal/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:23,077 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:23,081 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/products/test-object/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:23,088 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/contact/ content_length=0 cgroup_memory_current=unavailable
+...time=2026-10-16 13:17:23,170 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:23,176 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/about/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:23,193 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:23,321 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/core/sitesettings/5/change/ content_length=0 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:23,374 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/contact/ content_length=887 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:23,498 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:23,622 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:23,635 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:23,761 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/17/change/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:23,790 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/18/change/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:23,814 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/19/change/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:23,839 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/20/change/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:23,862 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/21/change/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:23,885 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/22/change/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:23,965 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/23/change/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:24,105 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/24/change/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:24,132 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/24/change/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:24,277 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/25/change/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:24,415 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/26/confirm-shipping/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:24,513 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/order/26/confirm-shipping/ content_length=98 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:24,516 level=WARNING logger=django.request message=Forbidden (Permission denied): /admin/orders/order/26/confirm-shipping/
+Traceback (most recent call last):
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/utils/decorators.py", line 192, in _view_wrapper
+    result = _process_exception(request, e)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/utils/decorators.py", line 190, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/views/decorators/cache.py", line 80, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/contrib/admin/sites.py", line 246, in inner
+    return view(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/orders/admin.py", line 390, in confirm_shipping
+    raise PermissionDenied
+django.core.exceptions.PermissionDenied
+time=2026-10-16 13:17:24,536 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/order/26/confirm-shipping/ content_length=98 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:24,652 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/order/27/resend-payment/ content_length=20 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:24,658 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/order/27/resend-payment/ content_length=20 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:24,776 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/order/28/confirm-shipping/ content_length=98 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:24,784 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/28/change/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:24,932 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/order/29/mark-shipped/ content_length=292 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:24,955 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/29/change/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:25,101 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/order/30/revise-shipping/ content_length=182 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,109 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/30/change/ content_length=0 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:25,170 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cart/add/cup/ content_length=161 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,173 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/cart/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,180 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cart/update/61/ content_length=92 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,182 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/cart/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,188 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cart/update/61/ content_length=95 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,190 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/cart/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:25,210 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cart/add/cup/ content_length=92 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:25,230 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cart/add/cup/ content_length=92 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,232 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/checkout/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,307 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/checkout/ content_length=712 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:25,337 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cart/add/cup/ content_length=92 cgroup_memory_current=unavailable
+........time=2026-10-16 13:17:25,405 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:25,431 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,445 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=376 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,456 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,466 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=369 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,475 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,485 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=376 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,494 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,505 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=371 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,513 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,523 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=370 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,532 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,542 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=366 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,551 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,561 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=373 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,569 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,580 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=368 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,588 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,598 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=367 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,607 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,618 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=369 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,626 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,636 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=370 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,645 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,655 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=366 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,664 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,675 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=366 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,683 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,693 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=365 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,702 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,712 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=369 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,721 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,731 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=369 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,740 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,750 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=367 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,759 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,770 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=374 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,779 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,789 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=368 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,798 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,808 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=370 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:25,835 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,854 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=376 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,855 level=WARNING logger=orders.views message=Rejected ECPay callback: Invalid ECPay CheckMacValue.
+time=2026-10-16 13:17:25,855 level=WARNING logger=django.request message=Bad Request: /payments/ecpay/callback/
+time=2026-10-16 13:17:25,855 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=376 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,855 level=WARNING logger=orders.views message=Rejected ECPay callback: Unexpected ECPay MerchantID.
+time=2026-10-16 13:17:25,855 level=WARNING logger=django.request message=Bad Request: /payments/ecpay/callback/
+time=2026-10-16 13:17:25,856 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=373 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,856 level=WARNING logger=orders.views message=Rejected ECPay callback: Unknown ECPay MerchantTradeNo.
+time=2026-10-16 13:17:25,856 level=WARNING logger=django.request message=Bad Request: /payments/ecpay/callback/
+time=2026-10-16 13:17:25,857 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=376 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,858 level=WARNING logger=orders.views message=Rejected ECPay callback: ECPay callback amount mismatch.
+time=2026-10-16 13:17:25,858 level=WARNING logger=django.request message=Bad Request: /payments/ecpay/callback/
+.time=2026-10-16 13:17:25,876 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,889 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=361 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,889 level=WARNING logger=orders.views message=Rejected ECPay callback: Missing required ECPay callback parameters.
+time=2026-10-16 13:17:25,889 level=WARNING logger=django.request message=Bad Request: /payments/ecpay/callback/
+time=2026-10-16 13:17:25,889 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=378 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,890 level=WARNING logger=orders.views message=Rejected ECPay callback: Invalid ECPay SimulatePaid value.
+time=2026-10-16 13:17:25,890 level=WARNING logger=django.request message=Bad Request: /payments/ecpay/callback/
+..time=2026-10-16 13:17:25,909 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=597 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:25,937 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,949 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=376 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,960 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=376 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:25,983 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,994 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=384 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:25,997 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,023 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,046 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=194 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,058 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=385 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,084 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,089 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=194 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,118 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=194 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,130 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=385 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,133 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,138 level=WARNING logger=orders.views message=ECPay checkout could not start for order RF-20261016-01CB42: ['此訂單有一筆 ECPay 付款需要人工確認，暫時無法再次付款。']
+.time=2026-10-16 13:17:26,159 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,181 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,185 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=194 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:26,213 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,228 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=377 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:26,253 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,275 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,287 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=377 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,307 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,336 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,347 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,373 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,384 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/payments/ecpay/return/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,405 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,424 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,450 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,471 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,566 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,578 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=377 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,607 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,619 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=194 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,628 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,655 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,660 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,670 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=370 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,691 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,695 level=WARNING logger=django.request message=Not Found: /pay/<redacted>/
+time=2026-10-16 13:17:26,696 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,698 level=WARNING logger=django.request message=Gone: /pay/<redacted>/
+time=2026-10-16 13:17:26,702 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,705 level=WARNING logger=django.request message=Gone: /pay/<redacted>/
+time=2026-10-16 13:17:26,705 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,706 level=WARNING logger=django.request message=Not Found: /pay/<redacted>/
+.time=2026-10-16 13:17:26,724 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=191 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:26,735 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/payments/ecpay/callback/ content_length=380 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,755 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=189 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:26,879 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/92/change/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:27,019 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/order/93/retry-invoice/ content_length=20 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,022 level=WARNING logger=django.request message=Forbidden (Permission denied): /admin/orders/order/93/retry-invoice/
+Traceback (most recent call last):
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/utils/decorators.py", line 192, in _view_wrapper
+    result = _process_exception(request, e)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/utils/decorators.py", line 190, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/views/decorators/cache.py", line 80, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/.venv/lib/python3.12/site-packages/django/contrib/admin/sites.py", line 246, in inner
+    return view(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/orders/admin.py", line 463, in retry_invoice
+    raise PermissionDenied
+django.core.exceptions.PermissionDenied
+......................time=2026-10-16 13:17:27,105 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/login/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,107 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/callback/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,109 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/checkout/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:27,134 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cart/add/line-cup/ content_length=92 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,137 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/login/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,138 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/callback/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,139 level=WARNING logger=orders.views message=LINE Login friendship status check failed: LINE API rejected the request (403).
+time=2026-10-16 13:17:27,141 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/checkout/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,149 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/checkout/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:27,174 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cart/add/line-cup/ content_length=92 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,176 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/login/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,178 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/callback/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,181 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/login/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,182 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/callback/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:27,202 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cart/add/line-cup/ content_length=92 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,204 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/login/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,205 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/callback/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:27,224 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cart/add/line-cup/ content_length=92 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,226 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/login/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,227 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/callback/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,230 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/line/friend-status/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,233 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/line/friend-status/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,235 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/checkout/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:27,264 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cart/add/line-cup/ content_length=92 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,266 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/login/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,268 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/callback/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,270 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/checkout/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,278 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/login/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,279 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/callback/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,282 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/checkout/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:27,310 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cart/add/line-cup/ content_length=92 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,312 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/login/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,314 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/callback/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,314 level=WARNING logger=orders.views message=LINE Login friendship status check failed: LINE API rejected the request (403).
+time=2026-10-16 13:17:27,316 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/checkout/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,325 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/checkout/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:27,349 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/login/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,351 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/callback/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,351 level=WARNING logger=orders.views message=LINE Login friendship status check failed: LINE API rejected the request (403).
+time=2026-10-16 13:17:27,353 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/checkout/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,364 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/checkout/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:27,391 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/login/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,392 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/callback/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,395 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/login/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,397 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/callback/ content_length=0 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:27,418 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/login/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:27,437 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/login/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,439 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/callback/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,441 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/checkout/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:27,468 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/login/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,469 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/callback/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,470 level=WARNING logger=orders.views message=LINE Login callback state validation failed (oauth_session=True, state=True, code=True).
+time=2026-10-16 13:17:27,470 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/checkout/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,476 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/auth/line/callback/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,476 level=WARNING logger=orders.views message=LINE Login callback state validation failed (oauth_session=False, state=True, code=True).
+.time=2026-10-16 13:17:27,495 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/line/friend-status/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:27,580 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/webhooks/line/messaging/ content_length=85 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,580 level=WARNING logger=django.request message=Forbidden: /webhooks/line/messaging/
+time=2026-10-16 13:17:27,580 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/webhooks/line/messaging/ content_length=92 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,580 level=WARNING logger=django.request message=Forbidden: /webhooks/line/messaging/
+.time=2026-10-16 13:17:27,597 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/webhooks/line/messaging/ content_length=101 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,600 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/webhooks/line/messaging/ content_length=101 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,601 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/webhooks/line/messaging/ content_length=103 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:27,720 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/admin/orders/order/117/confirm-shipping/ content_length=98 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,730 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/admin/orders/order/117/change/ content_length=0 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:27,785 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+.....time=2026-10-16 13:17:27,841 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:27,864 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,869 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/pay/<redacted>/ content_length=305 cgroup_memory_current=unavailable
+....time=2026-10-16 13:17:27,934 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cart/add/item/ content_length=185 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,937 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cart/add/item/ content_length=179 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,940 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cart/add/item/ content_length=178 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:27,965 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cancel/<redacted>/ content_length=20 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:27,995 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/shop/cancel/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:27,996 level=WARNING logger=django.request message=Forbidden: /shop/cancel/<redacted>/
+time=2026-10-16 13:17:27,997 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cancel/<redacted>/ content_length=20 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:28,003 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=POST path=/shop/cancel/<redacted>/ content_length=20 cgroup_memory_current=unavailable
+..time=2026-10-16 13:17:28,028 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:28,030 level=WARNING logger=django.request message=Gone: /pay/<redacted>/
+time=2026-10-16 13:17:28,031 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:28,032 level=WARNING logger=django.request message=Not Found: /pay/<redacted>/
+time=2026-10-16 13:17:28,033 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+time=2026-10-16 13:17:28,034 level=WARNING logger=django.request message=Forbidden: /pay/<redacted>/
+..time=2026-10-16 13:17:28,042 level=ERROR logger=orders.notifications message=notification_delivery_failed
+Traceback (most recent call last):
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/orders/notifications.py", line 185, in process_next_outbox
+    metadata = deliver_outbox(job)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/orders/notifications.py", line 161, in deliver_outbox
+    raise error
+RuntimeError: limited
+..time=2026-10-16 13:17:28,049 level=ERROR logger=orders.notifications message=notification_delivery_failed
+Traceback (most recent call last):
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/orders/notifications.py", line 185, in process_next_outbox
+    metadata = deliver_outbox(job)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/orders/notifications.py", line 161, in deliver_outbox
+    raise error
+RuntimeError: limited
+..time=2026-10-16 13:17:28,081 level=INFO logger=restfull.requests message=http_request_start pid=28468 method=GET path=/pay/<redacted>/ content_length=0 cgroup_memory_current=unavailable
+.time=2026-10-16 13:17:28,089 level=ERROR logger=orders.notifications message=notification_delivery_failed
+Traceback (most recent call last):
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/orders/notifications.py", line 185, in process_next_outbox
+    metadata = deliver_outbox(job)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/Lean Dev Studio/靜院居家/orders/notifications.py", line 164, in deliver_outbox
+    send_order_email_event(order, job.event_type)
+  File "/Users/eusyoicloud.com/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/eusyoicloud.com/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: smtp unavailable
+.................time=2026-10-16 13:17:28,788 level=INFO logger=restfull.image_uploads message=image_presigned category=site.home_hero_image width=2 height=2 bytes=631 mime=image/jpeg user_id=125
+time=2026-10-16 13:17:28,792 level=INFO logger=restfull.image_uploads message=image_completed category=site.home_hero_image width=2 height=2 bytes=632 mime=image/jpeg upload_id=30
+.time=2026-10-16 13:17:28,943 level=INFO logger=catalog.product_images message=product_image_presigned width=2 height=2 bytes=631 mime=image/jpeg user_id=126
+..
+----------------------------------------------------------------------
+Ran 341 tests in 19.531s
+
+OK
+Destroying test database for alias 'default'...
+Found 341 test(s).
+System check identified no issues (0 silenced).
+orphan cleanup complete: deleted=1 failed=1
+PASS: DEBUG=False
+PASS: production URL はHTTPS origin
+PASS: 正式公開前noindex維持
+PASS: DB接続
+PASS: migration適用済み
+PASS: LINE callback URL一致
+PASS: Payment confirmed一意制約はmigrationで管理
+PASS: policy payment-methods 公開・version済み
+PASS: policy preorder-information 公開・version済み
+PASS: policy privacy-policy 公開・version済み
+PASS: policy returns-policy 公開・version済み
+PASS: policy shipping-policy 公開・version済み
+PASS: policy shopping-guide 公開・version済み
+PASS: TEST商品なし
+PASS: 公開商品に正式画像あり
+PASS: 公開商品必須項目完備
+PASS: TEST作品・出版物なし
+PASS: static files確認
+PASS: dead通知なし
+WARN: TRUSTED_PROXY_IPS未設定（X-Forwarded-Forを信頼しません）
+WARN: LINE webhook登録・R2 CORS・production credentials同一性は各Consoleで人間確認が必要
+FAIL: DEPLOYMENT_ENV=development
+FAIL: CREDENTIAL_SET_NAME=development（stagingとの共有を確認）
+FAIL: Outbox worker未設定。通知はDBに残るが自動送信されない
+FAIL: SECRET_KEY が既定値または短すぎる
+FAIL: canonical host がALLOWED_HOSTSにない
+FAIL: CANONICAL_ORIGIN がCSRF_TRUSTED_ORIGINSにない
+FAIL: LINE_LOGIN_CHANNEL_ID 未設定
+FAIL: LINE_LOGIN_CHANNEL_SECRET 未設定
+FAIL: LINE_LOGIN_CALLBACK_URL 未設定
+FAIL: LINE_MESSAGING_CHANNEL_ACCESS_TOKEN 未設定
+FAIL: LINE_MESSAGING_CHANNEL_SECRET 未設定
+FAIL: LINE_OFFICIAL_ACCOUNT_BASIC_ID 未設定
+FAIL: LINE友だち追加URL未設定
+FAIL: LINE構成が不完全（checkoutは停止しません）
+FAIL: SMTP資格情報が不完全
+FAIL: Turnstileキー未設定
+FAIL: 本番メディアがR2/S3ではない
+FAIL: ADMIN_IMAGE_STAGING_BUCKET が未設定または公開bucketと同一。画像の新規アップロードは停止します
+FAIL: 利用可能な支払方法なし
+FAIL: policy payment-methods は法務最終確認前
+FAIL: policy preorder-information は法務最終確認前
+FAIL: policy privacy-policy は法務最終確認前
+FAIL: policy returns-policy は法務最終確認前
+FAIL: policy shipping-policy は法務最終確認前
+FAIL: policy shopping-guide は法務最終確認前
+FAIL: 事業者名・責任者・住所・窓口等が未完備
+SUMMARY: PASS=19 WARN=2 FAIL=26
+1 abandoned upload(s) found; dry run only.
+Deleted 0 abandoned upload(s).
+Deleted 1 abandoned upload(s).

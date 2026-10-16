@@ -337,6 +337,7 @@ class Payment(models.Model):
         ordering = ("-created_at",)
         verbose_name = "付款記錄"
         verbose_name_plural = "付款記錄"
+        permissions = [("record_refund", "可登記退款")]
         constraints = [
             models.UniqueConstraint(fields=("order",), condition=Q(status="confirmed"), name="one_confirmed_payment_per_order"),
             models.UniqueConstraint(

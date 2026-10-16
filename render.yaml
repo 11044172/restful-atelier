@@ -62,6 +62,8 @@ services:
         sync: false
       - key: AWS_STORAGE_BUCKET_NAME
         sync: false
+      - key: ADMIN_IMAGE_STAGING_BUCKET
+        sync: false
       - key: AWS_S3_ENDPOINT_URL
         sync: false
       - key: AWS_S3_REGION_NAME

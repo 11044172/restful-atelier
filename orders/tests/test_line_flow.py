@@ -146,7 +146,7 @@ class LineLoginCheckoutTests(TestCase):
         self.assertFalse(form["customer_note"].value())
         self.assertContains(response, "已帶入上次購買資料")
 
-    def test_callback_friendship_change_confirms_friend_when_status_api_fails(self):
+    def test_callback_query_does_not_confirm_friend_when_status_api_fails(self):
         self.client.post(reverse("orders:cart_add", args=[self.product.slug]), {"quantity": 1})
         self.client.get(reverse("line_login_start"))
         oauth = self.client.session["line_oauth"]
@@ -158,10 +158,10 @@ class LineLoginCheckoutTests(TestCase):
             })
 
         self.assertRedirects(response, reverse("orders:checkout"))
-        self.assertTrue(self.client.session["line_friend_verified"])
-        self.assertNotIn("line_friend_check_failed", self.client.session)
-        self.assertTrue(LineCustomer.objects.get(line_user_id="U-added-during-login").is_friend)
-        self.assertContains(self.client.get(reverse("orders:checkout")), "送出訂單")
+        self.assertFalse(self.client.session["line_friend_verified"])
+        self.assertTrue(self.client.session["line_friend_check_failed"])
+        self.assertFalse(LineCustomer.objects.get(line_user_id="U-added-during-login").is_friend)
+        self.assertIsNone(self.client.get(reverse("orders:checkout")).context["line_customer"])
 
     def test_follow_webhook_unlocks_waiting_checkout_status(self):
         self.client.post(reverse("orders:cart_add", args=[self.product.slug]), {"quantity": 1})

@@ -7,13 +7,17 @@ from decimal import Decimal, InvalidOperation
 from uuid import UUID, uuid4
 
 from django.conf import settings
-from django.core.files.storage import default_storage
 from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
 
 from core.admin_image_uploads import (
     ALLOWED_CONTENT_TYPES,
+    atomic_image_operation,
+    delete_image_object,
+    reserve_upload_quota,
+    staging_bucket,
+    verify_and_publish_image,
     ImageMetadataValidationError,
     generate_presigned_put,
     normalized_head_metadata,
@@ -21,13 +25,13 @@ from core.admin_image_uploads import (
     validate_image_metadata,
 )
 
-from .models import InteriorProjectImage
+from .models import InteriorProject, InteriorProjectImage
 
 logger = logging.getLogger("content.project_images")
 MAX_FILE_BYTES = settings.ADMIN_IMAGE_MAX_OUTPUT_BYTES
 PRESIGN_EXPIRES_SECONDS = 600
 DIRECT_OBJECT_KEY_PATTERN = re.compile(
-    r"^projects/gallery/\d{4}/\d{2}/[0-9a-f]{32}\.(?:jpg|jpeg|png|webp)$"
+    r"^pending/projects/gallery/\d{4}/\d{2}/[0-9a-f]{32}\.(?:jpg|jpeg|png|webp)$"
 )
 TONE_MAX_LENGTH = InteriorProjectImage._meta.get_field("tone").max_length
 TEXT_MAX_LENGTH = 255
@@ -69,7 +73,7 @@ def validate_upload_metadata(filename, content_type, size, width, height):
 
 
 def build_object_key(extension):
-    return f"projects/gallery/{timezone.now():%Y/%m}/{uuid4().hex}{extension}"
+    return f"pending/projects/gallery/{timezone.now():%Y/%m}/{uuid4().hex}{extension}"
 
 
 def is_direct_object_key(value):
@@ -90,17 +94,22 @@ def _storage_client():
 
 def head_object(object_key):
     client, bucket = _storage_client()
-    return client.head_object(Bucket=bucket, Key=object_key)
+    return client.head_object(Bucket=staging_bucket(bucket), Key=object_key)
 
 
 def delete_object(object_key):
-    default_storage.delete(object_key)
+    delete_image_object(object_key)
 
 
+@transaction.atomic
 def create_presigned_upload(
     *, user, upload_session, filename, content_type, size, width, height
 ):
     metadata = validate_upload_metadata(filename, content_type, size, width, height)
+    try:
+        reserve_upload_quota(user, metadata.size)
+    except ImageMetadataValidationError as exc:
+        raise ProjectImageError(exc.message, exc.code, 429) from exc
     object_key = build_object_key(metadata.extension)
     image = InteriorProjectImage.objects.create(
         image=object_key,
@@ -121,6 +130,7 @@ def create_presigned_upload(
             bucket=bucket,
             object_key=object_key,
             content_type=metadata.content_type,
+            size=metadata.size,
             expires_in=PRESIGN_EXPIRES_SECONDS,
         )
     except ProjectImageError:
@@ -160,11 +170,14 @@ def _delete_invalid_upload(image, *, reason):
         image.delete()
 
 
+@atomic_image_operation(ProjectImageError)
 def complete_upload(*, user, upload_session, object_key, project=None):
+    if project is not None:
+        project = InteriorProject.objects.select_for_update().get(pk=project.pk)
     if not is_direct_object_key(object_key):
         raise ProjectImageError("圖片識別資料無效。", "invalid_object_key")
     try:
-        image = InteriorProjectImage.objects.get(
+        image = InteriorProjectImage.objects.select_for_update().get(
             image=object_key,
             project__isnull=True,
             upload_session=upload_session,
@@ -175,6 +188,8 @@ def complete_upload(*, user, upload_session, object_key, project=None):
         raise ProjectImageError(
             "無法確認此上傳項目。", "upload_not_owned", 404
         ) from exc
+    if (timezone.now() - image.created_at).total_seconds() > PRESIGN_EXPIRES_SECONDS:
+        raise ProjectImageError("圖片上傳已逾時，請重新選擇圖片。", "upload_expired")
     try:
         metadata = head_object(object_key)
     except Exception as exc:
@@ -194,7 +209,21 @@ def complete_upload(*, user, upload_session, object_key, project=None):
         _delete_invalid_upload(image, reason="mime_mismatch")
         raise ProjectImageError("無法確認圖片格式。", "mime_mismatch")
 
-    image.file_size = actual_size
+    try:
+        client, public_bucket = _storage_client()
+        public_key, clean_size, clean_width, clean_height = verify_and_publish_image(
+            client=client, bucket=public_bucket, object_key=object_key,
+            content_type=image.content_type, size=image.file_size,
+            width=image.width, height=image.height, max_bytes=MAX_FILE_BYTES,
+        )
+    except ImageMetadataValidationError as exc:
+        _delete_invalid_upload(image, reason=exc.code)
+        raise ProjectImageError(exc.message, exc.code) from exc
+    except Exception as exc:
+        raise ProjectImageError("圖片驗證服務無法使用，請重試。", "verification_failed", 503) from exc
+    image.image = public_key
+    image.file_size = clean_size
+    image.width, image.height = clean_width, clean_height
     image.content_type = actual_type
     image.project = project
     image.upload_status = (
@@ -216,6 +245,7 @@ def complete_upload(*, user, upload_session, object_key, project=None):
     image.sort_order = (current_max if current_max is not None else -1) + 1
     image.save(
         update_fields=(
+            "image", "width", "height",
             "file_size",
             "content_type",
             "project",

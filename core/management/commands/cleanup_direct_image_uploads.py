@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.core.files.storage import default_storage
+from core.admin_image_uploads import delete_image_object
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
@@ -27,7 +27,7 @@ class Command(BaseCommand):
         deleted = 0
         for upload in queryset.iterator():
             try:
-                default_storage.delete(upload.object_key)
+                delete_image_object(upload.object_key)
             except Exception as exc:
                 upload.status = DirectImageUpload.Status.DELETION_PENDING
                 upload.save(update_fields=("status", "updated_at"))

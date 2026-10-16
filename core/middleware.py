@@ -3,6 +3,8 @@ import logging
 import time
 import os
 
+from .logging_filters import redact_signed_paths
+
 from django.conf import settings
 from django.http import HttpResponsePermanentRedirect, JsonResponse
 
@@ -20,11 +22,7 @@ def cgroup_memory_current():
 
 
 def safe_request_path(path):
-    if path.startswith("/pay/"):
-        return "/pay/<redacted>/"
-    if path.startswith("/shop/cancel/"):
-        return "/shop/cancel/<redacted>/"
-    return path
+    return redact_signed_paths(path)
 
 
 class ClientIPMiddleware:
