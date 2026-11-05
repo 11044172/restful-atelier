@@ -25,7 +25,7 @@
 
 ## ローカル起動
 
-Python 3.10以上（推奨3.12）とPostgreSQLを用意します。
+Python 3.11以上（推奨3.12）とPostgreSQLを用意します。
 
 ```bash
 python3 -m venv .venv
