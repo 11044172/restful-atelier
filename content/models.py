@@ -44,6 +44,18 @@ class InteriorProject(models.Model):
         blank=True,
         validators=[validate_image_upload],
     )
+    before_image = models.ImageField(
+        "Before 圖片",
+        upload_to="projects/before/%Y/%m/",
+        blank=True,
+        validators=[validate_image_upload],
+        help_text="比較用的施工前圖片；After 使用上方的主要圖片。移除後儲存只會解除連結，不會刪除儲存的檔案。",
+    )
+    show_before_after = models.BooleanField(
+        "顯示 Before・After 比較",
+        default=True,
+        help_text="僅在 Before 圖片與主要圖片皆已設定時顯示比較；設計理念文字仍會保留。",
+    )
     featured_image_focus_x = models.PositiveSmallIntegerField(
         "主要圖片焦點 X",
         default=50,
@@ -88,10 +100,15 @@ class InteriorProject(models.Model):
             self.featured_image_focus_x, self.featured_image_focus_y
         )
 
+    @property
+    def has_before_after(self):
+        return bool(self.show_before_after and self.before_image and self.featured_image)
+
     def save(self, *args, **kwargs):
         self.design_notes = self.design_notes or []
         self.materials = self.materials or []
         sanitize_image_field(self, "featured_image")
+        sanitize_image_field(self, "before_image")
         super().save(*args, **kwargs)
 
 

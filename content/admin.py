@@ -87,6 +87,7 @@ class InteriorProjectAdmin(admin.ModelAdmin):
                 )
             },
         ),
+        ("Before・After 比較", {"fields": ("show_before_after", "before_image")}),
         ("公開設定", {"fields": ("published", "preview_link")}),
         (
             "管理資訊",

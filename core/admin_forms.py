@@ -30,7 +30,10 @@ class InteriorProjectAdminForm(DirectImageAdminFormMixin, forms.ModelForm):
     materials = StringListFormField(label="材質列表")
     project_image_session = forms.UUIDField(required=False, widget=forms.HiddenInput)
     project_image_order = forms.CharField(required=False, widget=forms.HiddenInput)
-    direct_image_fields = {"featured_image": "project.featured_image"}
+    direct_image_fields = {
+        "featured_image": "project.featured_image",
+        "before_image": "project.before_image",
+    }
     direct_image_focal_fields = {
         "featured_image": (
             "featured_image_focus_x",

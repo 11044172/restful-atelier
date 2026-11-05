@@ -317,6 +317,7 @@ class ProjectImageFocusPublicTests(TestCase):
             title="Public focus",
             slug="public-focus",
             description="Description",
+            before_image="projects/before.jpg",
             featured_image="projects/featured.jpg",
             featured_image_focus_x=25,
             featured_image_focus_y=70,

@@ -38,6 +38,7 @@ IMAGE_CATEGORIES = {
     "site.shop_story_image": ("core.change_sitesettings", "site/shop", "photo"),
     "site.about_image": ("core.change_sitesettings", "site/about", "photo"),
     "project.featured_image": ("content.change_interiorproject", "projects", "photo"),
+    "project.before_image": ("content.change_interiorproject", "projects/before", "photo"),
     "project.gallery_image": (
         "content.change_interiorprojectimage",
         "projects/gallery",
