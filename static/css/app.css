@@ -22,6 +22,10 @@
 @media(max-width:420px){.cart-remove-form{grid-column:10/-1;grid-row:2;align-self:center;justify-self:end}.cart-remove{min-width:44px;min-height:44px}.payment-confirm-form{padding:22px 16px}.ecpay-payment-option{padding:18px 46px 18px 16px}.ecpay-payment-option b{right:16px}}
 @media(max-width:380px){.contact-form{padding-inline:10px}.checkout-form{width:calc(100% + 36px);margin-left:-18px}}
 
+/* Keep the full product photo visible in the existing fixed-ratio gallery frame. */
+.product-gallery,.product-main-image{min-width:0}
+.product-main-image .cms-image{object-fit:contain;background:var(--color-surface)}
+
 /* Category cards: dedicated image, editorial product collage, or placeholder. */
 .category-card__visual{width:100%;aspect-ratio:4/3;overflow:hidden;transition:transform .6s ease}
 .category-card:hover .category-card__visual{transform:scale(1.02)}
