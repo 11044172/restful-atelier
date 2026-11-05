@@ -303,7 +303,7 @@ class PublicationImageAdminTests(TestCase):
 
 
 class PublicationImagePublicTests(TestCase):
-    def test_known_dimensions_render_natural_ratios_orientations_and_focus(self):
+    def test_listing_frames_align_while_details_keep_natural_ratios_and_focus(self):
         publications = [
             Publication.objects.create(
                 issue_number="P",
@@ -337,13 +337,14 @@ class PublicationImagePublicTests(TestCase):
         ]
 
         listing_html = self.client.get(reverse("content:publication_list")).content.decode()
-        self.assertIn("--ratio:3000 / 4000", listing_html)
-        self.assertIn("--ratio:3840 / 2160", listing_html)
-        self.assertIn("--ratio:3000 / 3000", listing_html)
+        self.assertEqual(listing_html.count("--ratio:3 / 2"), 3)
+        self.assertNotIn("--ratio:3000 / 4000", listing_html)
+        self.assertNotIn("--ratio:3840 / 2160", listing_html)
+        self.assertNotIn("--ratio:3000 / 3000", listing_html)
         self.assertIn("publication-image--portrait", listing_html)
         self.assertIn("publication-image--landscape", listing_html)
         self.assertIn("publication-image--square", listing_html)
-        self.assertIn("object-position:20% 75%", listing_html)
+        self.assertEqual(listing_html.count("object-position:center bottom"), 3)
 
         for publication in publications:
             with self.subTest(slug=publication.slug):
@@ -353,6 +354,9 @@ class PublicationImagePublicTests(TestCase):
                     detail_html,
                 )
                 self.assertIn(publication.cover_image_orientation_class, detail_html)
+                self.assertIn(
+                    f"object-position:{publication.cover_image_position}", detail_html
+                )
 
     def test_unknown_dimensions_keep_safe_context_specific_fallbacks(self):
         publication = Publication.objects.create(
@@ -368,8 +372,8 @@ class PublicationImagePublicTests(TestCase):
         listing_html = self.client.get(reverse("content:publication_list")).content.decode()
         detail_html = self.client.get(publication.get_absolute_url()).content.decode()
 
-        self.assertIn("--ratio:16 / 9", listing_html)
+        self.assertIn("--ratio:3 / 2", listing_html)
         self.assertIn("--ratio:16 / 9", detail_html)
         self.assertIn("publication-image--unknown", listing_html)
-        self.assertIn("object-position:35% 60%", listing_html)
+        self.assertIn("object-position:center bottom", listing_html)
         self.assertIn("object-position:35% 60%", detail_html)
