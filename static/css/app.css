@@ -26,6 +26,9 @@
 .product-gallery,.product-main-image{min-width:0}
 .product-main-image .cms-image{object-fit:contain;background:var(--color-surface)}
 
+/* Legacy publication covers without dimensions must not be cropped into a portrait. */
+.publication-card .publication-image--unknown .cms-image{object-fit:contain;background:var(--color-surface)}
+
 /* Category cards: dedicated image, editorial product collage, or placeholder. */
 .category-card__visual{width:100%;aspect-ratio:4/3;overflow:hidden;transition:transform .6s ease}
 .category-card:hover .category-card__visual{transform:scale(1.02)}

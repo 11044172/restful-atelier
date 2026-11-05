@@ -62,7 +62,7 @@ class PublicationImageModelTests(TestCase):
         self.assertEqual(
             square.cover_image_orientation_class, "publication-image--square"
         )
-        self.assertEqual(unknown.cover_image_aspect_ratio, "3 / 4.25")
+        self.assertEqual(unknown.cover_image_aspect_ratio, "16 / 9")
         self.assertEqual(unknown.cover_image_detail_aspect_ratio, "16 / 9")
         self.assertEqual(
             unknown.cover_image_orientation_class, "publication-image--unknown"
@@ -368,7 +368,7 @@ class PublicationImagePublicTests(TestCase):
         listing_html = self.client.get(reverse("content:publication_list")).content.decode()
         detail_html = self.client.get(publication.get_absolute_url()).content.decode()
 
-        self.assertIn("--ratio:3 / 4.25", listing_html)
+        self.assertIn("--ratio:16 / 9", listing_html)
         self.assertIn("--ratio:16 / 9", detail_html)
         self.assertIn("publication-image--unknown", listing_html)
         self.assertIn("object-position:35% 60%", listing_html)

@@ -302,7 +302,7 @@ class Publication(models.Model):
         return image_aspect_ratio(
             self.cover_image_width,
             self.cover_image_height,
-            fallback="3 / 4.25",
+            fallback="16 / 9",
         )
 
     @property
